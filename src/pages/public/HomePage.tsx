@@ -322,7 +322,7 @@ export function HomePage() {
                   <div>
                     <div className="flex items-center justify-between gap-2 text-xs text-[#6B5F5C] mb-1.5">
                       <span className="font-semibold text-[#702C3A]">
-                        {offer.category} · {offer.discountLabel}
+                        {offer.category} · {offer.discountLabel} · {offer.offerTier} Offer
                       </span>
                       <span className="tabular-nums">
                         Valid until {formatDisplayDate(offer.validUntil)}
@@ -355,7 +355,7 @@ export function HomePage() {
                     {matchedRest && (
                       <button
                         type="button"
-                        onClick={() => openRestaurantModal(matchedRest, true)}
+                        onClick={() => openRestaurantModal(matchedRest, 'book')}
                         className="px-4 py-1.5 text-xs font-semibold text-white bg-[#702C3A] rounded-lg hover:bg-[#58202C] transition-colors"
                       >
                         Book With Offer

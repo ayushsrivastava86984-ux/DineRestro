@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, ShieldAlert, Loader2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { BrandLogo } from '../../components/common/BrandLogo';
 import { validateEmail } from '../../utils/formatters';
 
 export function AdminLoginPage() {
@@ -37,8 +38,8 @@ export function AdminLoginPage() {
     <div className="min-h-screen bg-[#FFF6E9] flex items-center justify-center px-4 py-12">
       <div className="max-w-md w-full bg-white border border-[#E8DDD1] rounded-lg p-6 sm:p-8 space-y-6">
         <div>
-          <Link to="/" className="font-display text-2xl font-bold text-[#702C3A]">
-            DineRestro
+          <Link to="/" aria-label="DineRestro Home" className="inline-block">
+            <BrandLogo variant="full" />
           </Link>
           <p className="text-xs font-semibold text-[#702C3A] tracking-wide mt-4">
             Internal Operations Portal · DEMO MODE

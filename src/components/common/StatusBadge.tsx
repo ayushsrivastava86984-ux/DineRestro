@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock, XCircle, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, AlertTriangle, Sparkles } from 'lucide-react';
 
 interface StatusBadgeProps {
   status: string;
@@ -13,10 +13,15 @@ export function StatusBadge({ status }: StatusBadgeProps) {
   if (
     normalized === 'confirmed' ||
     normalized === 'approved' ||
+    normalized === 'accepted' ||
     normalized === 'completed' ||
     normalized === 'available' ||
     normalized === 'active' ||
-    normalized === 'resolved'
+    normalized === 'resolved' ||
+    normalized === 'advance paid' ||
+    normalized === 'ready' ||
+    normalized === 'quotation accepted' ||
+    normalized === 'demo paid'
   ) {
     style = 'bg-[#E7EFD9] text-[#292321] border-[#C8D8AC]';
     Icon = CheckCircle2;
@@ -25,20 +30,23 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     normalized === 'cancelled' ||
     normalized === 'declined' ||
     normalized === 'suspended' ||
-    normalized === 'occupied'
+    normalized === 'occupied' ||
+    normalized === 'demo refunded'
   ) {
     style = 'bg-[#FDECEF] text-[#702C3A] border-[#F4A6B8]';
     Icon = XCircle;
   } else if (
-    normalized === 'pending' ||
-    normalized === 'pending review' ||
-    normalized === 'in progress' ||
-    normalized === 'reserved' ||
+    normalized === 'quotation sent' ||
+    normalized === 'preparing'
+  ) {
+    style = 'bg-[#FFF6E9] text-[#702C3A] border-[#F4A6B8]';
+    Icon = Sparkles;
+  } else if (
     normalized === 'open' ||
-    normalized === 'proposal sent'
+    normalized === 'advance pending'
   ) {
     style = 'bg-[#FFF6E9] text-[#702C3A] border-[#E8DDD1]';
-    Icon = normalized === 'open' ? AlertTriangle : Clock;
+    Icon = AlertTriangle;
   }
 
   return (

@@ -5,7 +5,7 @@ import { DemoBanner } from '../../components/common/DemoBanner';
 import { formatDisplayDate } from '../../utils/formatters';
 
 export function OffersPage() {
-  const { offers, restaurants, openRestaurantModal, addToast } = useApp();
+  const { offers, restaurants, platformSettings, openRestaurantModal, addToast } = useApp();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
@@ -37,7 +37,7 @@ export function OffersPage() {
             Exclusive Offers &amp; Limited-Time Promotions
           </h1>
           <p className="text-sm text-[#6B5F5C] mt-1.5 max-w-2xl">
-            Unlock curated table discounts, complimentary desserts, and celebration upgrades across partner restaurants.
+            Unlock curated table discounts, complimentary desserts, and celebration upgrades across partner restaurants. Regular table bookings without offers remain ₹0 platform fee; offer bookings apply ₹{platformSettings.basicOfferFeePerGuest}/guest (Basic) or ₹{platformSettings.premiumOfferFeePerGuest}/guest (Premium) in demo mode.
           </p>
         </div>
 
@@ -63,6 +63,10 @@ export function OffersPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {visibleOffers.map((offer) => {
             const matchedRest = restaurants.find((r) => r.id === offer.restaurantId);
+            const feePerGuest =
+              offer.offerTier === 'Premium'
+                ? platformSettings.premiumOfferFeePerGuest
+                : platformSettings.basicOfferFeePerGuest;
             return (
               <div
                 key={offer.id}
@@ -72,7 +76,7 @@ export function OffersPage() {
                   <div className="flex items-center justify-between gap-2 text-xs text-[#6B5F5C]">
                     <span className="inline-flex items-center gap-1.5 font-semibold text-[#702C3A]">
                       <Tag className="w-3.5 h-3.5" />
-                      {offer.category} · {offer.discountLabel}
+                      {offer.category} · {offer.discountLabel} · {offer.offerTier} Offer (₹{feePerGuest}/guest)
                     </span>
                     <span className="tabular-nums">
                       Expires {formatDisplayDate(offer.validUntil)}
@@ -106,7 +110,7 @@ export function OffersPage() {
                   {matchedRest && (
                     <button
                       type="button"
-                      onClick={() => openRestaurantModal(matchedRest, true)}
+                      onClick={() => openRestaurantModal(matchedRest, 'book')}
                       className="px-4 py-2 text-xs font-semibold text-white bg-[#702C3A] rounded-lg hover:bg-[#58202C] transition-colors"
                     >
                       Book Table With Offer

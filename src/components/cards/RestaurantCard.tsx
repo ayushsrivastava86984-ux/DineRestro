@@ -8,8 +8,11 @@ interface RestaurantCardProps {
 }
 
 export function RestaurantCard({ restaurant }: RestaurantCardProps) {
-  const { openRestaurantModal, favoriteIds, toggleFavorite } = useApp();
+  const { openRestaurantModal, favoriteIds, toggleFavorite, celebrationPackages } = useApp();
   const isFav = favoriteIds.includes(restaurant.id);
+  const approvedCelebCount = celebrationPackages.filter(
+    (c) => c.restaurantId === restaurant.id && c.approvalStatus === 'Approved'
+  ).length;
 
   return (
     <article className="group bg-white border border-[#E8DDD1] rounded-lg overflow-hidden flex flex-col transition-transform duration-150 hover:-translate-y-0.5">
@@ -45,28 +48,33 @@ export function RestaurantCard({ restaurant }: RestaurantCardProps) {
           {restaurant.cuisines.join(' · ')}
         </p>
 
-        <div className="flex items-center gap-2 text-xs text-[#6B5F5C] mt-2 tabular-nums">
+        <div className="flex items-center gap-2 text-xs text-[#6B5F5C] mt-1.5 tabular-nums">
           <span>{restaurant.area}, {restaurant.city}</span>
           <span aria-hidden="true">·</span>
           <span className="font-medium text-[#292321]">{restaurant.priceRange}</span>
         </div>
 
+        <p className="text-[11px] text-[#6B5F5C] mt-2 line-clamp-1">
+          {restaurant.amenities.slice(0, 3).join(' · ')}
+          {approvedCelebCount > 0 ? ` · ${approvedCelebCount} Celebration Pkg` : ''}
+        </p>
+
         <div className="mt-3 pt-3 border-t border-[#E8DDD1] text-xs font-medium text-[#702C3A]">
           {restaurant.offerText}
         </div>
 
-        <div className="mt-auto pt-4 flex items-center gap-2.5">
+        <div className="mt-auto pt-4 flex items-center gap-2">
           <button
             type="button"
-            onClick={() => openRestaurantModal(restaurant, false)}
-            className="flex-1 px-3 py-2 text-xs font-semibold text-[#292321] border border-[#E8DDD1] rounded-lg hover:bg-[#FFF6E9] transition-colors whitespace-nowrap"
+            onClick={() => openRestaurantModal(restaurant, 'overview')}
+            className="flex-1 px-2.5 py-2 text-xs font-semibold text-[#292321] border border-[#E8DDD1] rounded-lg hover:bg-[#FFF6E9] transition-colors whitespace-nowrap"
           >
             View Details
           </button>
           <button
             type="button"
-            onClick={() => openRestaurantModal(restaurant, true)}
-            className="flex-1 px-3 py-2 text-xs font-semibold text-white bg-[#702C3A] rounded-lg hover:bg-[#58202C] transition-colors whitespace-nowrap"
+            onClick={() => openRestaurantModal(restaurant, 'book')}
+            className="flex-1 px-2.5 py-2 text-xs font-semibold text-white bg-[#702C3A] rounded-lg hover:bg-[#58202C] transition-colors whitespace-nowrap"
           >
             Book Table
           </button>

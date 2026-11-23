@@ -12,6 +12,7 @@ import {
   MapPin,
   Copy,
   Check,
+  Receipt,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { DashboardLayout, type DashboardNavItem } from '../../components/layout/DashboardLayout';
@@ -21,13 +22,13 @@ import { RestaurantCard } from '../../components/cards/RestaurantCard';
 import { RestaurantModal } from '../../components/common/RestaurantModal';
 import { POPULAR_CUISINES } from '../../data/mockData';
 import type { CuisineType } from '../../types';
-import { formatDisplayDate } from '../../utils/formatters';
+import { formatDisplayDate, formatINR } from '../../utils/formatters';
 
 const CUSTOMER_NAV: DashboardNavItem[] = [
   { label: 'Overview', to: '/customer/dashboard', icon: LayoutDashboard },
   { label: 'Explore Restaurants', to: '/customer/explore', icon: Compass },
-  { label: 'My Bookings', to: '/customer/bookings', icon: CalendarCheck },
-  { label: 'Events', to: '/customer/events', icon: PartyPopper },
+  { label: 'My Bookings & Orders', to: '/customer/bookings', icon: CalendarCheck },
+  { label: 'Celebrations & Quotes', to: '/customer/events', icon: PartyPopper },
   { label: 'Offers', to: '/customer/offers', icon: Tag },
   { label: 'Favorites', to: '/customer/favorites', icon: Heart },
   { label: 'My Profile', to: '/customer/profile', icon: UserCircle },
@@ -42,33 +43,47 @@ export function CustomerDashboard() {
     restaurants,
     reservations,
     updateReservationStatus,
+    preOrders,
+    markPreOrderAdvancePaid,
+    celebrationBookings,
+    acceptCelebrationQuotation,
+    markCelebrationAdvancePaid,
+    payments,
     offers,
-    eventInquiries,
     favoriteIds,
     tickets,
     submitSupportTicket,
     openRestaurantModal,
+    openDemoPayment,
     addToast,
   } = useApp();
 
-  const [bookingFilter, setBookingFilter] = useState<'All' | 'Upcoming' | 'Completed' | 'Cancelled'>('All');
+  const [bookingsTab, setBookingsTab] = useState<'tables' | 'preorders' | 'payments'>('tables');
   const [searchExplore, setSearchExplore] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
-  // Profile form state
   const [fullName, setFullName] = useState(customerUser.fullName);
   const [mobile, setMobile] = useState(customerUser.mobile);
   const [city, setCity] = useState(customerUser.city);
   const [preferredCuisine, setPreferredCuisine] = useState<CuisineType>(customerUser.preferredCuisine);
 
-  // Support ticket state
   const [ticketSubject, setTicketSubject] = useState('');
   const [ticketMessage, setTicketMessage] = useState('');
 
   const approvedRestaurants = restaurants.filter((r) => r.approvalStatus === 'Approved');
-  const myBookings = reservations.filter((r) => r.customerId === customerUser.id || r.customerName === customerUser.fullName);
-  const upcomingBookings = myBookings.filter((b) => b.status === 'Pending' || b.status === 'Confirmed');
-  const recentBookings = myBookings.filter((b) => b.status === 'Completed' || b.status === 'Cancelled');
+  const myBookings = reservations.filter(
+    (r) => r.customerId === customerUser.id || r.customerName === customerUser.fullName
+  );
+  const myPreOrders = preOrders.filter(
+    (p) => p.customerId === customerUser.id || p.customerName === customerUser.fullName
+  );
+  const myCelebrations = celebrationBookings.filter(
+    (c) => c.customerId === customerUser.id || c.customerName === customerUser.fullName
+  );
+  const myPayments = payments.filter(
+    (pay) => pay.customerName === customerUser.fullName
+  );
+
   const favoriteRestaurants = approvedRestaurants.filter((r) => favoriteIds.includes(r.id));
   const activeOffers = offers.filter((o) => o.active);
 
@@ -121,13 +136,6 @@ export function CustomerDashboard() {
     setTicketMessage('');
   };
 
-  const filteredMyBookings = myBookings.filter((b) => {
-    if (bookingFilter === 'Upcoming') return b.status === 'Pending' || b.status === 'Confirmed';
-    if (bookingFilter === 'Completed') return b.status === 'Completed';
-    if (bookingFilter === 'Cancelled') return b.status === 'Cancelled' || b.status === 'Rejected';
-    return true;
-  });
-
   return (
     <DashboardLayout
       portalRole="customer"
@@ -137,7 +145,7 @@ export function CustomerDashboard() {
       navItems={CUSTOMER_NAV}
     >
       <div className="space-y-6">
-        <DemoBanner message="You are viewing the simulated Customer Dashboard (DEMO MODE). Booking previews and profile edits are stored in local session state only." />
+        <DemoBanner message="Customer Dashboard (DEMO MODE). Table bookings, plate pre-orders, celebration quotations, and DEMO ONLY payments are stored in local state." />
 
         {activeSection === 'overview' && (
           <div className="space-y-8">
@@ -147,29 +155,34 @@ export function CustomerDashboard() {
                   Welcome back, {customerUser.fullName.split(' ')[0]}
                 </h1>
                 <p className="text-sm text-[#6B5F5C] mt-1">
-                  Your curated Varanasi dining schedule, saved venues, and dining privileges.
+                  Track table reservations, food pre-orders, celebration quotations, and Varanasi dining offers.
                 </p>
               </div>
               <Link
                 to="/customer/explore"
                 className="px-4 py-2.5 text-xs font-semibold text-white bg-[#702C3A] rounded-lg hover:bg-[#58202C] transition-colors whitespace-nowrap self-start"
               >
-                Book a New Table (Demo)
+                Discover &amp; Reserve (Demo)
               </Link>
             </div>
 
-            {/* Summary KPIs */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white border border-[#E8DDD1] rounded-lg p-4">
-                <p className="text-xs text-[#6B5F5C]">Upcoming Previews</p>
+                <p className="text-xs text-[#6B5F5C]">Table Reservations</p>
                 <p className="text-2xl font-semibold font-mono tabular-nums text-[#292321] mt-1">
-                  {upcomingBookings.length}
+                  {myBookings.length}
                 </p>
               </div>
               <div className="bg-white border border-[#E8DDD1] rounded-lg p-4">
-                <p className="text-xs text-[#6B5F5C]">Recent / Completed</p>
+                <p className="text-xs text-[#6B5F5C]">Food Pre-Orders</p>
                 <p className="text-2xl font-semibold font-mono tabular-nums text-[#292321] mt-1">
-                  {recentBookings.length}
+                  {myPreOrders.length}
+                </p>
+              </div>
+              <div className="bg-white border border-[#E8DDD1] rounded-lg p-4">
+                <p className="text-xs text-[#6B5F5C]">Celebration Bookings</p>
+                <p className="text-2xl font-semibold font-mono tabular-nums text-[#702C3A] mt-1">
+                  {myCelebrations.length}
                 </p>
               </div>
               <div className="bg-white border border-[#E8DDD1] rounded-lg p-4">
@@ -178,70 +191,73 @@ export function CustomerDashboard() {
                   {favoriteRestaurants.length}
                 </p>
               </div>
-              <div className="bg-white border border-[#E8DDD1] rounded-lg p-4">
-                <p className="text-xs text-[#6B5F5C]">Available Offers</p>
-                <p className="text-2xl font-semibold font-mono tabular-nums text-[#702C3A] mt-1">
-                  {activeOffers.length}
-                </p>
-              </div>
             </div>
 
-            {/* Upcoming & Recent Bookings */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white border border-[#E8DDD1] rounded-lg p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-[#292321]">Upcoming Bookings</h2>
-                  <Link to="/customer/bookings" className="text-xs font-semibold text-[#702C3A] hover:underline">
-                    View all
+            {/* Celebration Quotation Action Alert if any */}
+            {myCelebrations.some((c) => c.status === 'Quotation Sent' || c.status === 'Advance Pending') && (
+              <div className="bg-[#FFF6E9] border border-[#702C3A]/35 rounded-lg p-5 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-base font-semibold text-[#702C3A]">
+                    Action Required: Celebration Quotation Ready
+                  </h2>
+                  <Link to="/customer/events" className="text-xs font-semibold text-[#702C3A] underline">
+                    Manage Celebrations
                   </Link>
                 </div>
-                {upcomingBookings.length === 0 ? (
-                  <p className="text-sm text-[#6B5F5C]">No upcoming booking previews yet.</p>
-                ) : (
-                  <div className="divide-y divide-[#E8DDD1]">
-                    {upcomingBookings.map((b) => (
-                      <div key={b.id} className="py-3 flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-[#292321]">{b.restaurantName}</p>
-                          <p className="text-xs text-[#6B5F5C] tabular-nums">
-                            {formatDisplayDate(b.date)} · {b.time} · {b.guests} Guests
-                          </p>
-                        </div>
-                        <StatusBadge status={b.status} />
+                {myCelebrations
+                  .filter((c) => c.status === 'Quotation Sent' || c.status === 'Advance Pending')
+                  .map((cel) => (
+                    <div
+                      key={cel.id}
+                      className="bg-white border border-[#E8DDD1] rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs"
+                    >
+                      <div className="space-y-1">
+                        <p className="font-semibold text-sm text-[#292321]">
+                          {cel.packageName} · {cel.restaurantName}
+                        </p>
+                        <p className="text-[#6B5F5C] tabular-nums">
+                          {cel.platesCount} Plates · Quoted Total: {formatINR(cel.quotedTotalAmount)} · Decoration: FREE (₹0) · {cel.advancePercent}% Advance: {formatINR(cel.advanceAmount)}
+                        </p>
                       </div>
-                    ))}
-                  </div>
-                )}
+                      {cel.status === 'Quotation Sent' ? (
+                        <button
+                          type="button"
+                          onClick={() => acceptCelebrationQuotation(cel.id)}
+                          className="px-4 py-2 text-xs font-semibold text-white bg-[#702C3A] rounded-lg shrink-0"
+                        >
+                          Accept Quotation
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openDemoPayment({
+                              title: `Celebration ${cel.advancePercent}% Advance (DEMO ONLY)`,
+                              referenceId: cel.id,
+                              paymentType: 'Celebration Advance',
+                              customerName: cel.customerName,
+                              restaurantName: cel.restaurantName,
+                              amount: cel.advanceAmount,
+                              breakdownLines: [
+                                { label: 'Package', value: cel.packageName },
+                                { label: 'Plates', value: `${cel.platesCount} × ${formatINR(cel.pricePerPlate)}` },
+                                { label: 'Decoration Charge', value: 'FREE (₹0)' },
+                                { label: 'Approved Total', value: formatINR(cel.quotedTotalAmount) },
+                                { label: 'Remaining at Restaurant', value: formatINR(cel.remainingAmount) },
+                              ],
+                              onComplete: (txnId) => markCelebrationAdvancePaid(cel.id, txnId),
+                            })
+                          }
+                          className="px-4 py-2 text-xs font-semibold text-white bg-[#702C3A] rounded-lg shrink-0"
+                        >
+                          Pay {formatINR(cel.advanceAmount)} Demo Advance
+                        </button>
+                      )}
+                    </div>
+                  ))}
               </div>
+            )}
 
-              <div className="bg-white border border-[#E8DDD1] rounded-lg p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-[#292321]">Recent Bookings</h2>
-                  <Link to="/customer/bookings" className="text-xs font-semibold text-[#702C3A] hover:underline">
-                    History
-                  </Link>
-                </div>
-                {recentBookings.length === 0 ? (
-                  <p className="text-sm text-[#6B5F5C]">No past bookings in this demo session.</p>
-                ) : (
-                  <div className="divide-y divide-[#E8DDD1]">
-                    {recentBookings.map((b) => (
-                      <div key={b.id} className="py-3 flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-[#292321]">{b.restaurantName}</p>
-                          <p className="text-xs text-[#6B5F5C] tabular-nums">
-                            {formatDisplayDate(b.date)} · {b.guests} Guests · {b.occasion || 'Dining'}
-                          </p>
-                        </div>
-                        <StatusBadge status={b.status} />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Recommended Restaurants */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="font-display text-2xl font-semibold text-[#292321]">
@@ -255,55 +271,6 @@ export function CustomerDashboard() {
                 {approvedRestaurants.slice(0, 3).map((r) => (
                   <RestaurantCard key={r.id} restaurant={r} />
                 ))}
-              </div>
-            </div>
-
-            {/* Exclusive Offers & Favorites */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white border border-[#E8DDD1] rounded-lg p-5 space-y-3">
-                <h2 className="text-lg font-semibold text-[#292321]">Exclusive Offers</h2>
-                <div className="divide-y divide-[#E8DDD1]">
-                  {activeOffers.slice(0, 3).map((offer) => (
-                    <div key={offer.id} className="py-3 flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-[#292321]">{offer.title}</p>
-                        <p className="text-xs text-[#6B5F5C]">{offer.restaurantName} · {offer.discountLabel}</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyCode(offer.code)}
-                        className="px-2.5 py-1 text-xs font-mono font-semibold border border-[#E8DDD1] rounded bg-[#FFF6E9]"
-                      >
-                        {offer.code}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-white border border-[#E8DDD1] rounded-lg p-5 space-y-3">
-                <h2 className="text-lg font-semibold text-[#292321]">Favorite Restaurants</h2>
-                {favoriteRestaurants.length === 0 ? (
-                  <p className="text-sm text-[#6B5F5C]">Save restaurants with the heart icon to access them quickly.</p>
-                ) : (
-                  <div className="divide-y divide-[#E8DDD1]">
-                    {favoriteRestaurants.map((r) => (
-                      <div key={r.id} className="py-3 flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-[#292321]">{r.name}</p>
-                          <p className="text-xs text-[#6B5F5C]">{r.area} · {r.primaryCuisine}</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => openRestaurantModal(r, true)}
-                          className="px-3 py-1.5 text-xs font-semibold text-white bg-[#702C3A] rounded-lg"
-                        >
-                          Book
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -340,87 +307,191 @@ export function CustomerDashboard() {
         )}
 
         {activeSection === 'bookings' && (
-          <div className="space-y-5">
+          <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h1 className="font-display text-3xl font-semibold text-[#292321]">
-                  My Bookings (Demo Previews)
+                  My Bookings, Pre-Orders &amp; Payment Summaries
                 </h1>
                 <p className="text-sm text-[#6B5F5C]">
-                  Track or cancel simulated table reservation previews.
+                  Platform booking fees, food pre-orders, and celebration payments are always tracked separately.
                 </p>
               </div>
-              <div className="flex items-center gap-1.5 bg-white border border-[#E8DDD1] p-1 rounded-lg">
-                {(['All', 'Upcoming', 'Completed', 'Cancelled'] as const).map((tab) => (
+              <div className="flex gap-1.5 bg-white border border-[#E8DDD1] p-1 rounded-lg">
+                {[
+                  { id: 'tables' as const, label: `Table Bookings (${myBookings.length})` },
+                  { id: 'preorders' as const, label: `Food Pre-Orders (${myPreOrders.length})` },
+                  { id: 'payments' as const, label: `Demo Receipts (${myPayments.length})` },
+                ].map((t) => (
                   <button
-                    key={tab}
+                    key={t.id}
                     type="button"
-                    onClick={() => setBookingFilter(tab)}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
-                      bookingFilter === tab
+                    onClick={() => setBookingsTab(t.id)}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded ${
+                      bookingsTab === t.id
                         ? 'bg-[#702C3A] text-white'
                         : 'text-[#292321] hover:bg-[#FFF6E9]'
                     }`}
                   >
-                    {tab}
+                    {t.label}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="bg-white border border-[#E8DDD1] rounded-lg overflow-x-auto">
-              <table className="w-full text-left border-collapse text-sm">
-                <thead>
-                  <tr className="border-b border-[#E8DDD1] bg-[#FFF6E9] text-xs text-[#6B5F5C]">
-                    <th className="py-3 px-4 font-semibold">Ref ID</th>
-                    <th className="py-3 px-4 font-semibold">Restaurant</th>
-                    <th className="py-3 px-4 font-semibold">Date &amp; Time</th>
-                    <th className="py-3 px-4 font-semibold text-right">Guests</th>
-                    <th className="py-3 px-4 font-semibold">Status</th>
-                    <th className="py-3 px-4 font-semibold text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#E8DDD1]">
-                  {filteredMyBookings.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="py-8 text-center text-sm text-[#6B5F5C]">
-                        No bookings match this filter.
-                      </td>
+            {bookingsTab === 'tables' && (
+              <div className="space-y-3">
+                {myBookings.map((b) => (
+                  <div
+                    key={b.id}
+                    className="bg-white border border-[#E8DDD1] rounded-lg p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="font-mono font-semibold text-[#702C3A]">{b.id}</span>
+                        <span className="text-[#6B5F5C]">· {b.orderMode}</span>
+                      </div>
+                      <h3 className="text-lg font-semibold text-[#292321]">{b.restaurantName}</h3>
+                      <p className="text-xs text-[#6B5F5C] tabular-nums">
+                        {formatDisplayDate(b.date)} · {b.time} · {b.guests} Guests
+                      </p>
+                      {b.orderMode === 'Offer Table Booking' && b.platformFeeTotal !== undefined ? (
+                        <p className="text-xs text-[#702C3A] font-medium tabular-nums">
+                          Offer: {b.selectedOfferTitle} · Platform Fee: {b.guests} × ₹{b.feePerGuest} = {formatINR(b.platformFeeTotal)} (Food bill paid at restaurant)
+                        </p>
+                      ) : (
+                        <p className="text-xs text-[#6B5F5C]">
+                          Order at Restaurant — ₹0 food advance required
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2.5 shrink-0">
+                      <StatusBadge status={b.status} />
+                      {(b.status === 'Pending' || b.status === 'Confirmed' || b.status === 'Accepted') && (
+                        <button
+                          type="button"
+                          onClick={() => updateReservationStatus(b.id, 'Cancelled')}
+                          className="px-3 py-1.5 text-xs font-semibold text-[#702C3A] border border-[#F4A6B8] rounded hover:bg-[#FDECEF]"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {bookingsTab === 'preorders' && (
+              <div className="space-y-4">
+                {myPreOrders.map((po) => (
+                  <div key={po.id} className="bg-white border border-[#E8DDD1] rounded-lg p-5 space-y-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-mono font-semibold text-[#702C3A]">
+                          {po.id} · {formatDisplayDate(po.date)} at {po.time}
+                        </p>
+                        <h3 className="text-lg font-semibold text-[#292321]">
+                          {po.packageName} — {po.restaurantName}
+                        </h3>
+                        <p className="text-xs text-[#6B5F5C]">{po.foodPreference}</p>
+                      </div>
+                      <StatusBadge status={po.status} />
+                    </div>
+
+                    {/* Separate Payment Breakdown B */}
+                    <div className="bg-[#FFF6E9]/55 border border-[#E8DDD1] rounded-lg p-3.5 grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+                      <div>
+                        <p className="text-[#6B5F5C]">Selected Plates</p>
+                        <p className="font-semibold tabular-nums">{po.plateCount} Plates</p>
+                      </div>
+                      <div>
+                        <p className="text-[#6B5F5C]">Price / Plate</p>
+                        <p className="font-mono font-semibold tabular-nums">{formatINR(po.pricePerPlate)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[#6B5F5C]">Total Food Amount</p>
+                        <p className="font-mono font-semibold tabular-nums">{formatINR(po.totalFoodAmount)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[#6B5F5C]">Advance ({po.advancePercent}%)</p>
+                        <p className="font-mono font-semibold text-[#702C3A] tabular-nums">
+                          {formatINR(po.advanceAmount)} ({po.advancePaid ? 'DEMO PAID' : 'Pending'})
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[#6B5F5C]">Remaining at Venue</p>
+                        <p className="font-mono font-semibold tabular-nums">{formatINR(po.remainingAmount)}</p>
+                      </div>
+                    </div>
+
+                    {!po.advancePaid && po.status !== 'Rejected' && (
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openDemoPayment({
+                              title: `Food Pre-Order ${po.advancePercent}% Advance (DEMO ONLY)`,
+                              referenceId: po.id,
+                              paymentType: 'Food Pre-Order Advance',
+                              customerName: po.customerName,
+                              restaurantName: po.restaurantName,
+                              amount: po.advanceAmount,
+                              breakdownLines: [
+                                { label: 'Plate Package', value: po.packageName },
+                                { label: 'Plates', value: `${po.plateCount} × ${formatINR(po.pricePerPlate)}` },
+                                { label: 'Total Food Bill', value: formatINR(po.totalFoodAmount) },
+                                { label: 'Remaining at Restaurant', value: formatINR(po.remainingAmount) },
+                              ],
+                              onComplete: (txnId) => markPreOrderAdvancePaid(po.id, txnId),
+                            })
+                          }
+                          className="px-4 py-2 text-xs font-semibold text-white bg-[#702C3A] rounded-lg"
+                        >
+                          Pay {formatINR(po.advanceAmount)} Demo Advance
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {bookingsTab === 'payments' && (
+              <div className="bg-white border border-[#E8DDD1] rounded-lg overflow-x-auto">
+                <table className="w-full text-left border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b border-[#E8DDD1] bg-[#FFF6E9] text-xs text-[#6B5F5C]">
+                      <th className="py-3 px-4 font-semibold">Demo Txn ID</th>
+                      <th className="py-3 px-4 font-semibold">Ref</th>
+                      <th className="py-3 px-4 font-semibold">Category</th>
+                      <th className="py-3 px-4 font-semibold">Restaurant</th>
+                      <th className="py-3 px-4 font-semibold text-right">Amount</th>
+                      <th className="py-3 px-4 font-semibold">Status</th>
                     </tr>
-                  ) : (
-                    filteredMyBookings.map((b) => (
-                      <tr key={b.id} className="hover:bg-[#FFF6E9]/40">
+                  </thead>
+                  <tbody className="divide-y divide-[#E8DDD1]">
+                    {myPayments.map((pay) => (
+                      <tr key={pay.id}>
                         <td className="py-3 px-4 font-mono text-xs font-semibold text-[#702C3A]">
-                          {b.id}
+                          <span className="inline-flex items-center gap-1.5">
+                            <Receipt className="w-3.5 h-3.5" />
+                            {pay.transactionId}
+                          </span>
                         </td>
-                        <td className="py-3 px-4">
-                          <p className="font-medium text-[#292321]">{b.restaurantName}</p>
-                          <p className="text-xs text-[#6B5F5C]">{b.restaurantArea}</p>
+                        <td className="py-3 px-4 font-mono text-xs">{pay.referenceId}</td>
+                        <td className="py-3 px-4 text-xs">{pay.paymentType}</td>
+                        <td className="py-3 px-4 text-xs">{pay.restaurantName}</td>
+                        <td className="py-3 px-4 text-right font-mono font-semibold tabular-nums">
+                          {formatINR(pay.amount)}
                         </td>
-                        <td className="py-3 px-4 tabular-nums text-xs text-[#292321]">
-                          {formatDisplayDate(b.date)} · {b.time}
-                        </td>
-                        <td className="py-3 px-4 text-right tabular-nums">{b.guests}</td>
-                        <td className="py-3 px-4">
-                          <StatusBadge status={b.status} />
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          {(b.status === 'Pending' || b.status === 'Confirmed') && (
-                            <button
-                              type="button"
-                              onClick={() => updateReservationStatus(b.id, 'Cancelled')}
-                              className="px-3 py-1 text-xs font-semibold text-[#702C3A] border border-[#F4A6B8] rounded hover:bg-[#FDECEF]"
-                            >
-                              Cancel
-                            </button>
-                          )}
-                        </td>
+                        <td className="py-3 px-4"><StatusBadge status={pay.status} /></td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
@@ -429,31 +500,104 @@ export function CustomerDashboard() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h1 className="font-display text-3xl font-semibold text-[#292321]">
-                  My Event Inquiries
+                  Celebration Bookings &amp; Quotations
                 </h1>
                 <p className="text-sm text-[#6B5F5C]">
-                  Track birthday, anniversary, and celebration dining requests.
+                  Decoration is always FREE (₹0). Review custom quotations and complete your 50% demo advance.
                 </p>
               </div>
               <Link
                 to="/events"
                 className="px-4 py-2 text-xs font-semibold text-white bg-[#702C3A] rounded-lg"
               >
-                New Event Inquiry
+                Explore Celebration Packages
               </Link>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {eventInquiries.map((ev) => (
-                <div key={ev.id} className="bg-white border border-[#E8DDD1] rounded-lg p-5 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-mono font-semibold text-[#702C3A]">{ev.id}</span>
-                    <StatusBadge status={ev.status} />
+
+            <div className="space-y-4">
+              {myCelebrations.map((cel) => (
+                <div key={cel.id} className="bg-white border border-[#E8DDD1] rounded-lg p-5 space-y-4">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-mono font-semibold text-[#702C3A]">
+                        {cel.id} · {cel.celebrationType} · {formatDisplayDate(cel.eventDate)} at {cel.eventTime}
+                      </p>
+                      <h3 className="text-xl font-semibold text-[#292321]">
+                        {cel.packageName} — {cel.restaurantName}
+                      </h3>
+                      <p className="text-xs text-[#6B5F5C] mt-0.5">{cel.decorationArrangement}</p>
+                    </div>
+                    <StatusBadge status={cel.status} />
                   </div>
-                  <h3 className="text-lg font-semibold text-[#292321]">{ev.eventType}</h3>
-                  <p className="text-xs text-[#6B5F5C]">
-                    {ev.restaurantName} · {formatDisplayDate(ev.preferredDate)} · {ev.guests} Guests · {ev.budgetRange}
-                  </p>
-                  <p className="text-xs text-[#292321] pt-1">{ev.notes}</p>
+
+                  {/* Separated Celebration Payment Summary C */}
+                  <div className="bg-[#FFF6E9]/55 border border-[#E8DDD1] rounded-lg p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <p className="text-[#6B5F5C]">Plates × Price</p>
+                      <p className="font-mono font-semibold tabular-nums">
+                        {cel.platesCount} × {formatINR(cel.pricePerPlate)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[#6B5F5C]">Decoration Charge</p>
+                      <p className="font-semibold text-[#292321]">FREE (₹0)</p>
+                    </div>
+                    <div>
+                      <p className="text-[#6B5F5C]">Quoted Total Amount</p>
+                      <p className="font-mono font-semibold tabular-nums">{formatINR(cel.quotedTotalAmount)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[#6B5F5C]">Approved Advance ({cel.advancePercent}%)</p>
+                      <p className="font-mono font-semibold text-[#702C3A] tabular-nums">
+                        {formatINR(cel.advanceAmount)} · Rem: {formatINR(cel.remainingAmount)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {cel.quotationNotes && (
+                    <p className="text-xs text-[#6B5F5C]">
+                      <strong>Restaurant Quotation Note:</strong> {cel.quotationNotes}
+                    </p>
+                  )}
+
+                  <div className="flex flex-wrap justify-end gap-2">
+                    {cel.status === 'Quotation Sent' && (
+                      <button
+                        type="button"
+                        onClick={() => acceptCelebrationQuotation(cel.id)}
+                        className="px-4 py-2 text-xs font-semibold text-white bg-[#702C3A] rounded-lg"
+                      >
+                        Accept Quotation
+                      </button>
+                    )}
+                    {cel.status === 'Advance Pending' && !cel.advancePaid && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openDemoPayment({
+                            title: `Celebration ${cel.advancePercent}% Advance (DEMO ONLY)`,
+                            referenceId: cel.id,
+                            paymentType: 'Celebration Advance',
+                            customerName: cel.customerName,
+                            restaurantName: cel.restaurantName,
+                            amount: cel.advanceAmount,
+                            breakdownLines: [
+                              { label: 'Package Name', value: cel.packageName },
+                              { label: 'Food Included', value: `${cel.plateItems.length} courses per plate` },
+                              { label: 'Plates × Price', value: `${cel.platesCount} × ${formatINR(cel.pricePerPlate)}` },
+                              { label: 'Decoration Charge', value: 'FREE (₹0)' },
+                              { label: 'Approved Total', value: formatINR(cel.quotedTotalAmount) },
+                              { label: 'Remaining Payable at Venue', value: formatINR(cel.remainingAmount) },
+                            ],
+                            onComplete: (txnId) => markCelebrationAdvancePaid(cel.id, txnId),
+                          })
+                        }
+                        className="px-4 py-2 text-xs font-semibold text-white bg-[#702C3A] rounded-lg"
+                      >
+                        Pay {formatINR(cel.advanceAmount)} Demo Advance
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -469,7 +613,9 @@ export function CustomerDashboard() {
               {activeOffers.map((offer) => (
                 <div key={offer.id} className="bg-white border border-[#E8DDD1] rounded-lg p-5 space-y-3">
                   <div className="flex items-center justify-between text-xs text-[#6B5F5C]">
-                    <span className="font-semibold text-[#702C3A]">{offer.discountLabel}</span>
+                    <span className="font-semibold text-[#702C3A]">
+                      {offer.discountLabel} · {offer.offerTier} Offer
+                    </span>
                     <span className="tabular-nums">Valid till {formatDisplayDate(offer.validUntil)}</span>
                   </div>
                   <h3 className="text-lg font-semibold text-[#292321]">{offer.title}</h3>
@@ -515,31 +661,22 @@ export function CustomerDashboard() {
 
         {activeSection === 'profile' && (
           <div className="max-w-2xl bg-white border border-[#E8DDD1] rounded-lg p-6 space-y-5">
-            <div>
-              <h1 className="font-display text-3xl font-semibold text-[#292321]">
-                My Profile (Demo)
-              </h1>
-              <p className="text-xs text-[#6B5F5C] mt-1">
-                Update your simulated diner preferences stored in local browser state.
-              </p>
-            </div>
+            <h1 className="font-display text-3xl font-semibold text-[#292321]">
+              My Profile (Demo)
+            </h1>
             <form onSubmit={handleProfileSave} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#292321] mb-1">
-                    Full Name
-                  </label>
+                  <label className="block text-xs font-semibold mb-1">Full Name</label>
                   <input
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+                    className="w-full px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#292321] mb-1">
-                    Email (Read-only Demo)
-                  </label>
+                  <label className="block text-xs font-semibold mb-1">Email (Read-only Demo)</label>
                   <input
                     type="email"
                     value={customerUser.email}
@@ -550,43 +687,35 @@ export function CustomerDashboard() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#292321] mb-1">
-                    Mobile Number
-                  </label>
+                  <label className="block text-xs font-semibold mb-1">Mobile Number</label>
                   <input
                     type="tel"
                     value={mobile}
                     onChange={(e) => setMobile(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+                    className="w-full px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#292321] mb-1">
-                    City
-                  </label>
+                  <label className="block text-xs font-semibold mb-1">City</label>
                   <div className="relative">
                     <MapPin className="w-4 h-4 text-[#6B5F5C] absolute left-3 top-2.5" />
                     <input
                       type="text"
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 text-sm border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+                      className="w-full pl-9 pr-3 py-2 text-sm border border-[#E8DDD1] rounded-lg"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#292321] mb-1">
-                    Preferred Cuisine
-                  </label>
+                  <label className="block text-xs font-semibold mb-1">Preferred Cuisine</label>
                   <select
                     value={preferredCuisine}
                     onChange={(e) => setPreferredCuisine(e.target.value as CuisineType)}
-                    className="w-full px-3 py-2 text-sm bg-white border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+                    className="w-full px-3 py-2 text-sm bg-white border border-[#E8DDD1] rounded-lg"
                   >
                     {POPULAR_CUISINES.map((c) => (
-                      <option key={c.name} value={c.name}>
-                        {c.name}
-                      </option>
+                      <option key={c.name} value={c.name}>{c.name}</option>
                     ))}
                   </select>
                 </div>
@@ -607,32 +736,24 @@ export function CustomerDashboard() {
               <h1 className="font-display text-3xl font-semibold text-[#292321]">
                 Help &amp; Support
               </h1>
-              <p className="text-xs text-[#6B5F5C]">
-                Need assistance with a dining reservation preview? Log a support note in demo mode.
-              </p>
               <form onSubmit={handleSupportSubmit} className="space-y-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[#292321] mb-1">
-                    Subject
-                  </label>
+                  <label className="block text-xs font-semibold mb-1">Subject</label>
                   <input
                     type="text"
                     value={ticketSubject}
                     onChange={(e) => setTicketSubject(e.target.value)}
-                    placeholder="Booking change or venue question"
+                    placeholder="Booking change or celebration question"
                     className="w-full px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#292321] mb-1">
-                    Details
-                  </label>
+                  <label className="block text-xs font-semibold mb-1">Details</label>
                   <textarea
                     rows={3}
                     value={ticketMessage}
                     onChange={(e) => setTicketMessage(e.target.value)}
-                    placeholder="Describe how our concierge team can help..."
                     className="w-full px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg"
                     required
                   />
@@ -645,7 +766,6 @@ export function CustomerDashboard() {
                 </button>
               </form>
             </div>
-
             <div className="bg-white border border-[#E8DDD1] rounded-lg p-6 space-y-4">
               <h2 className="text-lg font-semibold text-[#292321]">Recent Support Notes</h2>
               <div className="divide-y divide-[#E8DDD1]">

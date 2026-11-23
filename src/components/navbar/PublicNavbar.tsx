@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { Menu, X, User } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { BrandLogo } from '../common/BrandLogo';
 
 export function PublicNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -26,12 +27,13 @@ export function PublicNavbar() {
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-[#E8DDD1]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-18 flex items-center justify-between gap-6">
         <Link
           to="/"
-          className="font-display text-2xl font-bold tracking-tight text-[#702C3A] whitespace-nowrap shrink-0"
+          aria-label="DineRestro Home"
+          className="inline-flex items-center shrink-0 py-1"
         >
-          DineRestro
+          <BrandLogo variant="compact" />
         </Link>
 
         <nav

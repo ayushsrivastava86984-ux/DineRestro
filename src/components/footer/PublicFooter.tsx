@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Instagram, Facebook, Twitter, Linkedin, MapPin } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { BrandLogo } from '../common/BrandLogo';
 
 export function PublicFooter() {
   const { addToast } = useApp();
@@ -18,8 +19,8 @@ export function PublicFooter() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div className="space-y-3">
-            <Link to="/" className="font-display text-2xl font-bold text-[#702C3A]">
-              DineRestro
+            <Link to="/" aria-label="DineRestro Home" className="inline-block">
+              <BrandLogo variant="full" />
             </Link>
             <p className="text-sm text-[#6B5F5C] leading-relaxed">
               Discover. Reserve. Celebrate. Curating Varanasi&apos;s finest riverfront rooftops, heritage courtyards, and neighborhood tables.

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { Bell, LogOut, Menu, X, ExternalLink } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { BrandLogo } from '../common/BrandLogo';
 import type { PortalRole } from '../../types';
 
 export interface DashboardNavItem {
@@ -56,8 +57,8 @@ export function DashboardLayout({
         }`}
       >
         <div className="h-16 px-5 border-b border-[#E8DDD1] flex items-center justify-between shrink-0">
-          <Link to="/" className="font-display text-2xl font-bold text-[#702C3A]">
-            DineRestro
+          <Link to="/" aria-label="DineRestro Home" className="inline-flex items-center">
+            <BrandLogo variant="compact" />
           </Link>
           <button
             type="button"
