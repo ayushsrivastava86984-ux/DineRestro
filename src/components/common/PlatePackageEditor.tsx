@@ -43,12 +43,12 @@ export function PlatePackageEditor({ items, onChange }: PlatePackageEditorProps)
   };
 
   return (
-    <div className="space-y-3 border border-[#EAD8C9] rounded-lg p-4 bg-[#FCEBDD]/45">
+    <div className="space-y-3 border border-[#E5E0D8] rounded-lg p-4 bg-[#F3F1ED]/60">
       <div>
-        <p className="text-xs font-semibold text-[#321D17]">
+        <p className="text-xs font-semibold text-[#1C1917]">
           Plate-Wise Included Food Items
         </p>
-        <p className="text-[11px] text-[#6E4B41]">
+        <p className="text-[11px] text-[#57534E]">
           Define the Welcome Drink, Starter, Main Course, Bread, Rice, Dessert, and extras included in every plate.
         </p>
       </div>
@@ -57,7 +57,7 @@ export function PlatePackageEditor({ items, onChange }: PlatePackageEditorProps)
         <select
           value={course}
           onChange={(e) => setCourse(e.target.value as PlateCourseItem['course'])}
-          className="sm:col-span-4 px-2.5 py-2 text-xs bg-white border border-[#EAD8C9] rounded-lg"
+          className="sm:col-span-4 px-2.5 py-2 text-xs bg-white border border-[#E5E0D8] rounded-lg"
         >
           {PLATE_COURSE_TYPES.map((c) => (
             <option key={c} value={c}>
@@ -70,19 +70,19 @@ export function PlatePackageEditor({ items, onChange }: PlatePackageEditorProps)
           value={itemName}
           onChange={(e) => setItemName(e.target.value)}
           placeholder="Dish / item name (e.g., Kesar Thandai)"
-          className="sm:col-span-4 px-2.5 py-2 text-xs bg-white border border-[#EAD8C9] rounded-lg"
+          className="sm:col-span-4 px-2.5 py-2 text-xs bg-white border border-[#E5E0D8] rounded-lg"
         />
         <input
           type="text"
           value={quantity}
           onChange={(e) => setQuantity(e.target.value)}
           placeholder="Qty (e.g., 2 Pcs / 1 Bowl)"
-          className="sm:col-span-2 px-2.5 py-2 text-xs bg-white border border-[#EAD8C9] rounded-lg"
+          className="sm:col-span-2 px-2.5 py-2 text-xs bg-white border border-[#E5E0D8] rounded-lg"
         />
         <button
           type="button"
           onClick={handleAdd}
-          className="sm:col-span-2 inline-flex items-center justify-center gap-1 px-3 py-2 text-xs font-semibold text-white bg-[#C84A1B] rounded-lg hover:bg-[#A83B19]"
+          className="sm:col-span-2 inline-flex items-center justify-center gap-1 px-3 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>Add</span>
@@ -90,11 +90,11 @@ export function PlatePackageEditor({ items, onChange }: PlatePackageEditorProps)
       </div>
 
       {items.length === 0 ? (
-        <p className="text-xs text-[#6E4B41] italic">
+        <p className="text-xs text-[#57534E] italic">
           No plate items added yet. Add at least one item above.
         </p>
       ) : (
-        <div className="divide-y divide-[#EAD8C9] bg-white border border-[#EAD8C9] rounded-lg">
+        <div className="divide-y divide-[#E5E0D8] bg-white border border-[#E5E0D8] rounded-lg">
           {items.map((item) => (
             <div
               key={item.id}
@@ -103,7 +103,7 @@ export function PlatePackageEditor({ items, onChange }: PlatePackageEditorProps)
               <select
                 value={item.course}
                 onChange={(e) => handleUpdate(item.id, 'course', e.target.value)}
-                className="sm:col-span-3 px-2 py-1 border border-[#EAD8C9] rounded bg-white font-medium text-[#C84A1B]"
+                className="sm:col-span-3 px-2 py-1 border border-[#E5E0D8] rounded bg-white font-medium text-[#6E1E2E]"
               >
                 {PLATE_COURSE_TYPES.map((c) => (
                   <option key={c} value={c}>
@@ -115,18 +115,18 @@ export function PlatePackageEditor({ items, onChange }: PlatePackageEditorProps)
                 type="text"
                 value={item.itemName}
                 onChange={(e) => handleUpdate(item.id, 'itemName', e.target.value)}
-                className="sm:col-span-5 px-2 py-1 border border-[#EAD8C9] rounded"
+                className="sm:col-span-5 px-2 py-1 border border-[#E5E0D8] rounded"
               />
               <input
                 type="text"
                 value={item.quantity}
                 onChange={(e) => handleUpdate(item.id, 'quantity', e.target.value)}
-                className="sm:col-span-3 px-2 py-1 border border-[#EAD8C9] rounded"
+                className="sm:col-span-3 px-2 py-1 border border-[#E5E0D8] rounded"
               />
               <button
                 type="button"
                 onClick={() => handleRemove(item.id)}
-                className="sm:col-span-1 p-1.5 text-[#C84A1B] hover:bg-[#FDECE6] rounded justify-self-end"
+                className="sm:col-span-1 p-1.5 text-[#8B1E35] hover:bg-[#FDF2F4] rounded justify-self-end"
                 aria-label="Remove item"
               >
                 <Trash2 className="w-3.5 h-3.5" />

@@ -26,25 +26,25 @@ export function BookingSummaryCard({
   actions,
 }: BookingSummaryCardProps) {
   return (
-    <article className="bg-white border border-[#EAD8C9] rounded-lg p-5 space-y-4">
+    <article className="bg-white border border-[#E5E0D8] rounded-lg p-5 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-mono font-semibold text-[#C84A1B] tracking-wide">
+          <p className="text-[11px] font-mono font-semibold text-[#6E1E2E] tracking-wide">
             {referenceId}
           </p>
-          <h3 className="font-display text-xl font-semibold text-[#321D17] mt-0.5">
+          <h3 className="font-display text-xl font-semibold text-[#1C1917] mt-0.5">
             {title}
           </h3>
-          <p className="text-xs text-[#6E4B41] mt-0.5">{subtitle}</p>
+          <p className="text-xs text-[#57534E] mt-0.5">{subtitle}</p>
         </div>
         <StatusBadge status={status} />
       </div>
 
-      <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-[#EAD8C9] text-xs">
+      <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-[#E5E0D8] text-xs">
         {meta.map((item) => (
           <div key={item.label}>
-            <dt className="text-[#6E4B41]">{item.label}</dt>
-            <dd className="font-semibold text-[#321D17] mt-0.5 tabular-nums">
+            <dt className="text-[#57534E]">{item.label}</dt>
+            <dd className="font-semibold text-[#1C1917] mt-0.5 tabular-nums">
               {item.value}
             </dd>
           </div>
@@ -52,13 +52,13 @@ export function BookingSummaryCard({
       </dl>
 
       {highlightNote && (
-        <p className="text-xs text-[#6E4B41] bg-[#FCEBDD]/55 border border-[#EAD8C9] rounded px-3 py-2">
+        <p className="text-xs text-[#57534E] bg-[#F3F1ED] border border-[#E5E0D8] rounded px-3 py-2">
           {highlightNote}
         </p>
       )}
 
       {actions && (
-        <div className="pt-2 border-t border-[#EAD8C9] flex flex-wrap items-center justify-between gap-3">
+        <div className="pt-2 border-t border-[#E5E0D8] flex flex-wrap items-center justify-between gap-3">
           {actions}
         </div>
       )}

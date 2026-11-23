@@ -57,23 +57,23 @@ export function RestaurantSearchPanel({
     return (
       <form
         onSubmit={handleSubmit}
-        className="bg-white border border-[#EAD8C9] rounded-lg p-4 sm:p-5 shadow-lg"
+        className="bg-white border border-[#E5E0D8] rounded-lg p-4 sm:p-5 shadow-lg"
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
           <div className="lg:col-span-4">
-            <label className="block text-[11px] font-semibold text-[#6E4B41] mb-1">
+            <label className="block text-[11px] font-semibold text-[#57534E] mb-1">
               Location
             </label>
             <div className="relative">
               <MapPin
-                className="w-4 h-4 text-[#C84A1B] absolute left-3 top-2.5 pointer-events-none"
+                className="w-4 h-4 text-[#6E1E2E] absolute left-3 top-2.5 pointer-events-none"
                 aria-hidden="true"
               />
               <select
                 value={area}
                 onChange={(e) => setArea(e.target.value)}
                 aria-label="Select Varanasi location"
-                className="w-full pl-9 pr-3 py-2.5 text-sm bg-white border border-[#EAD8C9] rounded-lg text-[#321D17] focus:outline-none focus:border-[#C84A1B]"
+                className="w-full pl-9 pr-3 py-2.5 text-sm bg-white border border-[#E5E0D8] rounded-lg text-[#1C1917] focus:outline-none focus:border-[#6E1E2E]"
               >
                 {VARANASI_AREAS.map((loc) => (
                   <option key={loc} value={loc}>
@@ -85,12 +85,12 @@ export function RestaurantSearchPanel({
           </div>
 
           <div className="lg:col-span-3">
-            <label className="block text-[11px] font-semibold text-[#6E4B41] mb-1">
+            <label className="block text-[11px] font-semibold text-[#57534E] mb-1">
               Select Date
             </label>
             <div className="relative">
               <Calendar
-                className="w-4 h-4 text-[#C84A1B] absolute left-3 top-2.5 pointer-events-none"
+                className="w-4 h-4 text-[#6E1E2E] absolute left-3 top-2.5 pointer-events-none"
                 aria-hidden="true"
               />
               <input
@@ -99,25 +99,25 @@ export function RestaurantSearchPanel({
                 min={getTodayISO()}
                 onChange={(e) => setDate(e.target.value)}
                 aria-label="Select Date"
-                className="w-full pl-9 pr-2 py-2.5 text-sm border border-[#EAD8C9] rounded-lg text-[#321D17] focus:outline-none focus:border-[#C84A1B]"
+                className="w-full pl-9 pr-2 py-2.5 text-sm border border-[#E5E0D8] rounded-lg text-[#1C1917] focus:outline-none focus:border-[#6E1E2E]"
               />
             </div>
           </div>
 
           <div className="lg:col-span-2">
-            <label className="block text-[11px] font-semibold text-[#6E4B41] mb-1">
+            <label className="block text-[11px] font-semibold text-[#57534E] mb-1">
               Number of Guests
             </label>
             <div className="relative">
               <Users
-                className="w-4 h-4 text-[#C84A1B] absolute left-3 top-2.5 pointer-events-none"
+                className="w-4 h-4 text-[#6E1E2E] absolute left-3 top-2.5 pointer-events-none"
                 aria-hidden="true"
               />
               <select
                 value={guests}
                 onChange={(e) => setGuests(e.target.value)}
                 aria-label="Number of Guests"
-                className="w-full pl-9 pr-3 py-2.5 text-sm bg-white border border-[#EAD8C9] rounded-lg text-[#321D17] focus:outline-none focus:border-[#C84A1B] tabular-nums"
+                className="w-full pl-9 pr-3 py-2.5 text-sm bg-white border border-[#E5E0D8] rounded-lg text-[#1C1917] focus:outline-none focus:border-[#6E1E2E] tabular-nums"
               >
                 {[1, 2, 3, 4, 5, 6, 8, 10, 12].map((g) => (
                   <option key={g} value={String(g)}>
@@ -131,7 +131,7 @@ export function RestaurantSearchPanel({
           <div className="lg:col-span-3">
             <button
               type="submit"
-              className="w-full px-5 py-2.5 text-sm font-semibold text-white bg-[#C84A1B] rounded-lg hover:bg-[#A83B19] transition-colors whitespace-nowrap"
+              className="w-full px-5 py-2.5 text-sm font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522] transition-colors whitespace-nowrap"
             >
               Search Restaurants
             </button>
@@ -144,25 +144,25 @@ export function RestaurantSearchPanel({
   return (
     <form
       onSubmit={handleSubmit}
-      className={`bg-white border border-[#EAD8C9] rounded-lg ${
+      className={`bg-white border border-[#E5E0D8] rounded-lg ${
         compact ? 'p-3.5 sm:p-4' : 'p-4 sm:p-5'
       }`}
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
         <div className="lg:col-span-1">
-          <label className="block text-[11px] font-semibold text-[#6E4B41] mb-1">
+          <label className="block text-[11px] font-semibold text-[#57534E] mb-1">
             Varanasi Locality
           </label>
           <div className="relative">
             <MapPin
-              className="w-4 h-4 text-[#C84A1B] absolute left-3 top-2.5 pointer-events-none"
+              className="w-4 h-4 text-[#6E1E2E] absolute left-3 top-2.5 pointer-events-none"
               aria-hidden="true"
             />
             <select
               value={area}
               onChange={(e) => setArea(e.target.value)}
               aria-label="Select Varanasi area"
-              className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg text-[#321D17] focus:outline-none focus:border-[#C84A1B]"
+              className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg text-[#1C1917] focus:outline-none focus:border-[#6E1E2E]"
             >
               {VARANASI_AREAS.map((loc) => (
                 <option key={loc} value={loc}>
@@ -174,12 +174,12 @@ export function RestaurantSearchPanel({
         </div>
 
         <div className="lg:col-span-2">
-          <label className="block text-[11px] font-semibold text-[#6E4B41] mb-1">
+          <label className="block text-[11px] font-semibold text-[#57534E] mb-1">
             Restaurant or Keyword
           </label>
           <div className="relative">
             <Search
-              className="w-4 h-4 text-[#6E4B41] absolute left-3 top-2.5 pointer-events-none"
+              className="w-4 h-4 text-[#6E1E2E] absolute left-3 top-2.5 pointer-events-none"
               aria-hidden="true"
             />
             <input
@@ -187,25 +187,25 @@ export function RestaurantSearchPanel({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search Kashi Ganga Terrace, rooftop, thali..."
-              className="w-full pl-9 pr-3 py-2 text-sm border border-[#EAD8C9] rounded-lg text-[#321D17] focus:outline-none focus:border-[#C84A1B]"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-[#E5E0D8] rounded-lg text-[#1C1917] focus:outline-none focus:border-[#6E1E2E]"
             />
           </div>
         </div>
 
         <div className="lg:col-span-1">
-          <label className="block text-[11px] font-semibold text-[#6E4B41] mb-1">
+          <label className="block text-[11px] font-semibold text-[#57534E] mb-1">
             Cuisine
           </label>
           <div className="relative">
             <UtensilsCrossed
-              className="w-4 h-4 text-[#6E4B41] absolute left-3 top-2.5 pointer-events-none"
+              className="w-4 h-4 text-[#6E1E2E] absolute left-3 top-2.5 pointer-events-none"
               aria-hidden="true"
             />
             <select
               value={cuisine}
               onChange={(e) => setCuisine(e.target.value)}
               aria-label="Select cuisine"
-              className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg text-[#321D17] focus:outline-none focus:border-[#C84A1B]"
+              className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg text-[#1C1917] focus:outline-none focus:border-[#6E1E2E]"
             >
               <option value="All">All Cuisines</option>
               {POPULAR_CUISINES.map((c) => (
@@ -218,12 +218,12 @@ export function RestaurantSearchPanel({
         </div>
 
         <div className="lg:col-span-1">
-          <label className="block text-[11px] font-semibold text-[#6E4B41] mb-1">
+          <label className="block text-[11px] font-semibold text-[#57534E] mb-1">
             Date
           </label>
           <div className="relative">
             <Calendar
-              className="w-4 h-4 text-[#6E4B41] absolute left-3 top-2.5 pointer-events-none"
+              className="w-4 h-4 text-[#6E1E2E] absolute left-3 top-2.5 pointer-events-none"
               aria-hidden="true"
             />
             <input
@@ -232,25 +232,25 @@ export function RestaurantSearchPanel({
               min={getTodayISO()}
               onChange={(e) => setDate(e.target.value)}
               aria-label="Booking date"
-              className="w-full pl-9 pr-2 py-2 text-sm border border-[#EAD8C9] rounded-lg text-[#321D17] focus:outline-none focus:border-[#C84A1B]"
+              className="w-full pl-9 pr-2 py-2 text-sm border border-[#E5E0D8] rounded-lg text-[#1C1917] focus:outline-none focus:border-[#6E1E2E]"
             />
           </div>
         </div>
 
         <div className="lg:col-span-1">
-          <label className="block text-[11px] font-semibold text-[#6E4B41] mb-1">
+          <label className="block text-[11px] font-semibold text-[#57534E] mb-1">
             Guests
           </label>
           <div className="relative">
             <Users
-              className="w-4 h-4 text-[#6E4B41] absolute left-3 top-2.5 pointer-events-none"
+              className="w-4 h-4 text-[#6E1E2E] absolute left-3 top-2.5 pointer-events-none"
               aria-hidden="true"
             />
             <select
               value={guests}
               onChange={(e) => setGuests(e.target.value)}
               aria-label="Number of guests"
-              className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg text-[#321D17] focus:outline-none focus:border-[#C84A1B] tabular-nums"
+              className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg text-[#1C1917] focus:outline-none focus:border-[#6E1E2E] tabular-nums"
             >
               {[1, 2, 3, 4, 5, 6, 8, 10, 12].map((g) => (
                 <option key={g} value={String(g)}>
@@ -262,13 +262,13 @@ export function RestaurantSearchPanel({
         </div>
       </div>
 
-      <div className="mt-3 pt-3 border-t border-[#EAD8C9] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <p className="text-xs text-[#6E4B41]">
+      <div className="mt-3 pt-3 border-t border-[#E5E0D8] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <p className="text-xs text-[#57534E]">
           Curated dining across Assi Ghat, Nadesar, Sigra, Lanka, Rathyatra &amp; Cantonment
         </p>
         <button
           type="submit"
-          className="px-6 py-2.5 text-sm font-semibold text-white bg-[#C84A1B] rounded-lg hover:bg-[#A83B19] transition-colors whitespace-nowrap shrink-0"
+          className="px-6 py-2.5 text-sm font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522] transition-colors whitespace-nowrap shrink-0"
         >
           Search Restaurants
         </button>

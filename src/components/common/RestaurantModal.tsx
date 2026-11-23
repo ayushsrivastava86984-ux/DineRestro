@@ -99,7 +99,7 @@ export function RestaurantModal() {
   const [customGuests, setCustomGuests] = useState(10);
   const [customBudget, setCustomBudget] = useState(14000);
   const [customTheme, setCustomTheme] = useState('Marigold & Candlelight Courtyard');
-  const [customColors, setCustomColors] = useState('Terracotta, Ivory & Gold');
+  const [customColors, setCustomColors] = useState('Deep Burgundy, Warm Ivory & Champagne Gold');
   const [customCake, setCustomCake] = useState('1 kg Eggless Chocolate Truffle Cake');
   const [customFoodPref, setCustomFoodPref] = useState('Pure Vegetarian Multi-Course');
   const [customInstructions, setCustomInstructions] = useState('');
@@ -389,12 +389,12 @@ export function RestaurantModal() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#3A180F]/65 p-3 sm:p-4 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#1C1917]/65 p-3 sm:p-4 overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-labelledby="restaurant-modal-title"
     >
-      <div className="bg-white border border-[#EAD8C9] rounded-lg max-w-4xl w-full overflow-hidden my-auto max-h-[94vh] flex flex-col">
+      <div className="bg-white border border-[#E5E0D8] rounded-lg max-w-4xl w-full overflow-hidden my-auto max-h-[94vh] flex flex-col">
         {/* Hero Cover Header */}
         <div className="relative h-48 sm:h-56 w-full shrink-0">
           <SafeImage
@@ -403,11 +403,11 @@ export function RestaurantModal() {
             className="w-full h-full object-cover"
             fallbackTitle={restaurant.name}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#3A180F]/90 via-[#3A180F]/45 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#1C1917]/90 via-[#1C1917]/45 to-transparent" />
           <button
             type="button"
             onClick={closeRestaurantModal}
-            className="absolute top-3 right-3 p-2 rounded-full bg-white/95 text-[#321D17] hover:bg-white"
+            className="absolute top-3 right-3 p-2 rounded-full bg-white/95 text-[#1C1917] hover:bg-white"
             aria-label="Close restaurant details"
           >
             <X className="w-4 h-4" />
@@ -415,10 +415,10 @@ export function RestaurantModal() {
           <button
             type="button"
             onClick={() => toggleFavorite(restaurant.id)}
-            className="absolute top-3 right-14 p-2 rounded-full bg-white/95 text-[#C84A1B] hover:bg-white"
+            className="absolute top-3 right-14 p-2 rounded-full bg-white/95 text-[#6E1E2E] hover:bg-white"
             aria-label={isFav ? 'Remove from favorites' : 'Save to favorites'}
           >
-            <Heart className={`w-4 h-4 ${isFav ? 'fill-[#C84A1B]' : ''}`} />
+            <Heart className={`w-4 h-4 ${isFav ? 'fill-[#6E1E2E]' : ''}`} />
           </button>
 
           <div className="absolute bottom-4 left-5 right-5 flex items-end gap-3.5 text-white">
@@ -431,7 +431,7 @@ export function RestaurantModal() {
               />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs text-[#FFF5EA] truncate">
+              <p className="text-xs text-[#FAF9F6] truncate">
                 {restaurant.tier} Dining · {restaurant.cuisines.join(' · ')} · {restaurant.area}, {restaurant.city}
               </p>
               <h2
@@ -442,17 +442,17 @@ export function RestaurantModal() {
               </h2>
             </div>
             {restaurant.reviewCount > 0 && (
-              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded bg-white/95 text-[#321D17] text-xs font-semibold tabular-nums shrink-0">
-                <Star className="w-3.5 h-3.5 fill-[#D99555] text-[#D99555]" />
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded bg-white/95 text-[#1C1917] text-xs font-semibold tabular-nums shrink-0">
+                <Star className="w-3.5 h-3.5 fill-[#B8863B] text-[#B8863B]" />
                 <span>{restaurant.rating.toFixed(1)}</span>
-                <span className="text-[#6E4B41]">({restaurant.reviewCount})</span>
+                <span className="text-[#57534E]">({restaurant.reviewCount})</span>
               </div>
             )}
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="px-4 sm:px-5 py-3 border-b border-[#EAD8C9] bg-[#FFF5EA] flex flex-wrap items-center gap-2 shrink-0">
+        <div className="px-4 sm:px-5 py-3 border-b border-[#E5E0D8] bg-[#FAF9F6] flex flex-wrap items-center gap-2 shrink-0">
           {[
             { id: 'overview' as const, label: 'Profile, Menu Photos & Gallery' },
             { id: 'book' as const, label: 'A. Book a Table' },
@@ -468,8 +468,8 @@ export function RestaurantModal() {
               }}
               className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
                 activeTab === tab.id
-                  ? 'bg-[#C84A1B] text-white'
-                  : 'bg-white text-[#321D17] border border-[#EAD8C9] hover:border-[#C84A1B]'
+                  ? 'bg-[#6E1E2E] text-white'
+                  : 'bg-white text-[#1C1917] border border-[#E5E0D8] hover:border-[#6E1E2E]'
               }`}
             >
               {tab.label}
@@ -479,7 +479,7 @@ export function RestaurantModal() {
 
         <div className="p-5 sm:p-6 overflow-y-auto space-y-6">
           {formError && (
-            <div className="px-4 py-2.5 rounded-lg bg-[#FDECE6] border border-[#F6B27B] text-xs font-medium text-[#C84A1B]">
+            <div className="px-4 py-2.5 rounded-lg bg-[#FDF2F4] border border-[#EAC4CC] text-xs font-medium text-[#8B1E35]">
               {formError}
             </div>
           )}
@@ -487,28 +487,28 @@ export function RestaurantModal() {
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="space-y-7">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pb-4 border-b border-[#EAD8C9] text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pb-4 border-b border-[#E5E0D8] text-sm">
                 <div className="flex items-start gap-2.5">
-                  <MapPin className="w-4 h-4 text-[#C84A1B] shrink-0 mt-0.5" />
+                  <MapPin className="w-4 h-4 text-[#6E1E2E] shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-xs text-[#6E4B41]">Address</p>
-                    <p className="font-medium text-[#321D17]">{restaurant.address}</p>
+                    <p className="text-xs text-[#57534E]">Address</p>
+                    <p className="font-medium text-[#1C1917]">{restaurant.address}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2.5">
-                  <Clock className="w-4 h-4 text-[#C84A1B] shrink-0 mt-0.5" />
+                  <Clock className="w-4 h-4 text-[#6E1E2E] shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-xs text-[#6E4B41]">Hours &amp; Pricing</p>
-                    <p className="font-medium text-[#321D17]">{restaurant.openingHours}</p>
-                    <p className="text-xs text-[#6E4B41]">{restaurant.priceRange}</p>
+                    <p className="text-xs text-[#57534E]">Hours &amp; Pricing</p>
+                    <p className="font-medium text-[#1C1917]">{restaurant.openingHours}</p>
+                    <p className="text-xs text-[#57534E]">{restaurant.priceRange}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2.5">
-                  <Phone className="w-4 h-4 text-[#C84A1B] shrink-0 mt-0.5" />
+                  <Phone className="w-4 h-4 text-[#6E1E2E] shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-xs text-[#6E4B41]">Host Desk</p>
-                    <p className="font-medium text-[#321D17] tabular-nums">{restaurant.contactNumber}</p>
-                    <p className="text-xs text-[#C84A1B]">{restaurant.availabilityNote}</p>
+                    <p className="text-xs text-[#57534E]">Host Desk</p>
+                    <p className="font-medium text-[#1C1917] tabular-nums">{restaurant.contactNumber}</p>
+                    <p className="text-xs text-[#6E1E2E]">{restaurant.availabilityNote}</p>
                   </div>
                 </div>
               </div>
@@ -520,56 +520,56 @@ export function RestaurantModal() {
                     setActiveTab('book');
                     setTableStep(1);
                   }}
-                  className="text-left p-4 rounded-lg border border-[#EAD8C9] bg-[#FFF5EA]/60 hover:border-[#C84A1B] transition-colors"
+                  className="text-left p-4 rounded-lg border border-[#E5E0D8] bg-[#FAF9F6]/60 hover:border-[#6E1E2E] transition-colors"
                 >
-                  <p className="text-xs font-semibold text-[#C84A1B]">Option A</p>
-                  <p className="text-base font-semibold text-[#321D17] mt-0.5">Book a Table</p>
-                  <p className="text-xs text-[#6E4B41] mt-1">
+                  <p className="text-xs font-semibold text-[#6E1E2E]">Option A</p>
+                  <p className="text-base font-semibold text-[#1C1917] mt-0.5">Book a Table</p>
+                  <p className="text-xs text-[#57534E] mt-1">
                     Basic (₹{platformSettings.basicOfferFeePerGuest}/guest) or Premium (₹{platformSettings.premiumOfferFeePerGuest}/guest) booking.
                   </p>
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('preorder')}
-                  className="text-left p-4 rounded-lg border border-[#EAD8C9] bg-[#FFF5EA]/60 hover:border-[#C84A1B] transition-colors"
+                  className="text-left p-4 rounded-lg border border-[#E5E0D8] bg-[#FAF9F6]/60 hover:border-[#6E1E2E] transition-colors"
                 >
-                  <p className="text-xs font-semibold text-[#C84A1B]">Option B</p>
-                  <p className="text-base font-semibold text-[#321D17] mt-0.5">Pre-Order Food</p>
-                  <p className="text-xs text-[#6E4B41] mt-1">
+                  <p className="text-xs font-semibold text-[#6E1E2E]">Option B</p>
+                  <p className="text-base font-semibold text-[#1C1917] mt-0.5">Pre-Order Food</p>
+                  <p className="text-xs text-[#57534E] mt-1">
                     Menu photos + plate packages ({restaurantAdvancePercent}% restaurant advance) or Order at Restaurant.
                   </p>
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('celebrate')}
-                  className="text-left p-4 rounded-lg border border-[#EAD8C9] bg-[#FFF5EA]/60 hover:border-[#C84A1B] transition-colors"
+                  className="text-left p-4 rounded-lg border border-[#E5E0D8] bg-[#FAF9F6]/60 hover:border-[#6E1E2E] transition-colors"
                 >
-                  <p className="text-xs font-semibold text-[#C84A1B]">Option C</p>
-                  <p className="text-base font-semibold text-[#321D17] mt-0.5">Celebrate an Occasion</p>
-                  <p className="text-xs text-[#6E4B41] mt-1">
+                  <p className="text-xs font-semibold text-[#6E1E2E]">Option C</p>
+                  <p className="text-base font-semibold text-[#1C1917] mt-0.5">Celebrate an Occasion</p>
+                  <p className="text-xs text-[#57534E] mt-1">
                     Ready celebration packages or Custom Celebration Request (₹0 decor charge).
                   </p>
                 </button>
               </div>
 
               <div>
-                <h3 className="text-lg font-semibold text-[#321D17] mb-1">
+                <h3 className="text-lg font-semibold text-[#1C1917] mb-1">
                   About {restaurant.name}
                 </h3>
-                <p className="text-sm text-[#6E4B41] leading-relaxed">{restaurant.description}</p>
+                <p className="text-sm text-[#57534E] leading-relaxed">{restaurant.description}</p>
               </div>
 
               <div>
-                <h3 className="text-base font-semibold text-[#321D17] mb-2">
+                <h3 className="text-base font-semibold text-[#1C1917] mb-2">
                   Amenities &amp; Venue Facilities
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 text-xs">
                   {restaurant.amenities.map((amenity) => (
                     <div
                       key={amenity}
-                      className="flex items-center gap-2 px-3 py-2 rounded border border-[#EAD8C9] bg-[#FFF5EA]/45 text-[#321D17]"
+                      className="flex items-center gap-2 px-3 py-2 rounded border border-[#E5E0D8] bg-[#FAF9F6]/45 text-[#1C1917]"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#C84A1B] shrink-0" />
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#6E1E2E] shrink-0" />
                       <span>{amenity}</span>
                     </div>
                   ))}
@@ -578,15 +578,15 @@ export function RestaurantModal() {
 
               <div>
                 <div className="flex items-baseline justify-between mb-2.5">
-                  <h3 className="text-base font-semibold text-[#321D17]">
+                  <h3 className="text-base font-semibold text-[#1C1917]">
                     Restaurant Menu Gallery (Uploaded Menu Pages)
                   </h3>
-                  <span className="text-xs text-[#6E4B41] tabular-nums">
+                  <span className="text-xs text-[#57534E] tabular-nums">
                     {restaurant.menuPhotos.length} page(s)
                   </span>
                 </div>
                 {restaurant.menuPhotos.length === 0 ? (
-                  <p className="text-xs text-[#6E4B41]">No menu photographs uploaded yet.</p>
+                  <p className="text-xs text-[#57534E]">No menu photographs uploaded yet.</p>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {restaurant.menuPhotos.map((page) => (
@@ -594,9 +594,9 @@ export function RestaurantModal() {
                         key={page.id}
                         type="button"
                         onClick={() => setLightboxImage({ url: page.url, title: page.title })}
-                        className="group text-left border border-[#EAD8C9] rounded-lg overflow-hidden hover:border-[#C84A1B]"
+                        className="group text-left border border-[#E5E0D8] rounded-lg overflow-hidden hover:border-[#6E1E2E]"
                       >
-                        <div className="aspect-[3/4] w-full overflow-hidden bg-[#FFF5EA]">
+                        <div className="aspect-[3/4] w-full overflow-hidden bg-[#FAF9F6]">
                           <SafeImage
                             src={page.url}
                             alt={page.title}
@@ -605,10 +605,10 @@ export function RestaurantModal() {
                           />
                         </div>
                         <div className="p-2.5 bg-white">
-                          <p className="text-xs font-semibold text-[#321D17] truncate">
+                          <p className="text-xs font-semibold text-[#1C1917] truncate">
                             Page {page.pageNumber} · {page.title}
                           </p>
-                          <p className="text-[11px] text-[#C84A1B]">Click to enlarge menu</p>
+                          <p className="text-[11px] text-[#6E1E2E]">Click to enlarge menu</p>
                         </div>
                       </button>
                     ))}
@@ -617,7 +617,7 @@ export function RestaurantModal() {
               </div>
 
               <div>
-                <h3 className="text-base font-semibold text-[#321D17] mb-2.5">
+                <h3 className="text-base font-semibold text-[#1C1917] mb-2.5">
                   Ambience, Interior &amp; Dining Area Photos
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -631,7 +631,7 @@ export function RestaurantModal() {
                           title: `${photo.category} — ${photo.caption}`,
                         })
                       }
-                      className="text-left border border-[#EAD8C9] rounded-lg overflow-hidden hover:border-[#C84A1B]"
+                      className="text-left border border-[#E5E0D8] rounded-lg overflow-hidden hover:border-[#6E1E2E]"
                     >
                       <div className="aspect-[4/3] w-full overflow-hidden">
                         <SafeImage
@@ -642,8 +642,8 @@ export function RestaurantModal() {
                         />
                       </div>
                       <div className="p-2 text-[11px]">
-                        <p className="font-semibold text-[#C84A1B]">{photo.category}</p>
-                        <p className="text-[#6E4B41] truncate">{photo.caption}</p>
+                        <p className="font-semibold text-[#6E1E2E]">{photo.category}</p>
+                        <p className="text-[#57534E] truncate">{photo.caption}</p>
                       </div>
                     </button>
                   ))}
@@ -652,15 +652,15 @@ export function RestaurantModal() {
 
               {restReviews.length > 0 && (
                 <div>
-                  <h3 className="text-base font-semibold text-[#321D17] mb-2">Diner Reviews</h3>
+                  <h3 className="text-base font-semibold text-[#1C1917] mb-2">Diner Reviews</h3>
                   <div className="space-y-2">
                     {restReviews.map((rv) => (
-                      <div key={rv.id} className="border border-[#EAD8C9] rounded-lg p-3 text-xs">
+                      <div key={rv.id} className="border border-[#E5E0D8] rounded-lg p-3 text-xs">
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-[#321D17]">{rv.customerName}</span>
-                          <span className="font-mono text-[#C84A1B]">★ {rv.rating}</span>
+                          <span className="font-semibold text-[#1C1917]">{rv.customerName}</span>
+                          <span className="font-mono text-[#6E1E2E]">★ {rv.rating}</span>
                         </div>
-                        <p className="text-[#6E4B41] mt-1">{rv.comment}</p>
+                        <p className="text-[#57534E] mt-1">{rv.comment}</p>
                       </div>
                     ))}
                   </div>
@@ -674,11 +674,11 @@ export function RestaurantModal() {
             <div className="space-y-5">
               {tableConfirmedRef ? (
                 <div className="py-8 text-center space-y-3">
-                  <CheckCircle2 className="w-10 h-10 text-[#C84A1B] mx-auto" />
-                  <h3 className="font-display text-2xl font-semibold text-[#321D17]">
+                  <CheckCircle2 className="w-10 h-10 text-[#6E1E2E] mx-auto" />
+                  <h3 className="font-display text-2xl font-semibold text-[#1C1917]">
                     Table Reservation Confirmed ({tableConfirmedRef})
                   </h3>
-                  <p className="text-sm text-[#6E4B41] max-w-md mx-auto">
+                  <p className="text-sm text-[#57534E] max-w-md mx-auto">
                     {effectiveTier} table booking logged for {tableGuests} guests on {formatDisplayDate(tableDate)} at {tableTime}. Platform fee ({formatINR(totalPlatformFee)}) marked DEMO PAID separately from your restaurant food bill.
                   </p>
                   <button
@@ -687,7 +687,7 @@ export function RestaurantModal() {
                       setTableConfirmedRef(null);
                       setTableStep(1);
                     }}
-                    className="px-4 py-2 text-xs font-semibold text-white bg-[#C84A1B] rounded-lg"
+                    className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg"
                   >
                     Create Another Table Booking
                   </button>
@@ -696,10 +696,10 @@ export function RestaurantModal() {
                 <form onSubmit={handleBookTableSubmit} className="space-y-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <h3 className="font-display text-2xl font-semibold text-[#321D17]">
+                      <h3 className="font-display text-2xl font-semibold text-[#1C1917]">
                         Book a Table at {restaurant.name}
                       </h3>
-                      <p className="text-xs text-[#6E4B41] mt-0.5">
+                      <p className="text-xs text-[#57534E] mt-0.5">
                         A transparent per-guest platform booking fee applies to all table bookings (Basic or Premium) and is kept strictly separate from your restaurant food bill.
                       </p>
                     </div>
@@ -711,8 +711,8 @@ export function RestaurantModal() {
                           onClick={() => setTableStep(step as 1 | 2 | 3)}
                           className={`px-2.5 py-1 rounded border ${
                             tableStep === step
-                              ? 'bg-[#C84A1B] text-white border-[#C84A1B]'
-                              : 'bg-white text-[#6E4B41] border-[#EAD8C9]'
+                              ? 'bg-[#6E1E2E] text-white border-[#6E1E2E]'
+                              : 'bg-white text-[#57534E] border-[#E5E0D8]'
                           }`}
                         >
                           Step {step}
@@ -732,7 +732,7 @@ export function RestaurantModal() {
                             value={tableDate}
                             min={getTodayISO()}
                             onChange={(e) => setTableDate(e.target.value)}
-                            className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg"
+                            className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
                             required
                           />
                         </div>
@@ -741,7 +741,7 @@ export function RestaurantModal() {
                           <select
                             value={tableTime}
                             onChange={(e) => setTableTime(e.target.value)}
-                            className="w-full px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg"
+                            className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
                           >
                             {TIME_SLOTS.map((s) => (
                               <option key={s} value={s}>{s}</option>
@@ -753,7 +753,7 @@ export function RestaurantModal() {
                           <select
                             value={tableGuests}
                             onChange={(e) => setTableGuests(Number(e.target.value))}
-                            className="w-full px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg tabular-nums"
+                            className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg tabular-nums"
                           >
                             {[1, 2, 3, 4, 5, 6, 8, 10, 12].map((n) => (
                               <option key={n} value={n}>
@@ -767,7 +767,7 @@ export function RestaurantModal() {
                         <button
                           type="button"
                           onClick={() => setTableStep(2)}
-                          className="inline-flex items-center gap-1.5 px-5 py-2.5 text-xs font-semibold text-white bg-[#C84A1B] rounded-lg hover:bg-[#A83B19]"
+                          className="inline-flex items-center gap-1.5 px-5 py-2.5 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
                         >
                           <span>Continue to Tier Selection</span>
                           <ChevronRight className="w-4 h-4" />
@@ -788,19 +788,19 @@ export function RestaurantModal() {
                           }}
                           className={`p-4 rounded-lg border text-left transition-colors ${
                             effectiveTier === 'Basic' && !chosenOffer
-                              ? 'border-[#C84A1B] bg-[#FFF5EA]'
-                              : 'border-[#EAD8C9] bg-white'
+                              ? 'border-[#6E1E2E] bg-[#FAF9F6]'
+                              : 'border-[#E5E0D8] bg-white'
                           }`}
                         >
                           <div className="flex items-baseline justify-between gap-2">
-                            <p className="text-sm font-semibold text-[#321D17]">
+                            <p className="text-sm font-semibold text-[#1C1917]">
                               Basic Table Booking
                             </p>
-                            <span className="font-mono text-xs font-semibold text-[#C84A1B] tabular-nums">
+                            <span className="font-mono text-xs font-semibold text-[#6E1E2E] tabular-nums">
                               {formatINR(platformSettings.basicOfferFeePerGuest)} / guest
                             </span>
                           </div>
-                          <p className="text-xs text-[#6E4B41] mt-1">
+                          <p className="text-xs text-[#57534E] mt-1">
                             Guaranteed standard seating ({tableGuests} × ₹{platformSettings.basicOfferFeePerGuest} = {formatINR(tableGuests * platformSettings.basicOfferFeePerGuest)} platform fee). Order and pay food directly at the restaurant.
                           </p>
                         </button>
@@ -813,19 +813,19 @@ export function RestaurantModal() {
                           }}
                           className={`p-4 rounded-lg border text-left transition-colors ${
                             effectiveTier === 'Premium' && !chosenOffer
-                              ? 'border-[#C84A1B] bg-[#FFF5EA]'
-                              : 'border-[#EAD8C9] bg-white'
+                              ? 'border-[#6E1E2E] bg-[#FAF9F6]'
+                              : 'border-[#E5E0D8] bg-white'
                           }`}
                         >
                           <div className="flex items-baseline justify-between gap-2">
-                            <p className="text-sm font-semibold text-[#C84A1B]">
+                            <p className="text-sm font-semibold text-[#6E1E2E]">
                               Premium Table Booking
                             </p>
-                            <span className="font-mono text-xs font-semibold text-[#C84A1B] tabular-nums">
+                            <span className="font-mono text-xs font-semibold text-[#6E1E2E] tabular-nums">
                               {formatINR(platformSettings.premiumOfferFeePerGuest)} / guest
                             </span>
                           </div>
-                          <p className="text-xs text-[#6E4B41] mt-1">
+                          <p className="text-xs text-[#57534E] mt-1">
                             Priority terrace/courtyard seating &amp; concierge check-in ({tableGuests} × ₹{platformSettings.premiumOfferFeePerGuest} = {formatINR(tableGuests * platformSettings.premiumOfferFeePerGuest)} platform fee).
                           </p>
                         </button>
@@ -833,7 +833,7 @@ export function RestaurantModal() {
 
                       {restOffers.length > 0 && (
                         <div className="space-y-2">
-                          <label className="block text-xs font-semibold text-[#321D17]">
+                          <label className="block text-xs font-semibold text-[#1C1917]">
                             Optional: Apply an Active Dining Offer
                           </label>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -851,12 +851,12 @@ export function RestaurantModal() {
                                   }
                                   className={`p-3 rounded-lg border text-left text-xs ${
                                     selectedOfferId === off.id
-                                      ? 'border-[#C84A1B] bg-[#FFF5EA]'
-                                      : 'border-[#EAD8C9] bg-white'
+                                      ? 'border-[#6E1E2E] bg-[#FAF9F6]'
+                                      : 'border-[#E5E0D8] bg-white'
                                   }`}
                                 >
-                                  <p className="font-semibold text-[#321D17]">{off.title}</p>
-                                  <p className="text-[#C84A1B] mt-0.5 font-medium">
+                                  <p className="font-semibold text-[#1C1917]">{off.title}</p>
+                                  <p className="text-[#6E1E2E] mt-0.5 font-medium">
                                     {off.discountLabel} · {off.offerTier} Tier (₹{fee}/guest)
                                   </p>
                                 </button>
@@ -870,7 +870,7 @@ export function RestaurantModal() {
                         <button
                           type="button"
                           onClick={() => setTableStep(1)}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-[#6E4B41] hover:text-[#321D17]"
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-[#57534E] hover:text-[#1C1917]"
                         >
                           <ChevronLeft className="w-4 h-4" />
                           <span>Back</span>
@@ -878,7 +878,7 @@ export function RestaurantModal() {
                         <button
                           type="button"
                           onClick={() => setTableStep(3)}
-                          className="inline-flex items-center gap-1.5 px-5 py-2.5 text-xs font-semibold text-white bg-[#C84A1B] rounded-lg hover:bg-[#A83B19]"
+                          className="inline-flex items-center gap-1.5 px-5 py-2.5 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
                         >
                           <span>Review &amp; Platform Fee Summary</span>
                           <ChevronRight className="w-4 h-4" />
@@ -897,7 +897,7 @@ export function RestaurantModal() {
                             type="text"
                             value={guestName}
                             onChange={(e) => setGuestName(e.target.value)}
-                            className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg"
+                            className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
                             required
                           />
                         </div>
@@ -907,7 +907,7 @@ export function RestaurantModal() {
                             type="tel"
                             value={guestPhone}
                             onChange={(e) => setGuestPhone(e.target.value)}
-                            className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg"
+                            className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
                             required
                           />
                         </div>
@@ -922,7 +922,7 @@ export function RestaurantModal() {
                           value={tableNotes}
                           onChange={(e) => setTableNotes(e.target.value)}
                           placeholder="River-facing seating, high chair, celebration note..."
-                          className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg"
+                          className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
                         />
                       </div>
 
@@ -948,14 +948,14 @@ export function RestaurantModal() {
                         <button
                           type="button"
                           onClick={() => setTableStep(2)}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-[#6E4B41] hover:text-[#321D17]"
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-[#57534E] hover:text-[#1C1917]"
                         >
                           <ChevronLeft className="w-4 h-4" />
                           <span>Change Tier</span>
                         </button>
                         <button
                           type="submit"
-                          className="px-6 py-2.5 text-sm font-semibold text-white bg-[#C84A1B] rounded-lg hover:bg-[#A83B19]"
+                          className="px-6 py-2.5 text-sm font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
                         >
                           Proceed to Demo Payment ({formatINR(totalPlatformFee)})
                         </button>
@@ -972,17 +972,17 @@ export function RestaurantModal() {
             <div className="space-y-5">
               {preOrderConfirmedRef ? (
                 <div className="py-8 text-center space-y-3">
-                  <CheckCircle2 className="w-10 h-10 text-[#C84A1B] mx-auto" />
-                  <h3 className="font-display text-2xl font-semibold text-[#321D17]">
+                  <CheckCircle2 className="w-10 h-10 text-[#6E1E2E] mx-auto" />
+                  <h3 className="font-display text-2xl font-semibold text-[#1C1917]">
                     Food Pre-Order Recorded ({preOrderConfirmedRef})
                   </h3>
-                  <p className="text-sm text-[#6E4B41] max-w-md mx-auto">
+                  <p className="text-sm text-[#57534E] max-w-md mx-auto">
                     {plateCount} × {chosenPrePkg?.name}. Restaurant advance ({restaurantAdvancePercent}% = {formatINR(preOrderAdvanceAmt)}) marked DEMO PAID. Remaining {formatINR(preOrderRemainingAmt)} payable at {restaurant.name}.
                   </p>
                   <button
                     type="button"
                     onClick={() => setPreOrderConfirmedRef(null)}
-                    className="px-4 py-2 text-xs font-semibold text-white bg-[#C84A1B] rounded-lg"
+                    className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg"
                   >
                     Create Another Pre-Order
                   </button>
@@ -990,11 +990,11 @@ export function RestaurantModal() {
               ) : (
                 <form onSubmit={handlePreOrderSubmit} className="space-y-5">
                   <div>
-                    <h3 className="font-display text-2xl font-semibold text-[#321D17]">
+                    <h3 className="font-display text-2xl font-semibold text-[#1C1917]">
                       Pre-Order Food — Photo Menu &amp; Plate Packages
                     </h3>
-                    <p className="text-xs text-[#6E4B41] mt-0.5">
-                      {restaurant.name} requires a <strong className="text-[#C84A1B]">{restaurantAdvancePercent}% advance</strong> on pre-ordered plate totals. Or choose Order at Restaurant with ₹0 food advance.
+                    <p className="text-xs text-[#57534E] mt-0.5">
+                      {restaurant.name} requires a <strong className="text-[#6E1E2E]">{restaurantAdvancePercent}% advance</strong> on pre-ordered plate totals. Or choose Order at Restaurant with ₹0 food advance.
                     </p>
                   </div>
 
@@ -1004,14 +1004,14 @@ export function RestaurantModal() {
                       onClick={() => setPreOrderMode('Pre-order Food')}
                       className={`p-3.5 rounded-lg border text-left ${
                         preOrderMode === 'Pre-order Food'
-                          ? 'border-[#C84A1B] bg-[#FFF5EA]'
-                          : 'border-[#EAD8C9] bg-white'
+                          ? 'border-[#6E1E2E] bg-[#FAF9F6]'
+                          : 'border-[#E5E0D8] bg-white'
                       }`}
                     >
-                      <p className="text-sm font-semibold text-[#C84A1B]">
+                      <p className="text-sm font-semibold text-[#6E1E2E]">
                         Pre-Order Food ({restaurantAdvancePercent}% Advance)
                       </p>
-                      <p className="text-xs text-[#6E4B41] mt-0.5">
+                      <p className="text-xs text-[#57534E] mt-0.5">
                         View menu photographs &amp; reserve prepared plate packages before arrival.
                       </p>
                     </button>
@@ -1022,21 +1022,21 @@ export function RestaurantModal() {
                         setActiveTab('book');
                         setTableStep(1);
                       }}
-                      className="p-3.5 rounded-lg border border-[#EAD8C9] bg-white text-left hover:border-[#C84A1B]"
+                      className="p-3.5 rounded-lg border border-[#E5E0D8] bg-white text-left hover:border-[#6E1E2E]"
                     >
-                      <p className="text-sm font-semibold text-[#321D17]">
+                      <p className="text-sm font-semibold text-[#1C1917]">
                         Order at Restaurant (₹0 Food Advance)
                       </p>
-                      <p className="text-xs text-[#6E4B41] mt-0.5">
+                      <p className="text-xs text-[#57534E] mt-0.5">
                         Reserve your table first and order directly from the menu after arrival.
                       </p>
                     </button>
                   </div>
 
                   {restaurant.menuPhotos.length > 0 && (
-                    <div className="border border-[#EAD8C9] rounded-lg p-3.5 bg-white space-y-2">
-                      <p className="text-xs font-semibold text-[#321D17] flex items-center gap-1.5">
-                        <ImageIcon className="w-3.5 h-3.5 text-[#C84A1B]" />
+                    <div className="border border-[#E5E0D8] rounded-lg p-3.5 bg-white space-y-2">
+                      <p className="text-xs font-semibold text-[#1C1917] flex items-center gap-1.5">
+                        <ImageIcon className="w-3.5 h-3.5 text-[#6E1E2E]" />
                         <span>Uploaded Menu Pages (Click to Enlarge)</span>
                       </p>
                       <div className="flex gap-3 overflow-x-auto pb-1">
@@ -1045,7 +1045,7 @@ export function RestaurantModal() {
                             key={mp.id}
                             type="button"
                             onClick={() => setLightboxImage({ url: mp.url, title: mp.title })}
-                            className="w-24 shrink-0 border border-[#EAD8C9] rounded overflow-hidden hover:border-[#C84A1B]"
+                            className="w-24 shrink-0 border border-[#E5E0D8] rounded overflow-hidden hover:border-[#6E1E2E]"
                           >
                             <div className="aspect-[3/4]">
                               <SafeImage src={mp.url} alt={mp.title} className="w-full h-full object-cover" />
@@ -1057,13 +1057,13 @@ export function RestaurantModal() {
                   )}
 
                   {restPrePackages.length === 0 ? (
-                    <div className="p-5 border border-[#EAD8C9] rounded-lg text-sm text-[#6E4B41]">
+                    <div className="p-5 border border-[#E5E0D8] rounded-lg text-sm text-[#57534E]">
                       This venue currently serves walk-in and table-reservation orders at the dining table. Use Tab A (Book a Table) to reserve your seats.
                     </div>
                   ) : (
                     <>
                       <div className="space-y-2.5">
-                        <label className="block text-xs font-semibold text-[#321D17]">
+                        <label className="block text-xs font-semibold text-[#1C1917]">
                           Select Plate Package
                         </label>
                         <div className="grid grid-cols-1 gap-3">
@@ -1076,25 +1076,25 @@ export function RestaurantModal() {
                               }}
                               className={`cursor-pointer border rounded-lg p-4 space-y-2 transition-colors ${
                                 chosenPrePkg?.id === pkg.id
-                                  ? 'border-[#C84A1B] bg-[#FFF5EA]'
-                                  : 'border-[#EAD8C9] bg-white'
+                                  ? 'border-[#6E1E2E] bg-[#FAF9F6]'
+                                  : 'border-[#E5E0D8] bg-white'
                               }`}
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div>
-                                  <p className="text-sm font-semibold text-[#321D17]">{pkg.name}</p>
-                                  <p className="text-xs text-[#6E4B41]">
+                                  <p className="text-sm font-semibold text-[#1C1917]">{pkg.name}</p>
+                                  <p className="text-xs text-[#57534E]">
                                     {pkg.dietaryType} · Min {pkg.minPlates} plates · {pkg.description}
                                   </p>
                                 </div>
-                                <span className="font-mono text-sm font-semibold text-[#C84A1B] tabular-nums shrink-0">
+                                <span className="font-mono text-sm font-semibold text-[#6E1E2E] tabular-nums shrink-0">
                                   {formatINR(pkg.pricePerPlate)}/plate
                                 </span>
                               </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-2 border-t border-[#EAD8C9]/80 text-[11px]">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-2 border-t border-[#E5E0D8]/80 text-[11px]">
                                 {pkg.plateItems.map((pi) => (
-                                  <div key={pi.id} className="text-[#321D17]">
-                                    <span className="font-semibold text-[#C84A1B]">{pi.course}: </span>
+                                  <div key={pi.id} className="text-[#1C1917]">
+                                    <span className="font-semibold text-[#6E1E2E]">{pi.course}: </span>
                                     <span>{pi.itemName} ({pi.quantity})</span>
                                   </div>
                                 ))}
@@ -1115,7 +1115,7 @@ export function RestaurantModal() {
                             max={60}
                             value={plateCount}
                             onChange={(e) => setPlateCount(Number(e.target.value))}
-                            className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg tabular-nums"
+                            className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg tabular-nums"
                             required
                           />
                         </div>
@@ -1126,7 +1126,7 @@ export function RestaurantModal() {
                             value={preOrderDate}
                             min={getTodayISO()}
                             onChange={(e) => setPreOrderDate(e.target.value)}
-                            className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg"
+                            className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
                             required
                           />
                         </div>
@@ -1135,7 +1135,7 @@ export function RestaurantModal() {
                           <select
                             value={preOrderTime}
                             onChange={(e) => setPreOrderTime(e.target.value)}
-                            className="w-full px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg"
+                            className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
                           >
                             {TIME_SLOTS.map((s) => (
                               <option key={s} value={s}>{s}</option>
@@ -1151,7 +1151,7 @@ export function RestaurantModal() {
                             type="text"
                             value={foodPreference}
                             onChange={(e) => setFoodPreference(e.target.value)}
-                            className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg"
+                            className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
                           />
                         </div>
                         <div>
@@ -1160,7 +1160,7 @@ export function RestaurantModal() {
                             type="text"
                             value={guestName}
                             onChange={(e) => setGuestName(e.target.value)}
-                            className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg"
+                            className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
                             required
                           />
                         </div>
@@ -1170,7 +1170,7 @@ export function RestaurantModal() {
                             type="tel"
                             value={guestPhone}
                             onChange={(e) => setGuestPhone(e.target.value)}
-                            className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg"
+                            className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
                             required
                           />
                         </div>
@@ -1199,7 +1199,7 @@ export function RestaurantModal() {
                       <div className="flex justify-end">
                         <button
                           type="submit"
-                          className="px-6 py-2.5 text-sm font-semibold text-white bg-[#C84A1B] rounded-lg hover:bg-[#A83B19]"
+                          className="px-6 py-2.5 text-sm font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
                         >
                           Pay {restaurantAdvancePercent}% Demo Advance ({formatINR(preOrderAdvanceAmt)})
                         </button>
@@ -1216,10 +1216,10 @@ export function RestaurantModal() {
             <div className="space-y-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h3 className="font-display text-2xl font-semibold text-[#321D17]">
+                  <h3 className="font-display text-2xl font-semibold text-[#1C1917]">
                     Celebrate an Occasion at {restaurant.name}
                   </h3>
-                  <p className="text-xs text-[#6E4B41] mt-0.5">
+                  <p className="text-xs text-[#57534E] mt-0.5">
                     Decoration Included – No Additional Charges (₹0). Choose an approved package or submit a bespoke request.
                   </p>
                 </div>
@@ -1232,8 +1232,8 @@ export function RestaurantModal() {
                     }}
                     className={`px-3 py-1.5 text-xs font-semibold rounded-lg border ${
                       celSubTab === 'packages'
-                        ? 'bg-[#C84A1B] text-white border-[#C84A1B]'
-                        : 'bg-white text-[#321D17] border-[#EAD8C9]'
+                        ? 'bg-[#6E1E2E] text-white border-[#6E1E2E]'
+                        : 'bg-white text-[#1C1917] border-[#E5E0D8]'
                     }`}
                   >
                     Approved Packages
@@ -1246,8 +1246,8 @@ export function RestaurantModal() {
                     }}
                     className={`px-3 py-1.5 text-xs font-semibold rounded-lg border ${
                       celSubTab === 'custom'
-                        ? 'bg-[#C84A1B] text-white border-[#C84A1B]'
-                        : 'bg-white text-[#321D17] border-[#EAD8C9]'
+                        ? 'bg-[#6E1E2E] text-white border-[#6E1E2E]'
+                        : 'bg-white text-[#1C1917] border-[#E5E0D8]'
                     }`}
                   >
                     Custom Celebration Request
@@ -1258,30 +1258,30 @@ export function RestaurantModal() {
               {celSubTab === 'packages' ? (
                 celConfirmedRef ? (
                   <div className="py-8 text-center space-y-3">
-                    <PartyPopper className="w-10 h-10 text-[#C84A1B] mx-auto" />
-                    <h3 className="font-display text-2xl font-semibold text-[#321D17]">
+                    <PartyPopper className="w-10 h-10 text-[#6E1E2E] mx-auto" />
+                    <h3 className="font-display text-2xl font-semibold text-[#1C1917]">
                       Celebration Booking Logged ({celConfirmedRef})
                     </h3>
-                    <p className="text-sm text-[#6E4B41] max-w-md mx-auto">
+                    <p className="text-sm text-[#57534E] max-w-md mx-auto">
                       {chosenCelPkg?.name} for {celPlates} plates on {formatDisplayDate(celDate)}. Decoration Charge: ₹0 (Included). Track quotation &amp; confirmation inside your Customer Portal.
                     </p>
                     <button
                       type="button"
                       onClick={() => setCelConfirmedRef(null)}
-                      className="px-4 py-2 text-xs font-semibold text-white bg-[#C84A1B] rounded-lg"
+                      className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg"
                     >
                       Plan Another Celebration
                     </button>
                   </div>
                 ) : restCelPackages.length === 0 ? (
-                  <div className="p-5 border border-[#EAD8C9] rounded-lg space-y-3">
-                    <p className="text-sm text-[#6E4B41]">
+                  <div className="p-5 border border-[#E5E0D8] rounded-lg space-y-3">
+                    <p className="text-sm text-[#57534E]">
                       No pre-built celebration packages are published for {restaurant.name} yet. Submit a Custom Celebration Request instead!
                     </p>
                     <button
                       type="button"
                       onClick={() => setCelSubTab('custom')}
-                      className="px-4 py-2 text-xs font-semibold text-white bg-[#C84A1B] rounded-lg"
+                      className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg"
                     >
                       Open Custom Celebration Request Form
                     </button>
@@ -1298,23 +1298,23 @@ export function RestaurantModal() {
                           }}
                           className={`cursor-pointer border rounded-lg p-4 space-y-3 transition-colors ${
                             chosenCelPkg?.id === pkg.id
-                              ? 'border-[#C84A1B] bg-[#FFF5EA]/70'
-                              : 'border-[#EAD8C9] bg-white'
+                              ? 'border-[#6E1E2E] bg-[#FAF9F6]/70'
+                              : 'border-[#E5E0D8] bg-white'
                           }`}
                         >
                           <div className="flex flex-wrap items-start justify-between gap-2">
                             <div>
-                              <p className="text-xs font-semibold text-[#C84A1B]">
+                              <p className="text-xs font-semibold text-[#6E1E2E]">
                                 {pkg.category} · {pkg.dietaryType}
                               </p>
-                              <h4 className="text-lg font-semibold text-[#321D17]">{pkg.name}</h4>
-                              <p className="text-xs text-[#6E4B41] mt-0.5">{pkg.description}</p>
+                              <h4 className="text-lg font-semibold text-[#1C1917]">{pkg.name}</h4>
+                              <p className="text-xs text-[#57534E] mt-0.5">{pkg.description}</p>
                             </div>
                             <div className="text-right">
-                              <p className="font-mono text-base font-semibold text-[#C84A1B] tabular-nums">
+                              <p className="font-mono text-base font-semibold text-[#6E1E2E] tabular-nums">
                                 {formatINR(pkg.pricePerPlate)} / plate
                               </p>
-                              <p className="text-[11px] text-[#6E4B41] tabular-nums">
+                              <p className="text-[11px] text-[#57534E] tabular-nums">
                                 {pkg.minPlates}–{pkg.maxPlates} plates
                               </p>
                             </div>
@@ -1322,10 +1322,10 @@ export function RestaurantModal() {
 
                           <div className="space-y-2">
                             <div className="flex flex-wrap items-center justify-between gap-2">
-                              <span className="text-xs font-semibold text-[#321D17]">
+                              <span className="text-xs font-semibold text-[#1C1917]">
                                 Decoration Photos:
                               </span>
-                              <span className="text-xs font-semibold text-[#321D17] bg-[#E7EFD9] border border-[#C8D8AC] px-2.5 py-0.5 rounded">
+                              <span className="text-xs font-semibold text-[#1C1917] bg-[#ECF4EE] border border-[#BBD6C3] px-2.5 py-0.5 rounded">
                                 Decoration Included – No Additional Charges (₹0)
                               </span>
                             </div>
@@ -1333,7 +1333,7 @@ export function RestaurantModal() {
                               {pkg.decorationPhotos.map((url, i) => (
                                 <div
                                   key={`${pkg.id}-dec-${i}`}
-                                  className="aspect-[4/3] rounded overflow-hidden border border-[#EAD8C9]"
+                                  className="aspect-[4/3] rounded overflow-hidden border border-[#E5E0D8]"
                                 >
                                   <SafeImage
                                     src={url}
@@ -1343,18 +1343,18 @@ export function RestaurantModal() {
                                 </div>
                               ))}
                             </div>
-                            <p className="text-xs text-[#6E4B41]">{pkg.decorationDetails}</p>
+                            <p className="text-xs text-[#57534E]">{pkg.decorationDetails}</p>
                           </div>
 
-                          <div className="pt-2 border-t border-[#EAD8C9] space-y-1.5">
-                            <p className="text-xs font-semibold text-[#321D17] flex items-center gap-1.5">
-                              <Utensils className="w-3.5 h-3.5 text-[#C84A1B]" />
+                          <div className="pt-2 border-t border-[#E5E0D8] space-y-1.5">
+                            <p className="text-xs font-semibold text-[#1C1917] flex items-center gap-1.5">
+                              <Utensils className="w-3.5 h-3.5 text-[#6E1E2E]" />
                               <span>Food Included in Every Plate:</span>
                             </p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px]">
                               {pkg.plateItems.map((pi) => (
                                 <div key={pi.id}>
-                                  <span className="font-semibold text-[#C84A1B]">{pi.course}: </span>
+                                  <span className="font-semibold text-[#6E1E2E]">{pi.course}: </span>
                                   <span>
                                     {pi.itemName} ({pi.quantity})
                                   </span>
@@ -1374,7 +1374,7 @@ export function RestaurantModal() {
                           value={celDate}
                           min={getTodayISO()}
                           onChange={(e) => setCelDate(e.target.value)}
-                          className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg"
+                          className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
                         />
                       </div>
                       <div>
@@ -1382,7 +1382,7 @@ export function RestaurantModal() {
                         <select
                           value={celTime}
                           onChange={(e) => setCelTime(e.target.value)}
-                          className="w-full px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg"
+                          className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
                         >
                           {TIME_SLOTS.map((s) => (
                             <option key={s} value={s}>{s}</option>
@@ -1399,7 +1399,7 @@ export function RestaurantModal() {
                           max={chosenCelPkg?.maxPlates || 60}
                           value={celPlates}
                           onChange={(e) => setCelPlates(Number(e.target.value))}
-                          className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg tabular-nums"
+                          className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg tabular-nums"
                         />
                       </div>
                     </div>
@@ -1411,7 +1411,7 @@ export function RestaurantModal() {
                           type="text"
                           value={guestName}
                           onChange={(e) => setGuestName(e.target.value)}
-                          className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg"
+                          className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
                         />
                       </div>
                       <div>
@@ -1420,7 +1420,7 @@ export function RestaurantModal() {
                           type="email"
                           value={celEmail}
                           onChange={(e) => setCelEmail(e.target.value)}
-                          className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg"
+                          className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
                         />
                       </div>
                       <div>
@@ -1429,7 +1429,7 @@ export function RestaurantModal() {
                           type="tel"
                           value={guestPhone}
                           onChange={(e) => setGuestPhone(e.target.value)}
-                          className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg"
+                          className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
                         />
                       </div>
                     </div>
@@ -1441,7 +1441,7 @@ export function RestaurantModal() {
                           type="text"
                           value={celFoodPref}
                           onChange={(e) => setCelFoodPref(e.target.value)}
-                          className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg"
+                          className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
                         />
                       </div>
                       <div>
@@ -1451,7 +1451,7 @@ export function RestaurantModal() {
                           value={celSpecialReq}
                           onChange={(e) => setCelSpecialReq(e.target.value)}
                           placeholder="Custom cake note, floral color..."
-                          className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg"
+                          className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
                         />
                       </div>
                     </div>
@@ -1473,14 +1473,14 @@ export function RestaurantModal() {
                       <button
                         type="button"
                         onClick={() => handleCelebrationSubmit(false)}
-                        className="px-4 py-2.5 text-xs font-semibold text-[#C84A1B] border border-[#C84A1B] rounded-lg hover:bg-[#FFF5EA]"
+                        className="px-4 py-2.5 text-xs font-semibold text-[#6E1E2E] border border-[#6E1E2E] rounded-lg hover:bg-[#FAF9F6]"
                       >
                         Request Quotation First
                       </button>
                       <button
                         type="button"
                         onClick={() => handleCelebrationSubmit(true)}
-                        className="px-5 py-2.5 text-xs font-semibold text-white bg-[#C84A1B] rounded-lg hover:bg-[#A83B19]"
+                        className="px-5 py-2.5 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
                       >
                         Pay {celAdvPercent}% Demo Advance ({formatINR(celAdvAmt)})
                       </button>
@@ -1489,17 +1489,17 @@ export function RestaurantModal() {
                 )
               ) : customConfirmedRef ? (
                 <div className="py-8 text-center space-y-3">
-                  <Sparkles className="w-10 h-10 text-[#C84A1B] mx-auto" />
-                  <h3 className="font-display text-2xl font-semibold text-[#321D17]">
+                  <Sparkles className="w-10 h-10 text-[#6E1E2E] mx-auto" />
+                  <h3 className="font-display text-2xl font-semibold text-[#1C1917]">
                     Custom Celebration Request Submitted ({customConfirmedRef})
                   </h3>
-                  <p className="text-sm text-[#6E4B41] max-w-md mx-auto">
+                  <p className="text-sm text-[#57534E] max-w-md mx-auto">
                     {restaurant.name} will review your theme and budget and send a custom quotation (Decoration ₹0). Advance payment unlocks only after you accept their quote in Customer Portal → Custom Requests.
                   </p>
                   <button
                     type="button"
                     onClick={() => setCustomConfirmedRef(null)}
-                    className="px-4 py-2 text-xs font-semibold text-white bg-[#C84A1B] rounded-lg"
+                    className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg"
                   >
                     Submit Another Custom Request
                   </button>
@@ -1512,7 +1512,7 @@ export function RestaurantModal() {
                       <select
                         value={customOccasion}
                         onChange={(e) => setCustomOccasion(e.target.value as CelebrationCategory)}
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg"
+                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
                       >
                         {CELEBRATION_CATEGORIES.map((cat) => (
                           <option key={cat} value={cat}>{cat}</option>
@@ -1525,7 +1525,7 @@ export function RestaurantModal() {
                         type="text"
                         value={`${restaurant.name} (${restaurant.area})`}
                         readOnly
-                        className="w-full px-3 py-2 text-sm bg-[#FFF5EA] border border-[#EAD8C9] rounded-lg text-[#321D17]"
+                        className="w-full px-3 py-2 text-sm bg-[#FAF9F6] border border-[#E5E0D8] rounded-lg text-[#1C1917]"
                       />
                     </div>
                   </div>
@@ -1538,7 +1538,7 @@ export function RestaurantModal() {
                         value={customDate}
                         min={getTodayISO()}
                         onChange={(e) => setCustomDate(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg"
+                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
                         required
                       />
                     </div>
@@ -1547,7 +1547,7 @@ export function RestaurantModal() {
                       <select
                         value={customTime}
                         onChange={(e) => setCustomTime(e.target.value)}
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg"
+                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
                       >
                         {TIME_SLOTS.map((s) => (
                           <option key={s} value={s}>{s}</option>
@@ -1562,7 +1562,7 @@ export function RestaurantModal() {
                         max={150}
                         value={customGuests}
                         onChange={(e) => setCustomGuests(Number(e.target.value))}
-                        className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg tabular-nums"
+                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg tabular-nums"
                         required
                       />
                     </div>
@@ -1574,7 +1574,7 @@ export function RestaurantModal() {
                         step={500}
                         value={customBudget}
                         onChange={(e) => setCustomBudget(Number(e.target.value))}
-                        className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg tabular-nums"
+                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg tabular-nums"
                         required
                       />
                     </div>
@@ -1587,7 +1587,7 @@ export function RestaurantModal() {
                         type="text"
                         value={customTheme}
                         onChange={(e) => setCustomTheme(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg"
+                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
                         required
                       />
                     </div>
@@ -1597,7 +1597,7 @@ export function RestaurantModal() {
                         type="text"
                         value={customColors}
                         onChange={(e) => setCustomColors(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg"
+                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
                         required
                       />
                     </div>
@@ -1610,7 +1610,7 @@ export function RestaurantModal() {
                         type="text"
                         value={customCake}
                         onChange={(e) => setCustomCake(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg"
+                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
                       />
                     </div>
                     <div>
@@ -1619,7 +1619,7 @@ export function RestaurantModal() {
                         type="text"
                         value={customFoodPref}
                         onChange={(e) => setCustomFoodPref(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg"
+                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
                         required
                       />
                     </div>
@@ -1632,18 +1632,18 @@ export function RestaurantModal() {
                       value={customInstructions}
                       onChange={(e) => setCustomInstructions(e.target.value)}
                       placeholder="Music, surprise entrance timing, seating preference..."
-                      className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg"
+                      className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
                     />
                   </div>
 
-                  <div className="px-4 py-3 rounded-lg bg-[#E7EFD9] border border-[#C8D8AC] text-xs text-[#321D17] flex flex-wrap justify-between gap-2">
+                  <div className="px-4 py-3 rounded-lg bg-[#ECF4EE] border border-[#BBD6C3] text-xs text-[#1C1917] flex flex-wrap justify-between gap-2">
                     <span>Decoration Included – No Additional Charges (₹0). Quote acceptance required before advance payment.</span>
                   </div>
 
                   <div className="flex justify-end">
                     <button
                       type="submit"
-                      className="px-6 py-2.5 text-sm font-semibold text-white bg-[#C84A1B] rounded-lg hover:bg-[#A83B19]"
+                      className="px-6 py-2.5 text-sm font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
                     >
                       Submit Custom Request for Quotation (Demo)
                     </button>
@@ -1658,15 +1658,15 @@ export function RestaurantModal() {
       {/* Lightbox Preview */}
       {lightboxImage && (
         <div
-          className="fixed inset-0 z-[70] bg-[#3A180F]/85 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[70] bg-[#1C1917]/85 flex items-center justify-center p-4"
           onClick={() => setLightboxImage(null)}
         >
           <div
             className="bg-white rounded-lg max-w-2xl w-full overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-4 py-3 border-b border-[#EAD8C9] flex items-center justify-between">
-              <span className="text-sm font-semibold text-[#321D17]">{lightboxImage.title}</span>
+            <div className="px-4 py-3 border-b border-[#E5E0D8] flex items-center justify-between">
+              <span className="text-sm font-semibold text-[#1C1917]">{lightboxImage.title}</span>
               <button
                 type="button"
                 onClick={() => setLightboxImage(null)}
@@ -1675,7 +1675,7 @@ export function RestaurantModal() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="max-h-[80vh] overflow-auto bg-[#FFF5EA]">
+            <div className="max-h-[80vh] overflow-auto bg-[#FAF9F6]">
               <SafeImage
                 src={lightboxImage.url}
                 alt={lightboxImage.title}

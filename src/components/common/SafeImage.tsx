@@ -19,12 +19,12 @@ export function SafeImage({
   if (hasError || !src) {
     return (
       <div
-        className={`flex flex-col items-center justify-center bg-[#FFF5EA] text-[#C84A1B] p-4 text-center border border-[#EAD8C9] ${className}`}
+        className={`flex flex-col items-center justify-center bg-[#FAF9F6] text-[#6E1E2E] p-4 text-center border border-[#E5E0D8] ${className}`}
         role="img"
         aria-label={alt}
       >
         <Utensils className="w-7 h-7 mb-2 opacity-80" aria-hidden="true" />
-        <span className="text-xs font-medium text-[#321D17] line-clamp-2">
+        <span className="text-xs font-medium text-[#1C1917] line-clamp-2">
           {fallbackTitle || alt}
         </span>
       </div>

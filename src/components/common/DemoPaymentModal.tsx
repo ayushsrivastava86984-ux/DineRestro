@@ -39,15 +39,15 @@ export function DemoPaymentModal() {
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-[#3A180F]/65 p-4 overflow-y-auto"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-[#1C1917]/65 p-4 overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-labelledby="demo-payment-title"
     >
-      <div className="bg-white border border-[#EAD8C9] rounded-lg max-w-lg w-full overflow-hidden my-auto shadow-xl">
-        <div className="px-5 py-4 bg-[#3A180F] text-white flex items-center justify-between gap-3">
+      <div className="bg-white border border-[#E5E0D8] rounded-lg max-w-lg w-full overflow-hidden my-auto shadow-xl">
+        <div className="px-5 py-4 bg-[#1C1917] text-[#FAF9F6] flex items-center justify-between gap-3">
           <div>
-            <p className="text-[11px] font-mono tracking-wide text-[#F6B27B]">
+            <p className="text-[11px] font-mono tracking-wide text-[#F3F1ED]">
               DEMO ONLY — SIMULATED PAYMENT INTERFACE
             </p>
             <h2 id="demo-payment-title" className="text-lg font-semibold">
@@ -67,46 +67,46 @@ export function DemoPaymentModal() {
         <div className="p-5 sm:p-6 space-y-5">
           {receipt ? (
             <div className="space-y-4">
-              <div className="p-4 rounded-lg bg-[#E7EFD9] border border-[#C8D8AC] flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-[#A83B19] shrink-0 mt-0.5" />
+              <div className="p-4 rounded-lg bg-[#ECF4EE] border border-[#BBD6C3] flex items-start gap-3">
+                <CheckCircle2 className="w-5 h-5 text-[#1E462A] shrink-0 mt-0.5" />
                 <div className="text-xs space-y-1">
-                  <p className="font-semibold text-[#321D17]">
+                  <p className="font-semibold text-[#1C1917]">
                     DEMO PAYMENT RECEIPT GENERATED (NOT REAL MONEY)
                   </p>
-                  <p className="text-[#6E4B41]">
+                  <p className="text-[#57534E]">
                     This simulated receipt is stored in your Phase 1 local browser state for demonstration only.
                   </p>
                 </div>
               </div>
 
-              <div className="border border-[#EAD8C9] rounded-lg p-4 space-y-2.5 text-sm bg-[#FFF5EA]">
+              <div className="border border-[#E5E0D8] rounded-lg p-4 space-y-2.5 text-sm bg-[#FAF9F6]">
                 <div className="flex justify-between">
-                  <span className="text-[#6E4B41]">Demo Transaction ID</span>
-                  <span className="font-mono font-semibold text-[#C84A1B]">
+                  <span className="text-[#57534E]">Demo Transaction ID</span>
+                  <span className="font-mono font-semibold text-[#6E1E2E]">
                     {receipt.transactionId}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#6E4B41]">Booking Reference</span>
-                  <span className="font-mono font-semibold text-[#321D17]">
+                  <span className="text-[#57534E]">Booking Reference</span>
+                  <span className="font-mono font-semibold text-[#1C1917]">
                     {receipt.referenceId}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#6E4B41]">Payment Category</span>
-                  <span className="font-medium text-[#321D17]">{receipt.paymentType}</span>
+                  <span className="text-[#57534E]">Payment Category</span>
+                  <span className="font-medium text-[#1C1917]">{receipt.paymentType}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#6E4B41]">Restaurant</span>
-                  <span className="font-medium text-[#321D17]">{receipt.restaurantName}</span>
+                  <span className="text-[#57534E]">Restaurant</span>
+                  <span className="font-medium text-[#1C1917]">{receipt.restaurantName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#6E4B41]">Simulated Method</span>
-                  <span className="font-medium text-[#321D17]">{receipt.paymentMethod}</span>
+                  <span className="text-[#57534E]">Simulated Method</span>
+                  <span className="font-medium text-[#1C1917]">{receipt.paymentMethod}</span>
                 </div>
-                <div className="flex justify-between pt-2 border-t border-[#EAD8C9] font-semibold">
+                <div className="flex justify-between pt-2 border-t border-[#E5E0D8] font-semibold">
                   <span>Demo Amount Marked Paid</span>
-                  <span className="font-mono tabular-nums text-[#C84A1B]">
+                  <span className="font-mono tabular-nums text-[#6E1E2E]">
                     {formatINR(receipt.amount)}
                   </span>
                 </div>
@@ -115,34 +115,34 @@ export function DemoPaymentModal() {
               <button
                 type="button"
                 onClick={handleClose}
-                className="w-full py-2.5 text-sm font-semibold text-white bg-[#C84A1B] rounded-lg hover:bg-[#A83B19] transition-colors"
+                className="w-full py-2.5 text-sm font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522] transition-colors"
               >
                 Return to DineRestro
               </button>
             </div>
           ) : (
             <form onSubmit={handlePay} className="space-y-4">
-              <div className="px-3.5 py-2.5 rounded-lg bg-[#FCEBDD] border border-[#EAD8C9] text-xs text-[#6E4B41] flex items-start gap-2">
-                <ShieldCheck className="w-4 h-4 text-[#C84A1B] shrink-0 mt-0.5" />
+              <div className="px-3.5 py-2.5 rounded-lg bg-[#F3F1ED] border border-[#E5E0D8] text-xs text-[#57534E] flex items-start gap-2">
+                <ShieldCheck className="w-4 h-4 text-[#6E1E2E] shrink-0 mt-0.5" />
                 <span>
-                  <strong className="text-[#321D17]">DEMO ONLY:</strong> No live payment gateway is connected and no real money is collected.
+                  <strong className="text-[#1C1917]">DEMO ONLY:</strong> No live payment gateway is connected and no real money is collected.
                 </span>
               </div>
 
               {/* Transparent Breakdown */}
-              <div className="border border-[#EAD8C9] rounded-lg p-4 space-y-2 text-xs">
-                <p className="font-semibold text-[#321D17] mb-1">
+              <div className="border border-[#E5E0D8] rounded-lg p-4 space-y-2 text-xs">
+                <p className="font-semibold text-[#1C1917] mb-1">
                   Separated Payment Breakdown
                 </p>
                 {activeDemoPayment.breakdownLines.map((line) => (
                   <div key={line.label} className="flex justify-between gap-2">
-                    <span className="text-[#6E4B41]">{line.label}</span>
-                    <span className="font-medium text-[#321D17] tabular-nums text-right">
+                    <span className="text-[#57534E]">{line.label}</span>
+                    <span className="font-medium text-[#1C1917] tabular-nums text-right">
                       {line.value}
                     </span>
                   </div>
                 ))}
-                <div className="flex justify-between pt-2 border-t border-[#EAD8C9] text-sm font-semibold text-[#C84A1B]">
+                <div className="flex justify-between pt-2 border-t border-[#E5E0D8] text-sm font-semibold text-[#6E1E2E]">
                   <span>Demo Payable Now</span>
                   <span className="font-mono tabular-nums">
                     {formatINR(activeDemoPayment.amount)}
@@ -152,7 +152,7 @@ export function DemoPaymentModal() {
 
               {/* Payment Method Tabs */}
               <div>
-                <p className="text-xs font-semibold text-[#321D17] mb-2">
+                <p className="text-xs font-semibold text-[#1C1917] mb-2">
                   Choose Simulated Payment Method
                 </p>
                 <div className="grid grid-cols-3 gap-2">
@@ -169,8 +169,8 @@ export function DemoPaymentModal() {
                         onClick={() => setMethod(tab.id)}
                         className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border text-xs font-semibold transition-colors ${
                           method === tab.id
-                            ? 'bg-[#C84A1B] text-white border-[#C84A1B]'
-                            : 'bg-white text-[#321D17] border-[#EAD8C9] hover:bg-[#FCEBDD]'
+                            ? 'bg-[#6E1E2E] text-white border-[#6E1E2E]'
+                            : 'bg-white text-[#1C1917] border-[#E5E0D8] hover:bg-[#F3F1ED]'
                         }`}
                       >
                         <Icon className="w-3.5 h-3.5" />
@@ -183,14 +183,14 @@ export function DemoPaymentModal() {
 
               {method === 'UPI' && (
                 <div>
-                  <label className="block text-xs font-semibold text-[#321D17] mb-1">
+                  <label className="block text-xs font-semibold text-[#1C1917] mb-1">
                     Simulated UPI ID
                   </label>
                   <input
                     type="text"
                     value={upiId}
                     onChange={(e) => setUpiId(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
+                    className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
                     required
                   />
                 </div>
@@ -203,7 +203,7 @@ export function DemoPaymentModal() {
                     <input
                       type="text"
                       defaultValue="4111 •••• •••• 1111 (DEMO)"
-                      className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg font-mono"
+                      className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg font-mono"
                     />
                   </div>
                   <div>
@@ -211,7 +211,7 @@ export function DemoPaymentModal() {
                     <input
                       type="text"
                       defaultValue="12/28"
-                      className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg font-mono"
+                      className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg font-mono"
                     />
                   </div>
                   <div>
@@ -219,7 +219,7 @@ export function DemoPaymentModal() {
                     <input
                       type="password"
                       defaultValue="123"
-                      className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg font-mono"
+                      className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg font-mono"
                     />
                   </div>
                 </div>
@@ -227,10 +227,10 @@ export function DemoPaymentModal() {
 
               {method === 'NetBanking' && (
                 <div>
-                  <label className="block text-xs font-semibold text-[#321D17] mb-1">
+                  <label className="block text-xs font-semibold text-[#1C1917] mb-1">
                     Simulated Bank
                   </label>
-                  <select className="w-full px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg">
+                  <select className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg">
                     <option>State Bank of India (Demo)</option>
                     <option>HDFC Bank (Demo)</option>
                     <option>ICICI Bank (Demo)</option>
@@ -242,14 +242,14 @@ export function DemoPaymentModal() {
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="px-4 py-2 text-xs font-medium border border-[#EAD8C9] rounded-lg hover:bg-[#FCEBDD]"
+                  className="px-4 py-2 text-xs font-semibold text-[#1C1917] bg-white border border-[#D6CFC5] rounded-lg hover:bg-[#F3F1ED]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={processing}
-                  className="px-5 py-2.5 text-xs font-semibold text-white bg-[#C84A1B] rounded-lg hover:bg-[#A83B19] transition-colors"
+                  className="px-5 py-2.5 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522] transition-colors"
                 >
                   {processing
                     ? 'Recording Demo Payment...'

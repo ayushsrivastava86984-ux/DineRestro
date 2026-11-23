@@ -20,22 +20,31 @@ export function ToastContainer() {
               : Info;
         const accentClass =
           toast.type === 'success'
-            ? 'bg-[#E7EFD9] text-[#321D17] border-[#C8D8AC]'
+            ? 'bg-[#ECF4EE] text-[#1E462A] border-[#BBD6C3]'
             : toast.type === 'error'
-              ? 'bg-[#FDECE6] text-[#A83B19] border-[#F6B27B]'
-              : 'bg-[#FCEBDD] text-[#321D17] border-[#EAD8C9]';
+              ? 'bg-[#FDF2F4] text-[#8B1E35] border-[#EAC4CC]'
+              : 'bg-white text-[#1C1917] border-[#E5E0D8]';
 
         return (
           <div
             key={toast.id}
-            className={`pointer-events-auto flex items-start gap-3 p-3.5 rounded-lg border shadow-sm transition-transform duration-150 ${accentClass}`}
+            className={`pointer-events-auto flex items-start gap-3 p-3.5 rounded-lg border shadow-md transition-transform duration-150 ${accentClass}`}
             role="status"
           >
-            <Icon className="w-5 h-5 shrink-0 mt-0.5 text-[#C84A1B]" aria-hidden="true" />
+            <Icon
+              className={`w-5 h-5 shrink-0 mt-0.5 ${
+                toast.type === 'success'
+                  ? 'text-[#1E462A]'
+                  : toast.type === 'error'
+                    ? 'text-[#8B1E35]'
+                    : 'text-[#6E1E2E]'
+              }`}
+              aria-hidden="true"
+            />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold leading-snug">{toast.title}</p>
               {toast.description && (
-                <p className="text-xs text-[#6E4B41] mt-0.5 leading-relaxed">
+                <p className="text-xs text-[#57534E] mt-0.5 leading-relaxed">
                   {toast.description}
                 </p>
               )}
@@ -43,7 +52,7 @@ export function ToastContainer() {
             <button
               type="button"
               onClick={() => dismissToast(toast.id)}
-              className="p-1 rounded hover:bg-black/5 text-[#6E4B41] transition-colors"
+              className="p-1 rounded hover:bg-black/5 text-[#57534E] transition-colors"
               aria-label="Dismiss notification"
             >
               <X className="w-4 h-4" />

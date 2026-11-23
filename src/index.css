@@ -4,24 +4,21 @@
   --font-serif: "Playfair Display", "Cormorant Garamond", Georgia, serif;
   --font-sans: "Poppins", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
-  --color-ivory: #FFF5EA;
-  --color-cream: #FCEBDD;
-  --color-terracotta: #C84A1B;
-  --color-burnt-orange: #A83B19;
-  --color-espresso: #3A180F;
-  --color-chocolate: #542719;
-  --color-peach: #F6B27B;
-  --color-gold: #D99555;
-  --color-ink: #321D17;
-  --color-muted: #6E4B41;
-  --color-hairline: #EAD8C9;
+  --color-alabaster: #FAF9F6;
+  --color-stone: #F3F1ED;
+  --color-hairline: #E5E0D8;
+  --color-burgundy: #6E1E2E;
+  --color-claret: #541522;
+  --color-charcoal: #1C1917;
+  --color-slate: #57534E;
+  --color-champagne: #B8863B;
 }
 
 @layer base {
   html {
     font-family: var(--font-sans);
-    color: #321D17;
-    background-color: #FFF5EA;
+    color: #1C1917;
+    background-color: #FAF9F6;
     scroll-behavior: smooth;
   }
 

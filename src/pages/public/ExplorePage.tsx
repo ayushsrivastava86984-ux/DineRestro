@@ -131,14 +131,14 @@ export function ExplorePage() {
   };
 
   return (
-    <div className="bg-[#FFF5EA] py-10 sm:py-14">
+    <div className="bg-[#FAF9F6] py-10 sm:py-14">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold text-[#C84A1B] tracking-widest uppercase mb-1">
+            <p className="text-xs font-semibold text-[#6E1E2E] tracking-widest uppercase mb-1">
               Varanasi Dining Discovery
             </p>
-            <h1 className="font-display text-3xl sm:text-4xl font-semibold text-[#321D17]">
+            <h1 className="font-display text-3xl sm:text-4xl font-semibold text-[#1C1917]">
               {actionIntent === 'preorder'
                 ? 'Select a Restaurant to Pre-Order Food'
                 : actionIntent === 'book'
@@ -146,7 +146,7 @@ export function ExplorePage() {
                   : 'Explore Restaurants, Menus & Celebration Venues'}
             </h1>
           </div>
-          <p className="text-sm text-[#6E4B41] tabular-nums">
+          <p className="text-sm text-[#57534E] tabular-nums">
             Showing {filteredRestaurants.length} of {approvedRestaurants.length} approved venues
           </p>
         </div>
@@ -154,16 +154,16 @@ export function ExplorePage() {
         <DemoBanner message="Inspect photo galleries, uploaded menu photographs, 14 amenities, food pre-order plates, and ₹0-decor celebration packages inside any restaurant modal." />
 
         {/* Advanced Filter Bar */}
-        <div className="bg-white border border-[#EAD8C9] rounded-lg p-4 sm:p-5 space-y-4">
+        <div className="bg-white border border-[#E5E0D8] rounded-lg p-4 sm:p-5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="relative">
-              <Search className="w-4 h-4 text-[#6E4B41] absolute left-3 top-2.5 pointer-events-none" />
+              <Search className="w-4 h-4 text-[#6E1E2E] absolute left-3 top-2.5 pointer-events-none" />
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search restaurant, cuisine or area..."
-                className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
+                className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
               />
             </div>
 
@@ -171,7 +171,7 @@ export function ExplorePage() {
               value={selectedArea}
               onChange={(e) => setSelectedArea(e.target.value)}
               aria-label="Filter by locality"
-              className="w-full px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
+              className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
             >
               {VARANASI_AREAS.map((area) => (
                 <option key={area} value={area}>
@@ -184,7 +184,7 @@ export function ExplorePage() {
               value={priceRangeFilter}
               onChange={(e) => setPriceRangeFilter(e.target.value as typeof priceRangeFilter)}
               aria-label="Filter by price range"
-              className="w-full px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
+              className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
             >
               <option value="all">All Price Ranges</option>
               <option value="under1200">Under ₹1,200 for two</option>
@@ -196,7 +196,7 @@ export function ExplorePage() {
               value={ratingFilter}
               onChange={(e) => setRatingFilter(e.target.value as typeof ratingFilter)}
               aria-label="Filter by minimum rating"
-              className="w-full px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
+              className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
             >
               <option value="all">All Ratings</option>
               <option value="4.5">4.5★ &amp; Above</option>
@@ -209,7 +209,7 @@ export function ExplorePage() {
               value={availabilityFilter}
               onChange={(e) => setAvailabilityFilter(e.target.value as typeof availabilityFilter)}
               aria-label="Filter by service availability"
-              className="w-full px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
+              className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
             >
               <option value="all">All Service Availability</option>
               <option value="preorder">Pre-Order Plates Ready</option>
@@ -220,7 +220,7 @@ export function ExplorePage() {
               value={celebrationFilter}
               onChange={(e) => setCelebrationFilter(e.target.value)}
               aria-label="Filter by celebration type"
-              className="w-full px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
+              className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
             >
               <option value="All">All Celebration Types</option>
               {CELEBRATION_CATEGORIES.filter((c) => c !== 'Custom Celebration').map((cat) => (
@@ -232,12 +232,12 @@ export function ExplorePage() {
 
             <div className="flex gap-2">
               <div className="relative flex-1 flex items-center">
-                <SlidersHorizontal className="w-4 h-4 text-[#6E4B41] absolute left-3 pointer-events-none" />
+                <SlidersHorizontal className="w-4 h-4 text-[#6E1E2E] absolute left-3 pointer-events-none" />
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
                   aria-label="Sort restaurants"
-                  className="w-full pl-9 pr-2 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
+                  className="w-full pl-9 pr-2 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
                 >
                   <option value="popularity">Sort: Popularity</option>
                   <option value="rating">Sort: Highest Rating</option>
@@ -250,7 +250,7 @@ export function ExplorePage() {
                 onClick={handleReset}
                 title="Reset all filters"
                 aria-label="Reset all filters"
-                className="px-3 py-2 bg-[#FCEBDD] border border-[#EAD8C9] rounded-lg text-[#321D17] hover:border-[#C84A1B]"
+                className="px-3 py-2 bg-white border border-[#D6CFC5] rounded-lg text-[#1C1917] hover:bg-[#F3F1ED]"
               >
                 <RotateCcw className="w-4 h-4" />
               </button>
@@ -259,15 +259,15 @@ export function ExplorePage() {
 
           {/* Cuisine Filter Buttons */}
           <div className="space-y-1.5">
-            <p className="text-[11px] font-semibold text-[#6E4B41]">Cuisine</p>
+            <p className="text-[11px] font-semibold text-[#57534E]">Cuisine</p>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => setSelectedCuisine('All')}
                 className={`px-3 py-1 text-xs font-semibold rounded border transition-colors ${
                   selectedCuisine === 'All'
-                    ? 'bg-[#C84A1B] text-white border-[#C84A1B]'
-                    : 'bg-[#FFF5EA] text-[#321D17] border-[#EAD8C9] hover:border-[#C84A1B]'
+                    ? 'bg-[#6E1E2E] text-white border-[#6E1E2E]'
+                    : 'bg-[#FAF9F6] text-[#1C1917] border-[#E5E0D8] hover:border-[#6E1E2E] hover:bg-[#F3F1ED]'
                 }`}
               >
                 All Cuisines
@@ -279,8 +279,8 @@ export function ExplorePage() {
                   onClick={() => setSelectedCuisine(c.name)}
                   className={`px-3 py-1 text-xs font-semibold rounded border transition-colors ${
                     selectedCuisine === c.name
-                      ? 'bg-[#C84A1B] text-white border-[#C84A1B]'
-                      : 'bg-[#FFF5EA] text-[#321D17] border-[#EAD8C9] hover:border-[#C84A1B]'
+                      ? 'bg-[#6E1E2E] text-white border-[#6E1E2E]'
+                      : 'bg-[#FAF9F6] text-[#1C1917] border-[#E5E0D8] hover:border-[#6E1E2E] hover:bg-[#F3F1ED]'
                   }`}
                 >
                   {c.name}
@@ -291,7 +291,7 @@ export function ExplorePage() {
 
           {/* Amenities Filter Buttons */}
           <div className="space-y-1.5">
-            <p className="text-[11px] font-semibold text-[#6E4B41]">
+            <p className="text-[11px] font-semibold text-[#57534E]">
               Amenities (Select one or more)
             </p>
             <div className="flex flex-wrap gap-1.5">
@@ -304,8 +304,8 @@ export function ExplorePage() {
                     onClick={() => toggleAmenity(amenity)}
                     className={`px-2.5 py-1 text-[11px] font-medium rounded border transition-colors ${
                       active
-                        ? 'bg-[#C84A1B] text-white border-[#C84A1B]'
-                        : 'bg-white text-[#321D17] border-[#EAD8C9] hover:border-[#C84A1B]'
+                        ? 'bg-[#6E1E2E] text-white border-[#6E1E2E]'
+                        : 'bg-white text-[#1C1917] border-[#E5E0D8] hover:border-[#6E1E2E] hover:bg-[#F3F1ED]'
                     }`}
                   >
                     {amenity}

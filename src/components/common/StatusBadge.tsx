@@ -7,7 +7,7 @@ interface StatusBadgeProps {
 export function StatusBadge({ status }: StatusBadgeProps) {
   const normalized = status.toLowerCase();
 
-  let style = 'bg-[#FFF5EA] text-[#321D17] border-[#EAD8C9]';
+  let style = 'bg-[#F3F1ED] text-[#57534E] border-[#D6CFC5]';
   let Icon = Clock;
 
   if (
@@ -23,7 +23,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     normalized === 'quotation accepted' ||
     normalized === 'demo paid'
   ) {
-    style = 'bg-[#E7EFD9] text-[#321D17] border-[#C8D8AC]';
+    style = 'bg-[#ECF4EE] text-[#1E462A] border-[#BBD6C3]';
     Icon = CheckCircle2;
   } else if (
     normalized === 'rejected' ||
@@ -33,13 +33,13 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     normalized === 'occupied' ||
     normalized === 'demo refunded'
   ) {
-    style = 'bg-[#FDECE6] text-[#A83B19] border-[#F6B27B]';
+    style = 'bg-[#FDF2F4] text-[#8B1E35] border-[#EAC4CC]';
     Icon = XCircle;
   } else if (
     normalized === 'quotation sent' ||
     normalized === 'preparing'
   ) {
-    style = 'bg-[#FCEBDD] text-[#C84A1B] border-[#F6B27B]';
+    style = 'bg-[#F3F1ED] text-[#6E1E2E] border-[#D6CFC5]';
     Icon = Sparkles;
   } else if (
     normalized === 'open' ||
@@ -47,7 +47,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     normalized === 'request received' ||
     normalized === 'inquiry received'
   ) {
-    style = 'bg-[#FCEBDD] text-[#A83B19] border-[#EAD8C9]';
+    style = 'bg-[#F3F1ED] text-[#1C1917] border-[#D6CFC5]';
     Icon = AlertTriangle;
   }
 
