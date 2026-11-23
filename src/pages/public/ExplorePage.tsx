@@ -11,18 +11,25 @@ import {
 import type { AmenityType } from '../../types';
 import { RestaurantCard } from '../../components/cards/RestaurantCard';
 import { DemoBanner } from '../../components/common/DemoBanner';
+import { EmptyStateCard } from '../../components/common/EmptyStateCard';
 
 export function ExplorePage() {
-  const { restaurants, celebrationPackages } = useApp();
+  const { restaurants, celebrationPackages, preOrderPackages } = useApp();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const actionIntent = searchParams.get('action') || '';
 
   const [query, setQuery] = useState(searchParams.get('q') || '');
   const [selectedArea, setSelectedArea] = useState(searchParams.get('area') || 'All Varanasi');
   const [selectedCuisine, setSelectedCuisine] = useState(searchParams.get('cuisine') || 'All');
   const [priceRangeFilter, setPriceRangeFilter] = useState<'all' | 'under1200' | '1200to1800' | 'above1800'>('all');
+  const [ratingFilter, setRatingFilter] = useState<'all' | '4.5' | '4.7'>('all');
+  const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'preorder' | 'celebration'>(
+    actionIntent === 'preorder' ? 'preorder' : 'all'
+  );
   const [celebrationFilter, setCelebrationFilter] = useState<string>('All');
   const [selectedAmenities, setSelectedAmenities] = useState<AmenityType[]>([]);
-  const [sortBy, setSortBy] = useState<'rating' | 'priceLow' | 'priceHigh'>('rating');
+  const [sortBy, setSortBy] = useState<'popularity' | 'rating' | 'priceLow' | 'priceHigh'>('popularity');
 
   const approvedRestaurants = useMemo(
     () => restaurants.filter((r) => r.approvalStatus === 'Approved'),
@@ -54,6 +61,18 @@ export function ExplorePage() {
         (priceRangeFilter === 'under1200' && r.priceForTwo <= 1200) ||
         (priceRangeFilter === '1200to1800' && r.priceForTwo > 1200 && r.priceForTwo <= 1800) ||
         (priceRangeFilter === 'above1800' && r.priceForTwo > 1800);
+      const matchesRating =
+        ratingFilter === 'all' ||
+        (ratingFilter === '4.5' && r.rating >= 4.5) ||
+        (ratingFilter === '4.7' && r.rating >= 4.7);
+      const matchesAvailability =
+        availabilityFilter === 'all' ||
+        (availabilityFilter === 'preorder' &&
+          preOrderPackages.some((p) => p.restaurantId === r.id && p.available)) ||
+        (availabilityFilter === 'celebration' &&
+          celebrationPackages.some(
+            (cp) => cp.restaurantId === r.id && cp.approvalStatus === 'Approved'
+          ));
       const matchesAmenities =
         selectedAmenities.length === 0 ||
         selectedAmenities.every((am) => r.amenities.includes(am));
@@ -70,6 +89,8 @@ export function ExplorePage() {
         matchesArea &&
         matchesCuisine &&
         matchesPrice &&
+        matchesRating &&
+        matchesAvailability &&
         matchesAmenities &&
         matchesCelebration
       );
@@ -78,15 +99,19 @@ export function ExplorePage() {
     return [...list].sort((a, b) => {
       if (sortBy === 'priceLow') return a.priceForTwo - b.priceForTwo;
       if (sortBy === 'priceHigh') return b.priceForTwo - a.priceForTwo;
-      return b.rating - a.rating;
+      if (sortBy === 'rating') return b.rating - a.rating;
+      return b.reviewCount - a.reviewCount;
     });
   }, [
     approvedRestaurants,
     celebrationPackages,
+    preOrderPackages,
     query,
     selectedArea,
     selectedCuisine,
     priceRangeFilter,
+    ratingFilter,
+    availabilityFilter,
     selectedAmenities,
     celebrationFilter,
     sortBy,
@@ -97,42 +122,48 @@ export function ExplorePage() {
     setSelectedArea('All Varanasi');
     setSelectedCuisine('All');
     setPriceRangeFilter('all');
+    setRatingFilter('all');
+    setAvailabilityFilter('all');
     setCelebrationFilter('All');
     setSelectedAmenities([]);
-    setSortBy('rating');
+    setSortBy('popularity');
     setSearchParams({});
   };
 
   return (
-    <div className="bg-white py-10 sm:py-14">
+    <div className="bg-[#FFF5EA] py-10 sm:py-14">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold text-[#702C3A] tracking-wide mb-1">
+            <p className="text-xs font-semibold text-[#C84A1B] tracking-widest uppercase mb-1">
               Varanasi Dining Discovery
             </p>
-            <h1 className="font-display text-3xl sm:text-4xl font-semibold text-[#292321]">
-              Explore Restaurants, Menus &amp; Celebration Venues
+            <h1 className="font-display text-3xl sm:text-4xl font-semibold text-[#321D17]">
+              {actionIntent === 'preorder'
+                ? 'Select a Restaurant to Pre-Order Food'
+                : actionIntent === 'book'
+                  ? 'Book a Verified Varanasi Table'
+                  : 'Explore Restaurants, Menus & Celebration Venues'}
             </h1>
           </div>
-          <p className="text-sm text-[#6B5F5C] tabular-nums">
+          <p className="text-sm text-[#6E4B41] tabular-nums">
             Showing {filteredRestaurants.length} of {approvedRestaurants.length} approved venues
           </p>
         </div>
 
-        <DemoBanner message="Inspect restaurant photo galleries, uploaded menu pages, amenities, food pre-order plates, and free-decoration celebration packages by clicking any restaurant." />
+        <DemoBanner message="Inspect photo galleries, uploaded menu photographs, 14 amenities, food pre-order plates, and ₹0-decor celebration packages inside any restaurant modal." />
 
         {/* Advanced Filter Bar */}
-        <div className="bg-[#FFF6E9] border border-[#E8DDD1] rounded-lg p-4 sm:p-5 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="bg-white border border-[#EAD8C9] rounded-lg p-4 sm:p-5 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="relative">
-              <Search className="w-4 h-4 text-[#6B5F5C] absolute left-3 top-2.5 pointer-events-none" />
+              <Search className="w-4 h-4 text-[#6E4B41] absolute left-3 top-2.5 pointer-events-none" />
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search restaurant or area..."
-                className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+                placeholder="Search restaurant, cuisine or area..."
+                className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
               />
             </div>
 
@@ -140,7 +171,7 @@ export function ExplorePage() {
               value={selectedArea}
               onChange={(e) => setSelectedArea(e.target.value)}
               aria-label="Filter by locality"
-              className="w-full px-3 py-2 text-sm bg-white border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+              className="w-full px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
             >
               {VARANASI_AREAS.map((area) => (
                 <option key={area} value={area}>
@@ -153,7 +184,7 @@ export function ExplorePage() {
               value={priceRangeFilter}
               onChange={(e) => setPriceRangeFilter(e.target.value as typeof priceRangeFilter)}
               aria-label="Filter by price range"
-              className="w-full px-3 py-2 text-sm bg-white border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+              className="w-full px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
             >
               <option value="all">All Price Ranges</option>
               <option value="under1200">Under ₹1,200 for two</option>
@@ -162,13 +193,37 @@ export function ExplorePage() {
             </select>
 
             <select
+              value={ratingFilter}
+              onChange={(e) => setRatingFilter(e.target.value as typeof ratingFilter)}
+              aria-label="Filter by minimum rating"
+              className="w-full px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
+            >
+              <option value="all">All Ratings</option>
+              <option value="4.5">4.5★ &amp; Above</option>
+              <option value="4.7">4.7★ &amp; Above</option>
+            </select>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <select
+              value={availabilityFilter}
+              onChange={(e) => setAvailabilityFilter(e.target.value as typeof availabilityFilter)}
+              aria-label="Filter by service availability"
+              className="w-full px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
+            >
+              <option value="all">All Service Availability</option>
+              <option value="preorder">Pre-Order Plates Ready</option>
+              <option value="celebration">Celebration Packages Available</option>
+            </select>
+
+            <select
               value={celebrationFilter}
               onChange={(e) => setCelebrationFilter(e.target.value)}
               aria-label="Filter by celebration type"
-              className="w-full px-3 py-2 text-sm bg-white border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+              className="w-full px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
             >
               <option value="All">All Celebration Types</option>
-              {CELEBRATION_CATEGORIES.map((cat) => (
+              {CELEBRATION_CATEGORIES.filter((c) => c !== 'Custom Celebration').map((cat) => (
                 <option key={cat} value={cat}>
                   {cat} Packages
                 </option>
@@ -177,16 +232,17 @@ export function ExplorePage() {
 
             <div className="flex gap-2">
               <div className="relative flex-1 flex items-center">
-                <SlidersHorizontal className="w-4 h-4 text-[#6B5F5C] absolute left-3 pointer-events-none" />
+                <SlidersHorizontal className="w-4 h-4 text-[#6E4B41] absolute left-3 pointer-events-none" />
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
                   aria-label="Sort restaurants"
-                  className="w-full pl-9 pr-2 py-2 text-sm bg-white border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+                  className="w-full pl-9 pr-2 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
                 >
-                  <option value="rating">Top Rated</option>
-                  <option value="priceLow">Price: Low-High</option>
-                  <option value="priceHigh">Price: High-Low</option>
+                  <option value="popularity">Sort: Popularity</option>
+                  <option value="rating">Sort: Highest Rating</option>
+                  <option value="priceLow">Sort: Price Low–High</option>
+                  <option value="priceHigh">Sort: Price High–Low</option>
                 </select>
               </div>
               <button
@@ -194,7 +250,7 @@ export function ExplorePage() {
                 onClick={handleReset}
                 title="Reset all filters"
                 aria-label="Reset all filters"
-                className="px-3 py-2 bg-white border border-[#E8DDD1] rounded-lg text-[#292321] hover:border-[#702C3A]"
+                className="px-3 py-2 bg-[#FCEBDD] border border-[#EAD8C9] rounded-lg text-[#321D17] hover:border-[#C84A1B]"
               >
                 <RotateCcw className="w-4 h-4" />
               </button>
@@ -203,15 +259,15 @@ export function ExplorePage() {
 
           {/* Cuisine Filter Buttons */}
           <div className="space-y-1.5">
-            <p className="text-[11px] font-semibold text-[#6B5F5C]">Cuisine</p>
+            <p className="text-[11px] font-semibold text-[#6E4B41]">Cuisine</p>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => setSelectedCuisine('All')}
                 className={`px-3 py-1 text-xs font-semibold rounded border transition-colors ${
                   selectedCuisine === 'All'
-                    ? 'bg-[#702C3A] text-white border-[#702C3A]'
-                    : 'bg-white text-[#292321] border-[#E8DDD1] hover:border-[#702C3A]'
+                    ? 'bg-[#C84A1B] text-white border-[#C84A1B]'
+                    : 'bg-[#FFF5EA] text-[#321D17] border-[#EAD8C9] hover:border-[#C84A1B]'
                 }`}
               >
                 All Cuisines
@@ -223,8 +279,8 @@ export function ExplorePage() {
                   onClick={() => setSelectedCuisine(c.name)}
                   className={`px-3 py-1 text-xs font-semibold rounded border transition-colors ${
                     selectedCuisine === c.name
-                      ? 'bg-[#702C3A] text-white border-[#702C3A]'
-                      : 'bg-white text-[#292321] border-[#E8DDD1] hover:border-[#702C3A]'
+                      ? 'bg-[#C84A1B] text-white border-[#C84A1B]'
+                      : 'bg-[#FFF5EA] text-[#321D17] border-[#EAD8C9] hover:border-[#C84A1B]'
                   }`}
                 >
                   {c.name}
@@ -235,7 +291,7 @@ export function ExplorePage() {
 
           {/* Amenities Filter Buttons */}
           <div className="space-y-1.5">
-            <p className="text-[11px] font-semibold text-[#6B5F5C]">
+            <p className="text-[11px] font-semibold text-[#6E4B41]">
               Amenities (Select one or more)
             </p>
             <div className="flex flex-wrap gap-1.5">
@@ -248,8 +304,8 @@ export function ExplorePage() {
                     onClick={() => toggleAmenity(amenity)}
                     className={`px-2.5 py-1 text-[11px] font-medium rounded border transition-colors ${
                       active
-                        ? 'bg-[#702C3A] text-white border-[#702C3A]'
-                        : 'bg-white text-[#292321] border-[#E8DDD1] hover:border-[#702C3A]'
+                        ? 'bg-[#C84A1B] text-white border-[#C84A1B]'
+                        : 'bg-white text-[#321D17] border-[#EAD8C9] hover:border-[#C84A1B]'
                     }`}
                   >
                     {amenity}
@@ -262,21 +318,12 @@ export function ExplorePage() {
 
         {/* Results */}
         {filteredRestaurants.length === 0 ? (
-          <div className="border border-[#E8DDD1] rounded-lg p-12 text-center bg-[#FFF6E9]/40">
-            <h2 className="text-xl font-semibold text-[#292321]">
-              No matching restaurants found
-            </h2>
-            <p className="text-sm text-[#6B5F5C] mt-1.5">
-              Try relaxing your amenity, price range, or celebration filters.
-            </p>
-            <button
-              type="button"
-              onClick={handleReset}
-              className="mt-4 px-5 py-2 text-sm font-semibold text-white bg-[#702C3A] rounded-lg hover:bg-[#58202C]"
-            >
-              View All Varanasi Restaurants
-            </button>
-          </div>
+          <EmptyStateCard
+            title="No matching restaurants found"
+            description="Try relaxing your locality, rating, amenity, or availability filters to discover more Varanasi dining venues."
+            actionLabel="View All Varanasi Restaurants"
+            onAction={handleReset}
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredRestaurants.map((restaurant) => (

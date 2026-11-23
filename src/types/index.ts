@@ -33,7 +33,8 @@ export type CelebrationCategory =
   | 'Romantic Dinner'
   | 'Marriage Proposal'
   | 'Family Celebration'
-  | 'Private Party';
+  | 'Private Party'
+  | 'Custom Celebration';
 
 export type RestaurantApprovalStatus = 'Pending Approval' | 'Approved' | 'Rejected';
 
@@ -63,6 +64,15 @@ export type CelebrationBookingStatus =
   | 'Confirmed'
   | 'Completed'
   | 'Cancelled';
+
+export type CustomRequestStatus =
+  | 'Request Received'
+  | 'Quotation Sent'
+  | 'Quotation Accepted'
+  | 'Advance Paid'
+  | 'Confirmed'
+  | 'Completed'
+  | 'Declined';
 
 export type TableStatus = 'Available' | 'Occupied' | 'Reserved';
 
@@ -146,6 +156,8 @@ export interface Restaurant {
   pinCode: string;
   cuisines: CuisineType[];
   primaryCuisine: CuisineType;
+  tier: 'Basic' | 'Premium';
+  preOrderAdvancePercent: number;
   rating: number;
   reviewCount: number;
   priceForTwo: number;
@@ -185,12 +197,14 @@ export interface Reservation {
   date: string;
   time: string;
   guests: number;
-  orderMode: 'Order at Restaurant' | 'Offer Table Booking';
+  bookingTier: 'Basic' | 'Premium';
+  orderMode: 'Order at Restaurant' | 'Offer Table Booking' | 'Basic Table Booking' | 'Premium Table Booking';
   selectedOfferId?: string;
   selectedOfferTitle?: string;
   offerTier?: 'Basic' | 'Premium';
-  feePerGuest?: number;
-  platformFeeTotal?: number;
+  feePerGuest: number;
+  platformFeeTotal: number;
+  transactionId?: string;
   occasion?: string;
   specialRequest?: string;
   status: ReservationStatus;
@@ -256,6 +270,37 @@ export interface CelebrationBooking {
   createdAt: string;
 }
 
+export interface CustomCelebrationRequest {
+  id: string;
+  restaurantId: string;
+  restaurantName: string;
+  restaurantArea: string;
+  customerId: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  occasionType: CelebrationCategory;
+  preferredDate: string;
+  preferredTime: string;
+  guestsCount: number;
+  estimatedBudget: number;
+  decorationTheme: string;
+  preferredColors: string;
+  cakeRequirements: string;
+  foodPreferences: string;
+  specialInstructions: string;
+  decorationCharge: 0; // Always ₹0 — Decoration Included – No Additional Charges
+  quotedAmount?: number;
+  quotationNotes?: string;
+  advancePercent: number;
+  advanceAmount?: number;
+  remainingAmount?: number;
+  advancePaid: boolean;
+  transactionId?: string;
+  status: CustomRequestStatus;
+  createdAt: string;
+}
+
 export interface EventCategory {
   id: string;
   title: string;
@@ -286,7 +331,11 @@ export interface PaymentRecord {
   id: string;
   transactionId: string;
   referenceId: string;
-  paymentType: 'Platform Booking Fee' | 'Food Pre-Order Advance' | 'Celebration Advance';
+  paymentType:
+    | 'Platform Booking Fee'
+    | 'Food Pre-Order Advance'
+    | 'Celebration Advance'
+    | 'Custom Celebration Advance';
   customerName: string;
   restaurantName: string;
   amount: number;

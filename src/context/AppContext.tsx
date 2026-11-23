@@ -4,6 +4,7 @@ import {
   INITIAL_CELEBRATION_BOOKINGS,
   INITIAL_CELEBRATION_PACKAGES,
   INITIAL_CUSTOMERS,
+  INITIAL_CUSTOM_REQUESTS,
   INITIAL_NOTIFICATIONS,
   INITIAL_OFFERS,
   INITIAL_PAYMENTS,
@@ -21,8 +22,11 @@ import type {
   AppNotification,
   CelebrationBooking,
   CelebrationBookingStatus,
+  CelebrationCategory,
   CelebrationPackage,
   CuisineType,
+  CustomCelebrationRequest,
+  CustomRequestStatus,
   CustomerProfile,
   DiningOffer,
   DiningTable,
@@ -91,6 +95,7 @@ interface AppContextValue {
   preOrders: FoodPreOrder[];
   celebrationPackages: CelebrationPackage[];
   celebrationBookings: CelebrationBooking[];
+  customRequests: CustomCelebrationRequest[];
   tables: DiningTable[];
   offers: DiningOffer[];
   payments: PaymentRecord[];
@@ -123,6 +128,7 @@ interface AppContextValue {
   loginRestaurantDemo: (email?: string) => void;
   signupRestaurantDemo: (data: RestaurantRegistrationInput) => void;
   updateActiveRestaurantProfile: (updates: Partial<Restaurant>, targetRestId?: string) => void;
+  updateRestaurantPreOrderAdvance: (advancePercent: number, targetRestId?: string) => void;
 
   // Photo Gallery & Logo/Cover
   setRestaurantLogo: (url: string, targetRestId?: string) => void;
@@ -167,7 +173,7 @@ interface AppContextValue {
 
   toggleFavorite: (restaurantId: string) => void;
 
-  // Reservations (Book a Table / Order at Restaurant / Offer Table Booking)
+  // Reservations (All Table Bookings incur configurable Basic/Premium Platform Fee)
   createTableReservation: (payload: {
     restaurant: Restaurant;
     date: string;
@@ -175,7 +181,8 @@ interface AppContextValue {
     guests: number;
     customerName: string;
     customerPhone: string;
-    orderMode: 'Order at Restaurant' | 'Offer Table Booking';
+    bookingTier?: 'Basic' | 'Premium';
+    orderMode: Reservation['orderMode'];
     selectedOffer?: DiningOffer;
     feePerGuest?: number;
     platformFeeTotal?: number;
@@ -230,6 +237,32 @@ interface AppContextValue {
     status: CelebrationBookingStatus
   ) => void;
 
+  // Custom Celebration Requests (Quotation-gated before advance payment)
+  createCustomCelebrationRequest: (payload: {
+    restaurant: Restaurant;
+    occasionType: CelebrationCategory;
+    preferredDate: string;
+    preferredTime: string;
+    guestsCount: number;
+    estimatedBudget: number;
+    decorationTheme: string;
+    preferredColors: string;
+    cakeRequirements: string;
+    foodPreferences: string;
+    specialInstructions: string;
+    customerName?: string;
+    customerEmail?: string;
+    customerPhone?: string;
+  }) => CustomCelebrationRequest;
+  sendCustomRequestQuotation: (
+    requestId: string,
+    quotedAmount: number,
+    quotationNotes: string
+  ) => void;
+  acceptCustomRequestQuotation: (requestId: string) => void;
+  markCustomRequestAdvancePaid: (requestId: string, transactionId: string) => void;
+  updateCustomRequestStatus: (requestId: string, status: CustomRequestStatus) => void;
+
   updateTableStatus: (tableId: string, status: TableStatus) => void;
   addTable: (table: Omit<DiningTable, 'id' | 'restaurantId'>) => void;
 
@@ -240,6 +273,12 @@ interface AppContextValue {
   updateRestaurantApproval: (restaurantId: string, status: RestaurantApprovalStatus) => void;
   updateCustomerStatus: (customerId: string, status: CustomerProfile['status']) => void;
   toggleReviewVisibility: (reviewId: string) => void;
+  submitReview: (payload: {
+    restaurantId: string;
+    restaurantName: string;
+    rating: number;
+    comment: string;
+  }) => void;
   submitSupportTicket: (ticket: Omit<SupportTicket, 'id' | 'status' | 'createdAt'>) => void;
   updateTicketStatus: (ticketId: string, status: SupportTicket['status']) => void;
   markAllNotificationsRead: (targetRole: Exclude<PortalRole, 'guest'>) => void;
@@ -271,6 +310,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
   const [celebrationBookings, setCelebrationBookings] = useState<CelebrationBooking[]>(
     INITIAL_CELEBRATION_BOOKINGS
+  );
+  const [customRequests, setCustomRequests] = useState<CustomCelebrationRequest[]>(
+    INITIAL_CUSTOM_REQUESTS
   );
   const [tables, setTables] = useState<DiningTable[]>(INITIAL_TABLES);
   const [offers, setOffers] = useState<DiningOffer[]>(INITIAL_OFFERS);
@@ -450,6 +492,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         pinCode: data.pinCode,
         cuisines: [data.cuisine],
         primaryCuisine: data.cuisine,
+        tier: 'Basic',
+        preOrderAdvancePercent: platformSettings.defaultPreOrderAdvancePercent,
         rating: 4.5,
         reviewCount: 0,
         priceForTwo: 1200,
@@ -501,6 +545,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         prev.map((r) => (r.id === id ? { ...r, ...updates } : r))
       );
       addToast({ type: 'success', title: 'Restaurant Profile Updated (Demo)' });
+    },
+    [activeRestaurantId, addToast]
+  );
+
+  const updateRestaurantPreOrderAdvance = useCallback(
+    (advancePercent: number, targetRestId?: string) => {
+      const safePercent = Math.min(100, Math.max(10, Math.round(advancePercent)));
+      const id = targetRestId || activeRestaurantId;
+      setRestaurants((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, preOrderAdvancePercent: safePercent } : r))
+      );
+      addToast({
+        type: 'success',
+        title: `Pre-Order Advance Set to ${safePercent}% (Demo)`,
+        description: 'Customers booking food pre-orders at your venue will pay this percentage in advance.',
+      });
     },
     [activeRestaurantId, addToast]
   );
@@ -805,7 +865,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       guests: number;
       customerName: string;
       customerPhone: string;
-      orderMode: 'Order at Restaurant' | 'Offer Table Booking';
+      bookingTier?: 'Basic' | 'Premium';
+      orderMode: Reservation['orderMode'];
       selectedOffer?: DiningOffer;
       feePerGuest?: number;
       platformFeeTotal?: number;
@@ -813,6 +874,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       specialRequest?: string;
       transactionId?: string;
     }) => {
+      const resolvedTier =
+        payload.bookingTier ||
+        payload.selectedOffer?.offerTier ||
+        payload.restaurant.tier ||
+        'Basic';
+      const resolvedFeePerGuest =
+        payload.feePerGuest ??
+        (resolvedTier === 'Premium'
+          ? platformSettings.premiumOfferFeePerGuest
+          : platformSettings.basicOfferFeePerGuest);
+      const resolvedPlatformFeeTotal =
+        payload.platformFeeTotal ?? payload.guests * resolvedFeePerGuest;
+
       const created: Reservation = {
         id: `DR-${Math.floor(2100 + Math.random() * 800)}`,
         restaurantId: payload.restaurant.id,
@@ -824,12 +898,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         date: payload.date,
         time: payload.time,
         guests: payload.guests,
+        bookingTier: resolvedTier,
         orderMode: payload.orderMode,
         selectedOfferId: payload.selectedOffer?.id,
         selectedOfferTitle: payload.selectedOffer?.title,
-        offerTier: payload.selectedOffer?.offerTier,
-        feePerGuest: payload.feePerGuest,
-        platformFeeTotal: payload.platformFeeTotal,
+        offerTier: payload.selectedOffer?.offerTier || resolvedTier,
+        feePerGuest: resolvedFeePerGuest,
+        platformFeeTotal: resolvedPlatformFeeTotal,
+        transactionId: payload.transactionId,
         occasion: payload.occasion,
         specialRequest: payload.specialRequest,
         status: payload.transactionId ? 'Confirmed' : 'Pending',
@@ -839,14 +915,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addToast({
         type: 'success',
         title: `Demo Table Booking Logged (${created.id})`,
-        description:
-          payload.orderMode === 'Order at Restaurant'
-            ? 'Order at Restaurant selected — ₹0 advance food payment required.'
-            : `Offer platform fee recorded (${payload.guests} × ₹${payload.feePerGuest}).`,
+        description: `${resolvedTier} tier platform fee (${payload.guests} × ₹${resolvedFeePerGuest} = ₹${resolvedPlatformFeeTotal}) recorded separately from food bill.`,
       });
       return created;
     },
-    [addToast, customerUser.id]
+    [addToast, customerUser.id, platformSettings.basicOfferFeePerGuest, platformSettings.premiumOfferFeePerGuest]
   );
 
   const updateReservationStatus = useCallback(
@@ -1061,6 +1134,124 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [addToast]
   );
 
+  const createCustomCelebrationRequest = useCallback(
+    (payload: {
+      restaurant: Restaurant;
+      occasionType: CelebrationCategory;
+      preferredDate: string;
+      preferredTime: string;
+      guestsCount: number;
+      estimatedBudget: number;
+      decorationTheme: string;
+      preferredColors: string;
+      cakeRequirements: string;
+      foodPreferences: string;
+      specialInstructions: string;
+      customerName?: string;
+      customerEmail?: string;
+      customerPhone?: string;
+    }) => {
+      const created: CustomCelebrationRequest = {
+        id: `CREQ-${Math.floor(510 + Math.random() * 480)}`,
+        restaurantId: payload.restaurant.id,
+        restaurantName: payload.restaurant.name,
+        restaurantArea: payload.restaurant.area,
+        customerId: customerUser.id,
+        customerName: payload.customerName || customerUser.fullName,
+        customerEmail: payload.customerEmail || customerUser.email,
+        customerPhone: payload.customerPhone || customerUser.mobile,
+        occasionType: payload.occasionType,
+        preferredDate: payload.preferredDate,
+        preferredTime: payload.preferredTime,
+        guestsCount: payload.guestsCount,
+        estimatedBudget: payload.estimatedBudget,
+        decorationTheme: payload.decorationTheme,
+        preferredColors: payload.preferredColors,
+        cakeRequirements: payload.cakeRequirements,
+        foodPreferences: payload.foodPreferences,
+        specialInstructions: payload.specialInstructions,
+        decorationCharge: 0,
+        advancePercent: platformSettings.defaultCelebrationAdvancePercent,
+        advancePaid: false,
+        status: 'Request Received',
+        createdAt: '2026-11-23',
+      };
+      setCustomRequests((prev) => [created, ...prev]);
+      addToast({
+        type: 'success',
+        title: `Custom Celebration Request Submitted (${created.id})`,
+        description: `${payload.restaurant.name} will review your request and send a custom quotation (Decoration ₹0).`,
+      });
+      return created;
+    },
+    [addToast, customerUser, platformSettings.defaultCelebrationAdvancePercent]
+  );
+
+  const sendCustomRequestQuotation = useCallback(
+    (requestId: string, quotedAmount: number, quotationNotes: string) => {
+      setCustomRequests((prev) =>
+        prev.map((req) => {
+          if (req.id !== requestId) return req;
+          const advanceAmount = Math.round((quotedAmount * req.advancePercent) / 100);
+          return {
+            ...req,
+            quotedAmount,
+            quotationNotes,
+            decorationCharge: 0,
+            advanceAmount,
+            remainingAmount: quotedAmount - advanceAmount,
+            status: 'Quotation Sent',
+          };
+        })
+      );
+      addToast({
+        type: 'success',
+        title: `Custom Quotation Sent (${requestId})`,
+        description: 'Customer must accept the quotation before demo advance payment unlocks.',
+      });
+    },
+    [addToast]
+  );
+
+  const acceptCustomRequestQuotation = useCallback(
+    (requestId: string) => {
+      setCustomRequests((prev) =>
+        prev.map((req) =>
+          req.id === requestId ? { ...req, status: 'Quotation Accepted' } : req
+        )
+      );
+      addToast({
+        type: 'success',
+        title: `Quotation Accepted (${requestId})`,
+        description: 'You may now proceed to simulated advance payment.',
+      });
+    },
+    [addToast]
+  );
+
+  const markCustomRequestAdvancePaid = useCallback(
+    (requestId: string, transactionId: string) => {
+      setCustomRequests((prev) =>
+        prev.map((req) =>
+          req.id === requestId
+            ? { ...req, advancePaid: true, transactionId, status: 'Advance Paid' }
+            : req
+        )
+      );
+    },
+    []
+  );
+
+  const updateCustomRequestStatus = useCallback(
+    (requestId: string, status: CustomRequestStatus) => {
+      setCustomRequests((prev) =>
+        prev.map((req) => (req.id === requestId ? { ...req, status } : req))
+      );
+      addToast({ type: 'success', title: `Custom Request Status: ${status} (Demo)` });
+    },
+    [addToast]
+  );
+
   const updateTableStatus = useCallback(
     (tableId: string, status: TableStatus) => {
       setTables((prev) => prev.map((t) => (t.id === tableId ? { ...t, status } : t)));
@@ -1150,6 +1341,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [addToast]
   );
 
+  const submitReview = useCallback(
+    (payload: {
+      restaurantId: string;
+      restaurantName: string;
+      rating: number;
+      comment: string;
+    }) => {
+      const created: RestaurantReview = {
+        id: `rev-${Date.now()}`,
+        restaurantId: payload.restaurantId,
+        restaurantName: payload.restaurantName,
+        customerName: customerUser.fullName,
+        rating: payload.rating,
+        comment: payload.comment.trim(),
+        date: '2026-11-23',
+        visible: true,
+      };
+      setReviews((prev) => [created, ...prev]);
+      addToast({
+        type: 'success',
+        title: 'Dining Review Submitted (Demo)',
+        description: `Thank you for reviewing ${payload.restaurantName}.`,
+      });
+    },
+    [addToast, customerUser.fullName]
+  );
+
   const submitSupportTicket = useCallback(
     (ticket: Omit<SupportTicket, 'id' | 'status' | 'createdAt'>) => {
       const created: SupportTicket = {
@@ -1204,6 +1422,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         preOrders,
         celebrationPackages,
         celebrationBookings,
+        customRequests,
         tables,
         offers,
         payments,
@@ -1230,6 +1449,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         loginRestaurantDemo,
         signupRestaurantDemo,
         updateActiveRestaurantProfile,
+        updateRestaurantPreOrderAdvance,
         setRestaurantLogo,
         setRestaurantCover,
         addRestaurantPhotos,
@@ -1260,6 +1480,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         acceptCelebrationQuotation,
         markCelebrationAdvancePaid,
         updateCelebrationBookingStatus,
+        createCustomCelebrationRequest,
+        sendCustomRequestQuotation,
+        acceptCustomRequestQuotation,
+        markCustomRequestAdvancePaid,
+        updateCustomRequestStatus,
         updateTableStatus,
         addTable,
         addOffer,
@@ -1268,6 +1493,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updateRestaurantApproval,
         updateCustomerStatus,
         toggleReviewVisibility,
+        submitReview,
         submitSupportTicket,
         updateTicketStatus,
         markAllNotificationsRead,

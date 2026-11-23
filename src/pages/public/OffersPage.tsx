@@ -27,17 +27,17 @@ export function OffersPage() {
   };
 
   return (
-    <div className="bg-white py-10 sm:py-14">
+    <div className="bg-[#FFF5EA] py-10 sm:py-14">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         <div>
-          <p className="text-xs font-semibold text-[#702C3A] tracking-wide mb-1">
+          <p className="text-xs font-semibold text-[#C84A1B] tracking-widest uppercase mb-1">
             Varanasi Dining Deals
           </p>
-          <h1 className="font-display text-3xl sm:text-4xl font-semibold text-[#292321]">
+          <h1 className="font-display text-3xl sm:text-4xl font-semibold text-[#321D17]">
             Exclusive Offers &amp; Limited-Time Promotions
           </h1>
-          <p className="text-sm text-[#6B5F5C] mt-1.5 max-w-2xl">
-            Unlock curated table discounts, complimentary desserts, and celebration upgrades across partner restaurants. Regular table bookings without offers remain ₹0 platform fee; offer bookings apply ₹{platformSettings.basicOfferFeePerGuest}/guest (Basic) or ₹{platformSettings.premiumOfferFeePerGuest}/guest (Premium) in demo mode.
+          <p className="text-sm text-[#6E4B41] mt-1.5 max-w-2xl">
+            Unlock curated table discounts, complimentary desserts, and celebration upgrades across partner restaurants. All table reservations incur a configurable per-guest platform fee of ₹{platformSettings.basicOfferFeePerGuest}/guest (Basic) or ₹{platformSettings.premiumOfferFeePerGuest}/guest (Premium) separately from restaurant food bills.
           </p>
         </div>
 
@@ -51,8 +51,8 @@ export function OffersPage() {
               onClick={() => setSelectedCategory(cat)}
               className={`px-3.5 py-1.5 text-xs font-semibold rounded border transition-colors ${
                 selectedCategory === cat
-                  ? 'bg-[#702C3A] text-white border-[#702C3A]'
-                  : 'bg-white text-[#292321] border-[#E8DDD1] hover:bg-[#FFF6E9]'
+                  ? 'bg-[#C84A1B] text-white border-[#C84A1B]'
+                  : 'bg-white text-[#321D17] border-[#EAD8C9] hover:bg-[#FCEBDD]'
               }`}
             >
               {cat}
@@ -70,11 +70,11 @@ export function OffersPage() {
             return (
               <div
                 key={offer.id}
-                className="border border-[#E8DDD1] rounded-lg p-6 bg-[#FFF6E9]/60 flex flex-col justify-between gap-5"
+                className="border border-[#EAD8C9] rounded-lg p-6 bg-white flex flex-col justify-between gap-5"
               >
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2 text-xs text-[#6B5F5C]">
-                    <span className="inline-flex items-center gap-1.5 font-semibold text-[#702C3A]">
+                  <div className="flex items-center justify-between gap-2 text-xs text-[#6E4B41]">
+                    <span className="inline-flex items-center gap-1.5 font-semibold text-[#C84A1B]">
                       <Tag className="w-3.5 h-3.5" />
                       {offer.category} · {offer.discountLabel} · {offer.offerTier} Offer (₹{feePerGuest}/guest)
                     </span>
@@ -82,28 +82,28 @@ export function OffersPage() {
                       Expires {formatDisplayDate(offer.validUntil)}
                     </span>
                   </div>
-                  <h2 className="text-2xl font-semibold text-[#292321]">
+                  <h2 className="font-display text-2xl font-semibold text-[#321D17]">
                     {offer.title}
                   </h2>
-                  <p className="text-sm font-medium text-[#702C3A]">
+                  <p className="text-sm font-medium text-[#A83B19]">
                     {offer.restaurantName} · {offer.area}, Varanasi
                   </p>
-                  <p className="text-sm text-[#6B5F5C] leading-relaxed">
+                  <p className="text-sm text-[#6E4B41] leading-relaxed">
                     {offer.terms}
                   </p>
                 </div>
 
-                <div className="pt-4 border-t border-[#E8DDD1] flex flex-wrap items-center justify-between gap-3">
+                <div className="pt-4 border-t border-[#EAD8C9] flex flex-wrap items-center justify-between gap-3">
                   <button
                     type="button"
                     onClick={() => handleCopy(offer.code)}
-                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-[#E8DDD1] bg-white text-xs font-mono font-semibold text-[#292321] hover:border-[#702C3A]"
+                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-[#EAD8C9] bg-[#FFF5EA] text-xs font-mono font-semibold text-[#321D17] hover:border-[#C84A1B]"
                   >
                     <span>CODE: {offer.code}</span>
                     {copiedCode === offer.code ? (
-                      <Check className="w-3.5 h-3.5 text-[#702C3A]" />
+                      <Check className="w-3.5 h-3.5 text-[#C84A1B]" />
                     ) : (
-                      <Copy className="w-3.5 h-3.5 text-[#6B5F5C]" />
+                      <Copy className="w-3.5 h-3.5 text-[#6E4B41]" />
                     )}
                   </button>
 
@@ -111,7 +111,7 @@ export function OffersPage() {
                     <button
                       type="button"
                       onClick={() => openRestaurantModal(matchedRest, 'book')}
-                      className="px-4 py-2 text-xs font-semibold text-white bg-[#702C3A] rounded-lg hover:bg-[#58202C] transition-colors"
+                      className="px-4 py-2 text-xs font-semibold text-white bg-[#C84A1B] rounded-lg hover:bg-[#A83B19] transition-colors"
                     >
                       Book Table With Offer
                     </button>

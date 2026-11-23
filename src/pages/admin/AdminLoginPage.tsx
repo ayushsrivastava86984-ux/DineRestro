@@ -35,53 +35,53 @@ export function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFF6E9] flex items-center justify-center px-4 py-12">
-      <div className="max-w-md w-full bg-white border border-[#E8DDD1] rounded-lg p-6 sm:p-8 space-y-6">
+    <div className="min-h-screen bg-[#FFF5EA] flex items-center justify-center px-4 py-12">
+      <div className="max-w-md w-full bg-white border border-[#EAD8C9] rounded-lg p-6 sm:p-8 space-y-6">
         <div>
           <Link to="/" aria-label="DineRestro Home" className="inline-block">
-            <BrandLogo variant="full" />
+            <BrandLogo variant="full" surface="light" />
           </Link>
-          <p className="text-xs font-semibold text-[#702C3A] tracking-wide mt-4">
+          <p className="text-xs font-semibold text-[#C84A1B] tracking-wide mt-4">
             Internal Operations Portal · DEMO MODE
           </p>
-          <h1 className="font-display text-3xl font-semibold text-[#292321] mt-1">
+          <h1 className="font-display text-3xl font-semibold text-[#321D17] mt-1">
             Internal Admin Sign In
           </h1>
-          <p className="text-sm text-[#6B5F5C] mt-1">
+          <p className="text-sm text-[#6E4B41] mt-1">
             Restricted operations preview. Public signup is disabled for Admin accounts.
           </p>
         </div>
 
-        <div className="flex items-start gap-2.5 p-3.5 rounded-lg bg-[#FFF6E9] border border-[#E8DDD1] text-xs text-[#6B5F5C]">
-          <ShieldAlert className="w-4 h-4 text-[#702C3A] shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2.5 p-3.5 rounded-lg bg-[#FCEBDD] border border-[#EAD8C9] text-xs text-[#6E4B41]">
+          <ShieldAlert className="w-4 h-4 text-[#C84A1B] shrink-0 mt-0.5" />
           <div>
-            <span className="font-semibold text-[#292321]">DEMO LOGIN MECHANISM: </span>
+            <span className="font-semibold text-[#321D17]">DEMO LOGIN MECHANISM: </span>
             This Phase 1 screen simulates Admin portal entry using local frontend state. It does not provide real authentication or access control.
           </div>
         </div>
 
         {error && (
-          <div className="px-4 py-2.5 rounded-lg bg-[#FDECEF] border border-[#F4A6B8] text-xs font-medium text-[#702C3A]">
+          <div className="px-4 py-2.5 rounded-lg bg-[#FDECE6] border border-[#F6B27B] text-xs font-medium text-[#A83B19]">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-[#292321] mb-1">
+            <label className="block text-xs font-semibold text-[#321D17] mb-1">
               Internal Admin Email
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-sm border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+              className="w-full px-3.5 py-2.5 text-sm border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
               required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#292321] mb-1">
+            <label className="block text-xs font-semibold text-[#321D17] mb-1">
               Demo Access Key
             </label>
             <div className="relative">
@@ -89,14 +89,14 @@ export function AdminLoginPage() {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-3.5 pr-10 py-2.5 text-sm border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+                className="w-full pl-3.5 pr-10 py-2.5 text-sm border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((p) => !p)}
                 aria-label={showPassword ? 'Hide access key' : 'Show access key'}
-                className="absolute right-3 top-2.5 text-[#6B5F5C]"
+                className="absolute right-3 top-2.5 text-[#6E4B41]"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -106,18 +106,18 @@ export function AdminLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 px-4 text-sm font-semibold text-white bg-[#702C3A] rounded-lg hover:bg-[#58202C] transition-colors flex items-center justify-center gap-2"
+            className="w-full py-2.5 px-4 text-sm font-semibold text-white bg-[#C84A1B] rounded-lg hover:bg-[#A83B19] transition-colors flex items-center justify-center gap-2"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             <span>{loading ? 'Entering Admin Demo...' : 'Enter Admin Dashboard (Demo)'}</span>
           </button>
         </form>
 
-        <div className="pt-2 border-t border-[#E8DDD1] flex items-center justify-between text-xs text-[#6B5F5C]">
-          <Link to="/" className="hover:text-[#702C3A]">
+        <div className="pt-2 border-t border-[#EAD8C9] flex items-center justify-between text-xs text-[#6E4B41]">
+          <Link to="/" className="hover:text-[#C84A1B]">
             ← Back to Public Homepage
           </Link>
-          <Link to="/auth" className="hover:text-[#702C3A]">
+          <Link to="/auth" className="hover:text-[#C84A1B]">
             Customer / Partner Portals
           </Link>
         </div>

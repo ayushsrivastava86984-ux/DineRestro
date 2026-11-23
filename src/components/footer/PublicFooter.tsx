@@ -1,153 +1,201 @@
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Instagram, Facebook, Twitter, Linkedin, MapPin } from 'lucide-react';
+import { Instagram, Facebook, Twitter, Linkedin, MapPin, Mail } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { BrandLogo } from '../common/BrandLogo';
+import { validateEmail } from '../../utils/formatters';
 
 export function PublicFooter() {
   const { addToast } = useApp();
+  const [newsletterEmail, setNewsletterEmail] = useState('');
 
   const handleInfoNotice = (label: string) => {
     addToast({
       type: 'info',
       title: `${label} (Phase 1 Preview)`,
-      description: 'Legal and policy documents are summarized for demo preview.',
+      description: 'Policy summary displayed for Phase 1 demonstration preview.',
     });
   };
 
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateEmail(newsletterEmail)) {
+      addToast({
+        type: 'error',
+        title: 'Enter a valid email address',
+        description: 'Please enter a valid email to subscribe to dining updates.',
+      });
+      return;
+    }
+    addToast({
+      type: 'success',
+      title: 'Subscribed to DineRestro Editorial (Demo)',
+      description: `Varanasi chef notes & seasonal dining dispatches queued for ${newsletterEmail}.`,
+    });
+    setNewsletterEmail('');
+  };
+
   return (
-    <footer className="bg-[#FFF6E9] border-t border-[#E8DDD1] text-[#292321]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          <div className="space-y-3">
+    <footer className="bg-[#3A180F] border-t border-[#542719] text-[#FFF5EA]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10">
+          <div className="lg:col-span-4 space-y-4">
             <Link to="/" aria-label="DineRestro Home" className="inline-block">
-              <BrandLogo variant="full" />
+              <BrandLogo variant="full" surface="dark" showTagline />
             </Link>
-            <p className="text-sm text-[#6B5F5C] leading-relaxed">
-              Discover. Reserve. Celebrate. Curating Varanasi&apos;s finest riverfront rooftops, heritage courtyards, and neighborhood tables.
+            <p className="text-sm text-[#FCEBDD]/80 leading-relaxed max-w-sm">
+              Curating Varanasi&apos;s finest riverfront rooftops, heritage havelis, photo-menu pre-orders, and zero-decor-charge celebrations.
             </p>
-            <div className="flex items-center gap-1.5 text-xs font-medium text-[#702C3A]">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-[#F6B27B]">
               <MapPin className="w-3.5 h-3.5 shrink-0" />
-              <span>Launching in Varanasi, Uttar Pradesh, India</span>
+              <span>Varanasi, Uttar Pradesh, India</span>
+            </div>
+            <div className="flex items-center gap-2.5 pt-1">
+              {[
+                { label: 'Instagram', Icon: Instagram },
+                { label: 'Facebook', Icon: Facebook },
+                { label: 'X', Icon: Twitter },
+                { label: 'LinkedIn', Icon: Linkedin },
+              ].map(({ label, Icon }) => (
+                <a
+                  key={label}
+                  href={`#${label.toLowerCase()}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleInfoNotice(`DineRestro ${label}`);
+                  }}
+                  aria-label={`DineRestro on ${label}`}
+                  className="p-2 rounded-lg bg-[#542719] border border-[#D99555]/25 text-[#FFF5EA] hover:bg-[#C84A1B] hover:border-[#C84A1B] transition-colors"
+                >
+                  <Icon className="w-4 h-4" />
+                </a>
+              ))}
             </div>
           </div>
 
-          <div>
-            <h4 className="text-sm font-semibold text-[#292321] mb-3">Company &amp; Support</h4>
-            <ul className="space-y-2 text-sm text-[#6B5F5C]">
+          <div className="lg:col-span-2">
+            <h4 className="text-sm font-semibold text-[#F6B27B] mb-3.5">Quick Links</h4>
+            <ul className="space-y-2.5 text-sm text-[#FCEBDD]/85">
               <li>
-                <Link to="/about" className="hover:text-[#702C3A] transition-colors">
-                  About DineRestro
+                <Link to="/explore" className="hover:text-[#F6B27B] transition-colors">
+                  Explore Restaurants
                 </Link>
               </li>
               <li>
-                <Link to="/contact" className="hover:text-[#702C3A] transition-colors">
-                  Contact Us
+                <Link to="/explore?action=book" className="hover:text-[#F6B27B] transition-colors">
+                  Book a Table
                 </Link>
               </li>
               <li>
-                <Link to="/contact#help-center" className="hover:text-[#702C3A] transition-colors">
-                  Help Center
+                <Link to="/explore?action=preorder" className="hover:text-[#F6B27B] transition-colors">
+                  Pre-Order Food
                 </Link>
               </li>
               <li>
-                <Link to="/contact#faq" className="hover:text-[#702C3A] transition-colors">
-                  FAQ
+                <Link to="/events" className="hover:text-[#F6B27B] transition-colors">
+                  Celebrate Occasions
+                </Link>
+              </li>
+              <li>
+                <Link to="/offers" className="hover:text-[#F6B27B] transition-colors">
+                  Dining Offers
                 </Link>
               </li>
             </ul>
           </div>
 
-          <div>
-            <h4 className="text-sm font-semibold text-[#292321] mb-3">Portals &amp; Legal</h4>
-            <ul className="space-y-2 text-sm text-[#6B5F5C]">
+          <div className="lg:col-span-3">
+            <h4 className="text-sm font-semibold text-[#F6B27B] mb-3.5">
+              For Restaurants &amp; Support
+            </h4>
+            <ul className="space-y-2.5 text-sm text-[#FCEBDD]/85">
               <li>
-                <Link to="/customer/login" className="hover:text-[#702C3A] transition-colors">
-                  Customer Login
+                <Link to="/restaurant/signup" className="hover:text-[#F6B27B] transition-colors">
+                  Partner With DineRestro
                 </Link>
               </li>
               <li>
-                <Link to="/restaurant/login" className="hover:text-[#702C3A] transition-colors">
-                  Restaurant Partner Login
+                <Link to="/restaurant/login" className="hover:text-[#F6B27B] transition-colors">
+                  Restaurant Owner Login
                 </Link>
+              </li>
+              <li>
+                <Link to="/about" className="hover:text-[#F6B27B] transition-colors">
+                  About Us
+                </Link>
+              </li>
+              <li>
+                <Link to="/contact" className="hover:text-[#F6B27B] transition-colors">
+                  Customer Support &amp; FAQ
+                </Link>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleInfoNotice('Terms & Conditions')}
+                  className="hover:text-[#F6B27B] transition-colors text-left"
+                >
+                  Terms &amp; Conditions
+                </button>
               </li>
               <li>
                 <button
                   type="button"
                   onClick={() => handleInfoNotice('Privacy Policy')}
-                  className="hover:text-[#702C3A] transition-colors text-left"
+                  className="hover:text-[#F6B27B] transition-colors text-left"
                 >
                   Privacy Policy
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => handleInfoNotice('Terms and Conditions')}
-                  className="hover:text-[#702C3A] transition-colors text-left"
-                >
-                  Terms and Conditions
                 </button>
               </li>
             </ul>
           </div>
 
-          <div>
-            <h4 className="text-sm font-semibold text-[#292321] mb-3">Connect With Us</h4>
-            <p className="text-xs text-[#6B5F5C] mb-3 leading-relaxed">
-              Follow Varanasi dining stories, seasonal chef menus, and celebration packages.
+          <div className="lg:col-span-3">
+            <h4 className="text-sm font-semibold text-[#F6B27B] mb-3.5">Newsletter</h4>
+            <p className="text-xs text-[#FCEBDD]/80 mb-3 leading-relaxed">
+              Receive seasonal Varanasi chef tasting menus, new ghat-side openings, and celebration ideas.
             </p>
-            <div className="flex items-center gap-3">
-              <a
-                href="#instagram"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleInfoNotice('DineRestro Instagram');
-                }}
-                aria-label="DineRestro on Instagram"
-                className="p-2 rounded-lg bg-white border border-[#E8DDD1] text-[#292321] hover:text-[#702C3A] transition-colors"
+            <form onSubmit={handleSubscribe} className="space-y-2.5">
+              <div className="relative">
+                <Mail className="w-4 h-4 text-[#F6B27B] absolute left-3 top-2.5 pointer-events-none" aria-hidden="true" />
+                <input
+                  type="email"
+                  value={newsletterEmail}
+                  onChange={(e) => setNewsletterEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  aria-label="Newsletter email address"
+                  className="w-full pl-9 pr-3 py-2 text-xs bg-[#542719] border border-[#D99555]/30 rounded-lg text-[#FFF5EA] placeholder:text-[#FCEBDD]/55 focus:outline-none focus:border-[#F6B27B]"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full py-2 px-4 text-xs font-semibold text-white bg-[#C84A1B] rounded-lg hover:bg-[#A83B19] transition-colors whitespace-nowrap"
               >
-                <Instagram className="w-4 h-4" />
-              </a>
-              <a
-                href="#facebook"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleInfoNotice('DineRestro Facebook');
-                }}
-                aria-label="DineRestro on Facebook"
-                className="p-2 rounded-lg bg-white border border-[#E8DDD1] text-[#292321] hover:text-[#702C3A] transition-colors"
-              >
-                <Facebook className="w-4 h-4" />
-              </a>
-              <a
-                href="#twitter"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleInfoNotice('DineRestro X');
-                }}
-                aria-label="DineRestro on X"
-                className="p-2 rounded-lg bg-white border border-[#E8DDD1] text-[#292321] hover:text-[#702C3A] transition-colors"
-              >
-                <Twitter className="w-4 h-4" />
-              </a>
-              <a
-                href="#linkedin"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleInfoNotice('DineRestro LinkedIn');
-                }}
-                aria-label="DineRestro on LinkedIn"
-                className="p-2 rounded-lg bg-white border border-[#E8DDD1] text-[#292321] hover:text-[#702C3A] transition-colors"
-              >
-                <Linkedin className="w-4 h-4" />
-              </a>
-            </div>
+                Subscribe
+              </button>
+            </form>
           </div>
         </div>
 
-        <div className="mt-10 pt-6 border-t border-[#E8DDD1] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#6B5F5C]">
+        <div className="mt-12 pt-6 border-t border-[#542719] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#FCEBDD]/75">
           <p>© 2026 DineRestro Hospitality Pvt. Ltd. · Varanasi, Uttar Pradesh</p>
-          <p>Phase 1 Frontend Preview (Simulated Local Demo Data)</p>
+          <div className="flex flex-wrap items-center gap-4">
+            <button
+              type="button"
+              onClick={() => handleInfoNotice('Terms & Conditions')}
+              className="hover:text-[#F6B27B] transition-colors"
+            >
+              Terms &amp; Conditions
+            </button>
+            <button
+              type="button"
+              onClick={() => handleInfoNotice('Privacy Policy')}
+              className="hover:text-[#F6B27B] transition-colors"
+            >
+              Privacy Policy
+            </button>
+            <span>Phase 1 Preview (Simulated Local Demo)</span>
+          </div>
         </div>
       </div>
     </footer>

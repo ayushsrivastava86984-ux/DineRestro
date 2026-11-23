@@ -1,24 +1,27 @@
 @import "tailwindcss";
 
 @theme {
-  --font-serif: "Cormorant Garamond", Georgia, serif;
-  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: "Playfair Display", "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Poppins", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
-  --color-maroon: #702C3A;
-  --color-maroon-dark: #58202C;
-  --color-cream: #FFF6E9;
-  --color-soft-pink: #F4A6B8;
-  --color-light-green: #E7EFD9;
-  --color-ink: #292321;
-  --color-muted: #6B5F5C;
-  --color-hairline: #E8DDD1;
+  --color-ivory: #FFF5EA;
+  --color-cream: #FCEBDD;
+  --color-terracotta: #C84A1B;
+  --color-burnt-orange: #A83B19;
+  --color-espresso: #3A180F;
+  --color-chocolate: #542719;
+  --color-peach: #F6B27B;
+  --color-gold: #D99555;
+  --color-ink: #321D17;
+  --color-muted: #6E4B41;
+  --color-hairline: #EAD8C9;
 }
 
 @layer base {
   html {
     font-family: var(--font-sans);
-    color: #292321;
-    background-color: #FFFFFF;
+    color: #321D17;
+    background-color: #FFF5EA;
     scroll-behavior: smooth;
   }
 

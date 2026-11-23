@@ -20,10 +20,10 @@ export function ToastContainer() {
               : Info;
         const accentClass =
           toast.type === 'success'
-            ? 'bg-[#E7EFD9] text-[#292321] border-[#C5D8A4]'
+            ? 'bg-[#E7EFD9] text-[#321D17] border-[#C8D8AC]'
             : toast.type === 'error'
-              ? 'bg-[#FCE8EC] text-[#702C3A] border-[#F4A6B8]'
-              : 'bg-[#FFF6E9] text-[#292321] border-[#E8DDD1]';
+              ? 'bg-[#FDECE6] text-[#A83B19] border-[#F6B27B]'
+              : 'bg-[#FCEBDD] text-[#321D17] border-[#EAD8C9]';
 
         return (
           <div
@@ -31,11 +31,11 @@ export function ToastContainer() {
             className={`pointer-events-auto flex items-start gap-3 p-3.5 rounded-lg border shadow-sm transition-transform duration-150 ${accentClass}`}
             role="status"
           >
-            <Icon className="w-5 h-5 shrink-0 mt-0.5 text-[#702C3A]" aria-hidden="true" />
+            <Icon className="w-5 h-5 shrink-0 mt-0.5 text-[#C84A1B]" aria-hidden="true" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold leading-snug">{toast.title}</p>
               {toast.description && (
-                <p className="text-xs text-[#6B5F5C] mt-0.5 leading-relaxed">
+                <p className="text-xs text-[#6E4B41] mt-0.5 leading-relaxed">
                   {toast.description}
                 </p>
               )}
@@ -43,7 +43,7 @@ export function ToastContainer() {
             <button
               type="button"
               onClick={() => dismissToast(toast.id)}
-              className="p-1 rounded hover:bg-black/5 text-[#6B5F5C] transition-colors"
+              className="p-1 rounded hover:bg-black/5 text-[#6E4B41] transition-colors"
               aria-label="Dismiss notification"
             >
               <X className="w-4 h-4" />

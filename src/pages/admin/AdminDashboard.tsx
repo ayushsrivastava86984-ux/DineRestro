@@ -24,6 +24,7 @@ import {
   Trash2,
   Plus,
   X,
+  Wand2,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { DashboardLayout, type DashboardNavItem } from '../../components/layout/DashboardLayout';
@@ -53,6 +54,7 @@ const ADMIN_NAV: DashboardNavItem[] = [
   { label: 'Reservations', to: '/admin/reservations', icon: CalendarCheck },
   { label: 'Pre-orders', to: '/admin/preorders', icon: Utensils },
   { label: 'Event Quotations', to: '/admin/quotations', icon: MessageSquareQuote },
+  { label: 'Custom Requests', to: '/admin/custom-requests', icon: Wand2 },
   { label: 'Payment Records', to: '/admin/payments', icon: Receipt },
   { label: 'Reviews', to: '/admin/reviews', icon: MessageSquare },
   { label: 'Support Tickets', to: '/admin/support', icon: LifeBuoy },
@@ -76,6 +78,7 @@ export function AdminDashboard() {
     reservations,
     preOrders,
     celebrationBookings,
+    customRequests,
     offers,
     addOffer,
     toggleOfferActive,
@@ -144,19 +147,21 @@ export function AdminDashboard() {
                           ? 'reservations'
                           : path.includes('/admin/preorders')
                             ? 'preorders'
-                            : path.includes('/admin/quotations')
-                              ? 'quotations'
-                              : path.includes('/admin/payments')
-                                ? 'payments'
-                                : path.includes('/admin/reviews')
-                                  ? 'reviews'
-                                  : path.includes('/admin/support')
-                                    ? 'support'
-                                    : path.includes('/admin/analytics')
-                                      ? 'analytics'
-                                      : path.includes('/admin/settings')
-                                        ? 'settings'
-                                        : 'overview';
+                            : path.includes('/admin/custom-requests')
+                              ? 'custom-requests'
+                              : path.includes('/admin/quotations')
+                                ? 'quotations'
+                                : path.includes('/admin/payments')
+                                  ? 'payments'
+                                  : path.includes('/admin/reviews')
+                                    ? 'reviews'
+                                    : path.includes('/admin/support')
+                                      ? 'support'
+                                      : path.includes('/admin/analytics')
+                                        ? 'analytics'
+                                        : path.includes('/admin/settings')
+                                          ? 'settings'
+                                          : 'overview';
 
   const pendingRestApprovals = restaurants.filter(
     (r) => r.approvalStatus === 'Pending Approval'
@@ -189,7 +194,11 @@ export function AdminDashboard() {
     .filter((p) => p.paymentType === 'Food Pre-Order Advance')
     .reduce((acc, p) => acc + p.amount, 0);
   const totalCelebrationAdvances = payments
-    .filter((p) => p.paymentType === 'Celebration Advance')
+    .filter(
+      (p) =>
+        p.paymentType === 'Celebration Advance' ||
+        p.paymentType === 'Custom Celebration Advance'
+    )
     .reduce((acc, p) => acc + p.amount, 0);
 
   const handleToggleAmenity = (rest: Restaurant, amenity: AmenityType) => {
@@ -265,10 +274,10 @@ export function AdminDashboard() {
         {activeSection === 'overview' && (
           <div className="space-y-6">
             <div>
-              <h1 className="font-display text-3xl sm:text-4xl font-semibold text-[#292321]">
+              <h1 className="font-display text-3xl sm:text-4xl font-semibold text-[#321D17]">
                 DineRestro Operations Overview
               </h1>
-              <p className="text-sm text-[#6B5F5C] mt-1">
+              <p className="text-sm text-[#6E4B41] mt-1">
                 Varanasi launch city metrics, onboarding approvals, celebration package audits, and simulated payment totals (DEMO DATA).
               </p>
             </div>
@@ -291,9 +300,9 @@ export function AdminDashboard() {
                   ),
                 },
               ].map((stat) => (
-                <div key={stat.label} className="bg-white border border-[#E8DDD1] rounded-lg p-4">
-                  <p className="text-xs text-[#6B5F5C]">{stat.label}</p>
-                  <p className="text-2xl font-semibold font-mono tabular-nums text-[#292321] mt-1">
+                <div key={stat.label} className="bg-white border border-[#EAD8C9] rounded-lg p-4">
+                  <p className="text-xs text-[#6E4B41]">{stat.label}</p>
+                  <p className="text-2xl font-semibold font-mono tabular-nums text-[#321D17] mt-1">
                     {stat.val}
                   </p>
                 </div>
@@ -314,28 +323,28 @@ export function AdminDashboard() {
                   value: Math.round(d.revenue / 1000),
                 }))}
                 formatValue={(v) => `₹${v}k`}
-                barColor="#292321"
+                barColor="#3A180F"
               />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Pending Restaurant Approvals */}
-              <div className="bg-white border border-[#E8DDD1] rounded-lg p-5 space-y-4">
-                <h2 className="text-lg font-semibold text-[#292321]">
+              <div className="bg-white border border-[#EAD8C9] rounded-lg p-5 space-y-4">
+                <h2 className="text-lg font-semibold text-[#321D17]">
                   Pending Restaurant Approvals ({pendingRestApprovals.length})
                 </h2>
                 {pendingRestApprovals.length === 0 ? (
-                  <p className="text-sm text-[#6B5F5C]">All registered venues have been reviewed.</p>
+                  <p className="text-sm text-[#6E4B41]">All registered venues have been reviewed.</p>
                 ) : (
                   <div className="space-y-3">
                     {pendingRestApprovals.map((r) => (
                       <div
                         key={r.id}
-                        className="border border-[#E8DDD1] rounded-lg p-3.5 flex items-center justify-between gap-3"
+                        className="border border-[#EAD8C9] rounded-lg p-3.5 flex items-center justify-between gap-3"
                       >
                         <div>
-                          <p className="text-sm font-semibold text-[#292321]">{r.name}</p>
-                          <p className="text-xs text-[#6B5F5C]">
+                          <p className="text-sm font-semibold text-[#321D17]">{r.name}</p>
+                          <p className="text-xs text-[#6E4B41]">
                             {r.ownerName} · {r.area}, {r.city} · {r.primaryCuisine}
                           </p>
                         </div>
@@ -343,14 +352,14 @@ export function AdminDashboard() {
                           <button
                             type="button"
                             onClick={() => updateRestaurantApproval(r.id, 'Approved')}
-                            className="px-2.5 py-1 text-xs font-semibold bg-[#E7EFD9] text-[#292321] rounded"
+                            className="px-2.5 py-1 text-xs font-semibold bg-[#E7EFD9] text-[#321D17] rounded"
                           >
                             Approve
                           </button>
                           <button
                             type="button"
                             onClick={() => updateRestaurantApproval(r.id, 'Rejected')}
-                            className="px-2.5 py-1 text-xs font-semibold bg-[#FDECEF] text-[#702C3A] rounded"
+                            className="px-2.5 py-1 text-xs font-semibold bg-[#FDECE6] text-[#C84A1B] rounded"
                           >
                             Reject
                           </button>
@@ -362,12 +371,12 @@ export function AdminDashboard() {
               </div>
 
               {/* Pending Celebration Packages */}
-              <div className="bg-white border border-[#E8DDD1] rounded-lg p-5 space-y-4">
-                <h2 className="text-lg font-semibold text-[#292321]">
+              <div className="bg-white border border-[#EAD8C9] rounded-lg p-5 space-y-4">
+                <h2 className="text-lg font-semibold text-[#321D17]">
                   Pending Celebration Package Approvals ({pendingPkgApprovals.length})
                 </h2>
                 {pendingPkgApprovals.length === 0 ? (
-                  <p className="text-sm text-[#6B5F5C]">
+                  <p className="text-sm text-[#6E4B41]">
                     All submitted celebration packages have been audited.
                   </p>
                 ) : (
@@ -375,11 +384,11 @@ export function AdminDashboard() {
                     {pendingPkgApprovals.map((pkg) => (
                       <div
                         key={pkg.id}
-                        className="border border-[#E8DDD1] rounded-lg p-3.5 flex items-center justify-between gap-3"
+                        className="border border-[#EAD8C9] rounded-lg p-3.5 flex items-center justify-between gap-3"
                       >
                         <div>
-                          <p className="text-sm font-semibold text-[#292321]">{pkg.name}</p>
-                          <p className="text-xs text-[#6B5F5C]">
+                          <p className="text-sm font-semibold text-[#321D17]">{pkg.name}</p>
+                          <p className="text-xs text-[#6E4B41]">
                             {pkg.restaurantName} · {pkg.category} · {pkg.decorationPhotos.length} decor photo(s) · ₹0 decor
                           </p>
                         </div>
@@ -387,14 +396,14 @@ export function AdminDashboard() {
                           <button
                             type="button"
                             onClick={() => updateCelebrationPackageApproval(pkg.id, 'Approved')}
-                            className="px-2.5 py-1 text-xs font-semibold bg-[#E7EFD9] text-[#292321] rounded"
+                            className="px-2.5 py-1 text-xs font-semibold bg-[#E7EFD9] text-[#321D17] rounded"
                           >
                             Approve
                           </button>
                           <button
                             type="button"
                             onClick={() => updateCelebrationPackageApproval(pkg.id, 'Rejected')}
-                            className="px-2.5 py-1 text-xs font-semibold bg-[#FDECEF] text-[#702C3A] rounded"
+                            className="px-2.5 py-1 text-xs font-semibold bg-[#FDECE6] text-[#C84A1B] rounded"
                           >
                             Reject
                           </button>
@@ -412,24 +421,24 @@ export function AdminDashboard() {
         {activeSection === 'customers' && (
           <div className="space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h1 className="font-display text-3xl font-semibold text-[#292321]">
+              <h1 className="font-display text-3xl font-semibold text-[#321D17]">
                 Customer Accounts (Demo)
               </h1>
               <div className="flex flex-wrap gap-2">
                 <div className="relative">
-                  <Search className="w-4 h-4 text-[#6B5F5C] absolute left-3 top-2.5" />
+                  <Search className="w-4 h-4 text-[#6E4B41] absolute left-3 top-2.5" />
                   <input
                     type="text"
                     value={custQuery}
                     onChange={(e) => setCustQuery(e.target.value)}
                     placeholder="Search customer..."
-                    className="pl-9 pr-3 py-2 text-sm bg-white border border-[#E8DDD1] rounded-lg"
+                    className="pl-9 pr-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg"
                   />
                 </div>
                 <select
                   value={custFilter}
                   onChange={(e) => setCustFilter(e.target.value as typeof custFilter)}
-                  className="px-3 py-2 text-sm bg-white border border-[#E8DDD1] rounded-lg"
+                  className="px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg"
                 >
                   <option value="All">All Statuses</option>
                   <option value="Active">Active</option>
@@ -438,10 +447,10 @@ export function AdminDashboard() {
               </div>
             </div>
 
-            <div className="bg-white border border-[#E8DDD1] rounded-lg overflow-x-auto">
+            <div className="bg-white border border-[#EAD8C9] rounded-lg overflow-x-auto">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
-                  <tr className="border-b border-[#E8DDD1] bg-[#FFF6E9] text-xs text-[#6B5F5C]">
+                  <tr className="border-b border-[#EAD8C9] bg-[#FFF5EA] text-xs text-[#6E4B41]">
                     <th className="py-3 px-4 font-semibold">Full Name</th>
                     <th className="py-3 px-4 font-semibold">Contact</th>
                     <th className="py-3 px-4 font-semibold">Preferred Cuisine</th>
@@ -450,11 +459,11 @@ export function AdminDashboard() {
                     <th className="py-3 px-4 font-semibold text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E8DDD1]">
+                <tbody className="divide-y divide-[#EAD8C9]">
                   {filteredCustomers.map((c) => (
-                    <tr key={c.id} className="hover:bg-[#FFF6E9]/40">
-                      <td className="py-3 px-4 font-semibold text-[#292321]">{c.fullName}</td>
-                      <td className="py-3 px-4 text-xs text-[#6B5F5C]">
+                    <tr key={c.id} className="hover:bg-[#FFF5EA]/40">
+                      <td className="py-3 px-4 font-semibold text-[#321D17]">{c.fullName}</td>
+                      <td className="py-3 px-4 text-xs text-[#6E4B41]">
                         <div>{c.email}</div>
                         <div className="tabular-nums">{c.mobile}</div>
                       </td>
@@ -472,7 +481,7 @@ export function AdminDashboard() {
                               c.status === 'Active' ? 'Suspended' : 'Active'
                             )
                           }
-                          className="px-3 py-1 text-xs font-medium border border-[#E8DDD1] rounded hover:bg-[#FFF6E9]"
+                          className="px-3 py-1 text-xs font-medium border border-[#EAD8C9] rounded hover:bg-[#FFF5EA]"
                         >
                           {c.status === 'Active' ? 'Suspend' : 'Activate'}
                         </button>
@@ -488,44 +497,44 @@ export function AdminDashboard() {
         {/* RESTAURANT ACCOUNTS */}
         {activeSection === 'restaurants' && (
           <div className="space-y-5">
-            <h1 className="font-display text-3xl font-semibold text-[#292321]">
+            <h1 className="font-display text-3xl font-semibold text-[#321D17]">
               Registered Restaurant Accounts
             </h1>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {restaurants.map((r) => (
                 <div
                   key={r.id}
-                  className="bg-white border border-[#E8DDD1] rounded-lg p-5 space-y-3"
+                  className="bg-white border border-[#EAD8C9] rounded-lg p-5 space-y-3"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <SafeImage
                         src={r.logoUrl}
                         alt={r.name}
-                        className="w-12 h-12 rounded-lg object-cover border border-[#E8DDD1]"
+                        className="w-12 h-12 rounded-lg object-cover border border-[#EAD8C9]"
                         fallbackTitle={r.name}
                       />
                       <div>
-                        <h3 className="text-lg font-semibold text-[#292321]">{r.name}</h3>
-                        <p className="text-xs text-[#6B5F5C]">
+                        <h3 className="text-lg font-semibold text-[#321D17]">{r.name}</h3>
+                        <p className="text-xs text-[#6E4B41]">
                           {r.area}, {r.city} · Owner: {r.ownerName}
                         </p>
                       </div>
                     </div>
                     <StatusBadge status={r.approvalStatus} />
                   </div>
-                  <p className="text-xs text-[#6B5F5C]">{r.address}</p>
-                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#E8DDD1] text-xs">
+                  <p className="text-xs text-[#6E4B41]">{r.address}</p>
+                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#EAD8C9] text-xs">
                     <div>
-                      <span className="text-[#6B5F5C]">Gallery:</span>{' '}
+                      <span className="text-[#6E4B41]">Gallery:</span>{' '}
                       <span className="font-semibold tabular-nums">{r.photos.length}</span>
                     </div>
                     <div>
-                      <span className="text-[#6B5F5C]">Menu Pages:</span>{' '}
+                      <span className="text-[#6E4B41]">Menu Pages:</span>{' '}
                       <span className="font-semibold tabular-nums">{r.menuPhotos.length}</span>
                     </div>
                     <div>
-                      <span className="text-[#6B5F5C]">Amenities:</span>{' '}
+                      <span className="text-[#6E4B41]">Amenities:</span>{' '}
                       <span className="font-semibold tabular-nums">{r.amenities.length}</span>
                     </div>
                   </div>
@@ -533,7 +542,7 @@ export function AdminDashboard() {
                     <button
                       type="button"
                       onClick={() => setInspectRest(r)}
-                      className="px-3 py-1.5 text-xs font-semibold border border-[#E8DDD1] rounded hover:bg-[#FFF6E9]"
+                      className="px-3 py-1.5 text-xs font-semibold border border-[#EAD8C9] rounded hover:bg-[#FFF5EA]"
                     >
                       Inspect Full Venue
                     </button>
@@ -548,18 +557,18 @@ export function AdminDashboard() {
         {activeSection === 'approvals' && (
           <div className="space-y-5">
             <div>
-              <h1 className="font-display text-3xl font-semibold text-[#292321]">
+              <h1 className="font-display text-3xl font-semibold text-[#321D17]">
                 Restaurant Approvals Queue
               </h1>
-              <p className="text-sm text-[#6B5F5C]">
+              <p className="text-sm text-[#6E4B41]">
                 Approve or reject partner applications in local demo state. Approved restaurants appear on the public Explore page.
               </p>
             </div>
 
-            <div className="bg-white border border-[#E8DDD1] rounded-lg overflow-x-auto">
+            <div className="bg-white border border-[#EAD8C9] rounded-lg overflow-x-auto">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
-                  <tr className="border-b border-[#E8DDD1] bg-[#FFF6E9] text-xs text-[#6B5F5C]">
+                  <tr className="border-b border-[#EAD8C9] bg-[#FFF5EA] text-xs text-[#6E4B41]">
                     <th className="py-3 px-4 font-semibold">Restaurant Name</th>
                     <th className="py-3 px-4 font-semibold">Owner Name</th>
                     <th className="py-3 px-4 font-semibold">City &amp; Area</th>
@@ -569,11 +578,11 @@ export function AdminDashboard() {
                     <th className="py-3 px-4 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E8DDD1]">
+                <tbody className="divide-y divide-[#EAD8C9]">
                   {restaurants.map((r) => (
-                    <tr key={r.id} className="hover:bg-[#FFF6E9]/40">
-                      <td className="py-3 px-4 font-semibold text-[#292321]">{r.name}</td>
-                      <td className="py-3 px-4 text-xs text-[#6B5F5C]">{r.ownerName}</td>
+                    <tr key={r.id} className="hover:bg-[#FFF5EA]/40">
+                      <td className="py-3 px-4 font-semibold text-[#321D17]">{r.name}</td>
+                      <td className="py-3 px-4 text-xs text-[#6E4B41]">{r.ownerName}</td>
                       <td className="py-3 px-4 text-xs">
                         {r.area}, {r.city}
                       </td>
@@ -588,21 +597,21 @@ export function AdminDashboard() {
                         <button
                           type="button"
                           onClick={() => setInspectRest(r)}
-                          className="px-2.5 py-1 text-xs font-medium border border-[#E8DDD1] rounded hover:bg-[#FFF6E9]"
+                          className="px-2.5 py-1 text-xs font-medium border border-[#EAD8C9] rounded hover:bg-[#FFF5EA]"
                         >
                           View Details
                         </button>
                         <button
                           type="button"
                           onClick={() => updateRestaurantApproval(r.id, 'Approved')}
-                          className="px-2.5 py-1 text-xs font-semibold bg-[#E7EFD9] text-[#292321] rounded hover:opacity-85"
+                          className="px-2.5 py-1 text-xs font-semibold bg-[#E7EFD9] text-[#321D17] rounded hover:opacity-85"
                         >
                           Approve
                         </button>
                         <button
                           type="button"
                           onClick={() => updateRestaurantApproval(r.id, 'Rejected')}
-                          className="px-2.5 py-1 text-xs font-semibold bg-[#FDECEF] text-[#702C3A] rounded hover:opacity-85"
+                          className="px-2.5 py-1 text-xs font-semibold bg-[#FDECE6] text-[#C84A1B] rounded hover:opacity-85"
                         >
                           Reject
                         </button>
@@ -620,17 +629,17 @@ export function AdminDashboard() {
           <div className="space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h1 className="font-display text-3xl font-semibold text-[#292321]">
+                <h1 className="font-display text-3xl font-semibold text-[#321D17]">
                   Restaurant Photos Audit
                 </h1>
-                <p className="text-sm text-[#6B5F5C]">
+                <p className="text-sm text-[#6E4B41]">
                   Inspect logos, cover photos, and interior/exterior gallery images across partner venues.
                 </p>
               </div>
               <select
                 value={selectedRestaurant.id}
                 onChange={(e) => setSelectedRestId(e.target.value)}
-                className="px-3 py-2 text-sm bg-white border border-[#E8DDD1] rounded-lg"
+                className="px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg"
               >
                 {restaurants.map((r) => (
                   <option key={r.id} value={r.id}>
@@ -641,24 +650,24 @@ export function AdminDashboard() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white border border-[#E8DDD1] rounded-lg p-4 space-y-2">
-                <p className="text-xs font-semibold text-[#6B5F5C]">Current Logo</p>
+              <div className="bg-white border border-[#EAD8C9] rounded-lg p-4 space-y-2">
+                <p className="text-xs font-semibold text-[#6E4B41]">Current Logo</p>
                 <div className="flex items-center gap-3">
                   <SafeImage
                     src={selectedRestaurant.logoUrl}
                     alt={selectedRestaurant.name}
-                    className="w-16 h-16 rounded-lg object-cover border border-[#E8DDD1]"
+                    className="w-16 h-16 rounded-lg object-cover border border-[#EAD8C9]"
                     fallbackTitle={selectedRestaurant.name}
                   />
-                  <div className="text-xs text-[#6B5F5C]">
-                    <p className="font-semibold text-[#292321]">{selectedRestaurant.name}</p>
+                  <div className="text-xs text-[#6E4B41]">
+                    <p className="font-semibold text-[#321D17]">{selectedRestaurant.name}</p>
                     <p>{selectedRestaurant.area}, Varanasi</p>
                   </div>
                 </div>
               </div>
-              <div className="bg-white border border-[#E8DDD1] rounded-lg p-4 space-y-2">
-                <p className="text-xs font-semibold text-[#6B5F5C]">Current Cover Photo</p>
-                <div className="aspect-[16/7] rounded overflow-hidden border border-[#E8DDD1]">
+              <div className="bg-white border border-[#EAD8C9] rounded-lg p-4 space-y-2">
+                <p className="text-xs font-semibold text-[#6E4B41]">Current Cover Photo</p>
+                <div className="aspect-[16/7] rounded overflow-hidden border border-[#EAD8C9]">
                   <SafeImage
                     src={selectedRestaurant.image}
                     alt={selectedRestaurant.name}
@@ -673,7 +682,7 @@ export function AdminDashboard() {
               {selectedRestaurant.photos.map((photo) => (
                 <div
                   key={photo.id}
-                  className="bg-white border border-[#E8DDD1] rounded-lg overflow-hidden"
+                  className="bg-white border border-[#EAD8C9] rounded-lg overflow-hidden"
                 >
                   <div className="aspect-[4/3] overflow-hidden">
                     <SafeImage
@@ -685,21 +694,21 @@ export function AdminDashboard() {
                   </div>
                   <div className="p-3 space-y-2">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-[#702C3A]">{photo.category}</span>
-                      <span className="text-[#6B5F5C] truncate max-w-[160px]">{photo.caption}</span>
+                      <span className="font-semibold text-[#C84A1B]">{photo.category}</span>
+                      <span className="text-[#6E4B41] truncate max-w-[160px]">{photo.caption}</span>
                     </div>
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={() => setRestaurantCover(photo.url, selectedRestaurant.id)}
-                        className="flex-1 py-1 text-xs font-medium border border-[#E8DDD1] rounded hover:bg-[#FFF6E9]"
+                        className="flex-1 py-1 text-xs font-medium border border-[#EAD8C9] rounded hover:bg-[#FFF5EA]"
                       >
                         Set Cover
                       </button>
                       <button
                         type="button"
                         onClick={() => deleteRestaurantPhoto(photo.id, selectedRestaurant.id)}
-                        className="px-2.5 py-1 text-xs text-[#702C3A] bg-[#FDECEF] rounded inline-flex items-center gap-1"
+                        className="px-2.5 py-1 text-xs text-[#C84A1B] bg-[#FDECE6] rounded inline-flex items-center gap-1"
                       >
                         <Trash2 className="w-3 h-3" />
                         Remove
@@ -717,17 +726,17 @@ export function AdminDashboard() {
           <div className="space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h1 className="font-display text-3xl font-semibold text-[#292321]">
+                <h1 className="font-display text-3xl font-semibold text-[#321D17]">
                   Restaurant Amenities Control
                 </h1>
-                <p className="text-sm text-[#6B5F5C]">
+                <p className="text-sm text-[#6E4B41]">
                   Verify and toggle all 14 standardized restaurant amenities shown on public profiles.
                 </p>
               </div>
               <select
                 value={selectedRestaurant.id}
                 onChange={(e) => setSelectedRestId(e.target.value)}
-                className="px-3 py-2 text-sm bg-white border border-[#E8DDD1] rounded-lg"
+                className="px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg"
               >
                 {restaurants.map((r) => (
                   <option key={r.id} value={r.id}>
@@ -737,7 +746,7 @@ export function AdminDashboard() {
               </select>
             </div>
 
-            <div className="bg-white border border-[#E8DDD1] rounded-lg p-5">
+            <div className="bg-white border border-[#EAD8C9] rounded-lg p-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {ALL_AMENITIES.map((am) => {
                   const checked = selectedRestaurant.amenities.includes(am);
@@ -746,15 +755,15 @@ export function AdminDashboard() {
                       key={am}
                       className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                         checked
-                          ? 'bg-[#E7EFD9]/60 border-[#702C3A] text-[#292321]'
-                          : 'bg-white border-[#E8DDD1] text-[#6B5F5C] hover:bg-[#FFF6E9]'
+                          ? 'bg-[#E7EFD9]/60 border-[#C84A1B] text-[#321D17]'
+                          : 'bg-white border-[#EAD8C9] text-[#6E4B41] hover:bg-[#FFF5EA]'
                       }`}
                     >
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={() => handleToggleAmenity(selectedRestaurant, am)}
-                        className="accent-[#702C3A]"
+                        className="accent-[#C84A1B]"
                       />
                       <span className="text-sm font-medium">{am}</span>
                     </label>
@@ -770,17 +779,17 @@ export function AdminDashboard() {
           <div className="space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h1 className="font-display text-3xl font-semibold text-[#292321]">
+                <h1 className="font-display text-3xl font-semibold text-[#321D17]">
                   Menu Photo Galleries
                 </h1>
-                <p className="text-sm text-[#6B5F5C]">
+                <p className="text-sm text-[#6E4B41]">
                   Regular restaurant menus are strictly photo-based pages. Review uploaded menu photographs per restaurant.
                 </p>
               </div>
               <select
                 value={selectedRestaurant.id}
                 onChange={(e) => setSelectedRestId(e.target.value)}
-                className="px-3 py-2 text-sm bg-white border border-[#E8DDD1] rounded-lg"
+                className="px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg"
               >
                 {restaurants.map((r) => (
                   <option key={r.id} value={r.id}>
@@ -791,7 +800,7 @@ export function AdminDashboard() {
             </div>
 
             {selectedRestaurant.menuPhotos.length === 0 ? (
-              <div className="bg-white border border-[#E8DDD1] rounded-lg p-8 text-center text-sm text-[#6B5F5C]">
+              <div className="bg-white border border-[#EAD8C9] rounded-lg p-8 text-center text-sm text-[#6E4B41]">
                 No menu photographs uploaded for this restaurant yet.
               </div>
             ) : (
@@ -799,9 +808,9 @@ export function AdminDashboard() {
                 {selectedRestaurant.menuPhotos.map((mp) => (
                   <div
                     key={mp.id}
-                    className="bg-white border border-[#E8DDD1] rounded-lg overflow-hidden"
+                    className="bg-white border border-[#EAD8C9] rounded-lg overflow-hidden"
                   >
-                    <div className="aspect-[3/4] bg-[#FFF6E9] overflow-hidden">
+                    <div className="aspect-[3/4] bg-[#FFF5EA] overflow-hidden">
                       <SafeImage
                         src={mp.url}
                         alt={mp.title}
@@ -811,15 +820,15 @@ export function AdminDashboard() {
                     </div>
                     <div className="p-3.5 flex items-center justify-between gap-2">
                       <div>
-                        <p className="text-xs font-mono font-semibold text-[#702C3A]">
+                        <p className="text-xs font-mono font-semibold text-[#C84A1B]">
                           Page {mp.pageNumber}
                         </p>
-                        <p className="text-sm font-medium text-[#292321]">{mp.title}</p>
+                        <p className="text-sm font-medium text-[#321D17]">{mp.title}</p>
                       </div>
                       <button
                         type="button"
                         onClick={() => deleteMenuPhoto(mp.id, selectedRestaurant.id)}
-                        className="px-2.5 py-1 text-xs text-[#702C3A] bg-[#FDECEF] rounded inline-flex items-center gap-1"
+                        className="px-2.5 py-1 text-xs text-[#C84A1B] bg-[#FDECE6] rounded inline-flex items-center gap-1"
                       >
                         <Trash2 className="w-3 h-3" />
                         Remove
@@ -836,10 +845,10 @@ export function AdminDashboard() {
         {activeSection === 'celebration-packages' && (
           <div className="space-y-5">
             <div>
-              <h1 className="font-display text-3xl font-semibold text-[#292321]">
+              <h1 className="font-display text-3xl font-semibold text-[#321D17]">
                 Celebration Packages Moderation
               </h1>
-              <p className="text-sm text-[#6B5F5C]">
+              <p className="text-sm text-[#6E4B41]">
                 Verify that every celebration package includes mandatory decoration photos and displays Decoration Included – No Additional Charges (₹0).
               </p>
             </div>
@@ -848,9 +857,9 @@ export function AdminDashboard() {
               {celebrationPackages.map((pkg) => (
                 <div
                   key={pkg.id}
-                  className="bg-white border border-[#E8DDD1] rounded-lg overflow-hidden flex flex-col"
+                  className="bg-white border border-[#EAD8C9] rounded-lg overflow-hidden flex flex-col"
                 >
-                  <div className="grid grid-cols-2 gap-1 bg-[#FFF6E9] p-1">
+                  <div className="grid grid-cols-2 gap-1 bg-[#FFF5EA] p-1">
                     {pkg.decorationPhotos.slice(0, 2).map((url, i) => (
                       <div key={i} className="aspect-[16/10] overflow-hidden rounded-sm">
                         <SafeImage
@@ -866,54 +875,54 @@ export function AdminDashboard() {
                   <div className="p-5 space-y-3 flex-1 flex flex-col">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs font-semibold text-[#702C3A]">
+                        <p className="text-xs font-semibold text-[#C84A1B]">
                           {pkg.restaurantName} · {pkg.category}
                         </p>
-                        <h3 className="text-lg font-semibold text-[#292321]">{pkg.name}</h3>
+                        <h3 className="text-lg font-semibold text-[#321D17]">{pkg.name}</h3>
                       </div>
                       <StatusBadge status={pkg.approvalStatus} />
                     </div>
 
-                    <p className="text-xs text-[#6B5F5C]">{pkg.description}</p>
+                    <p className="text-xs text-[#6E4B41]">{pkg.description}</p>
 
-                    <div className="bg-[#E7EFD9]/60 border border-[#C8D8AC] rounded px-3 py-2 text-xs font-semibold text-[#292321] flex items-center justify-between">
+                    <div className="bg-[#E7EFD9]/60 border border-[#C8D8AC] rounded px-3 py-2 text-xs font-semibold text-[#321D17] flex items-center justify-between">
                       <span>Decoration Included – No Additional Charges</span>
                       <span className="font-mono">₹0</span>
                     </div>
 
                     <div className="grid grid-cols-3 gap-2 text-xs pt-1">
                       <div>
-                        <span className="text-[#6B5F5C]">Per Plate:</span>{' '}
+                        <span className="text-[#6E4B41]">Per Plate:</span>{' '}
                         <span className="font-semibold tabular-nums">
                           {formatINR(pkg.pricePerPlate)}
                         </span>
                       </div>
                       <div>
-                        <span className="text-[#6B5F5C]">Plates:</span>{' '}
+                        <span className="text-[#6E4B41]">Plates:</span>{' '}
                         <span className="font-semibold tabular-nums">
                           {pkg.minPlates}–{pkg.maxPlates}
                         </span>
                       </div>
                       <div>
-                        <span className="text-[#6B5F5C]">Decor Photos:</span>{' '}
+                        <span className="text-[#6E4B41]">Decor Photos:</span>{' '}
                         <span className="font-semibold tabular-nums">
                           {pkg.decorationPhotos.length}
                         </span>
                       </div>
                     </div>
 
-                    <div className="pt-3 border-t border-[#E8DDD1] flex justify-end gap-2 mt-auto">
+                    <div className="pt-3 border-t border-[#EAD8C9] flex justify-end gap-2 mt-auto">
                       <button
                         type="button"
                         onClick={() => updateCelebrationPackageApproval(pkg.id, 'Approved')}
-                        className="px-3 py-1.5 text-xs font-semibold bg-[#E7EFD9] text-[#292321] rounded"
+                        className="px-3 py-1.5 text-xs font-semibold bg-[#E7EFD9] text-[#321D17] rounded"
                       >
                         Approve Package
                       </button>
                       <button
                         type="button"
                         onClick={() => updateCelebrationPackageApproval(pkg.id, 'Rejected')}
-                        className="px-3 py-1.5 text-xs font-semibold bg-[#FDECEF] text-[#702C3A] rounded"
+                        className="px-3 py-1.5 text-xs font-semibold bg-[#FDECE6] text-[#C84A1B] rounded"
                       >
                         Reject Package
                       </button>
@@ -929,10 +938,10 @@ export function AdminDashboard() {
         {activeSection === 'decorations' && (
           <div className="space-y-5">
             <div>
-              <h1 className="font-display text-3xl font-semibold text-[#292321]">
+              <h1 className="font-display text-3xl font-semibold text-[#321D17]">
                 Celebration Decoration Photo Audit
               </h1>
-              <p className="text-sm text-[#6B5F5C]">
+              <p className="text-sm text-[#6E4B41]">
                 All decoration photographs uploaded by partner restaurants across Varanasi. Every decoration setup is ₹0 complimentary with its celebration package.
               </p>
             </div>
@@ -941,7 +950,7 @@ export function AdminDashboard() {
                 pkg.decorationPhotos.map((url, idx) => (
                   <div
                     key={`${pkg.id}-dec-${idx}`}
-                    className="bg-white border border-[#E8DDD1] rounded-lg overflow-hidden"
+                    className="bg-white border border-[#EAD8C9] rounded-lg overflow-hidden"
                   >
                     <div className="aspect-[4/3] overflow-hidden">
                       <SafeImage
@@ -953,12 +962,12 @@ export function AdminDashboard() {
                     </div>
                     <div className="p-3.5 space-y-1">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="font-semibold text-[#702C3A]">{pkg.category}</span>
+                        <span className="font-semibold text-[#C84A1B]">{pkg.category}</span>
                         <StatusBadge status={pkg.approvalStatus} />
                       </div>
-                      <p className="text-sm font-semibold text-[#292321]">{pkg.name}</p>
-                      <p className="text-xs text-[#6B5F5C]">{pkg.restaurantName}</p>
-                      <p className="text-[11px] font-medium text-[#292321] bg-[#E7EFD9] px-2 py-0.5 rounded inline-block mt-1">
+                      <p className="text-sm font-semibold text-[#321D17]">{pkg.name}</p>
+                      <p className="text-xs text-[#6E4B41]">{pkg.restaurantName}</p>
+                      <p className="text-[11px] font-medium text-[#321D17] bg-[#E7EFD9] px-2 py-0.5 rounded inline-block mt-1">
                         Decoration Charge: ₹0
                       </p>
                     </div>
@@ -973,27 +982,27 @@ export function AdminDashboard() {
         {activeSection === 'offers' && (
           <div className="space-y-6">
             <div>
-              <h1 className="font-display text-3xl font-semibold text-[#292321]">
+              <h1 className="font-display text-3xl font-semibold text-[#321D17]">
                 Platform Offer Management
               </h1>
-              <p className="text-sm text-[#6B5F5C]">
+              <p className="text-sm text-[#6E4B41]">
                 Manage active dining offers and assign Basic (₹{platformSettings.basicOfferFeePerGuest}/guest) or Premium (₹{platformSettings.premiumOfferFeePerGuest}/guest) platform booking fee tiers.
               </p>
             </div>
 
             <form
               onSubmit={handleCreateOffer}
-              className="bg-white border border-[#E8DDD1] rounded-lg p-5 space-y-4"
+              className="bg-white border border-[#EAD8C9] rounded-lg p-5 space-y-4"
             >
-              <h2 className="text-base font-semibold text-[#292321] flex items-center gap-2">
-                <Plus className="w-4 h-4 text-[#702C3A]" />
+              <h2 className="text-base font-semibold text-[#321D17] flex items-center gap-2">
+                <Plus className="w-4 h-4 text-[#C84A1B]" />
                 Publish Platform Offer (Demo)
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <select
                   value={offerRestId}
                   onChange={(e) => setOfferRestId(e.target.value)}
-                  className="px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg bg-white"
+                  className="px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg bg-white"
                 >
                   {restaurants.map((r) => (
                     <option key={r.id} value={r.id}>
@@ -1006,26 +1015,26 @@ export function AdminDashboard() {
                   value={offerTitle}
                   onChange={(e) => setOfferTitle(e.target.value)}
                   placeholder="Offer Title (e.g., 20% Off Rooftop Dinner)"
-                  className="px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg"
+                  className="px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg"
                 />
                 <input
                   type="text"
                   value={offerCode}
                   onChange={(e) => setOfferCode(e.target.value)}
                   placeholder="Promo Code (e.g., KASHI20)"
-                  className="px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg font-mono uppercase"
+                  className="px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg font-mono uppercase"
                 />
                 <input
                   type="text"
                   value={offerDiscount}
                   onChange={(e) => setOfferDiscount(e.target.value)}
                   placeholder="Discount Label (e.g., 20% OFF)"
-                  className="px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg"
+                  className="px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg"
                 />
                 <select
                   value={offerTier}
                   onChange={(e) => setOfferTier(e.target.value as 'Basic' | 'Premium')}
-                  className="px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg bg-white"
+                  className="px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg bg-white"
                 >
                   <option value="Basic">
                     Basic Offer (₹{platformSettings.basicOfferFeePerGuest}/guest fee)
@@ -1037,7 +1046,7 @@ export function AdminDashboard() {
                 <select
                   value={offerCategory}
                   onChange={(e) => setOfferCategory(e.target.value as DiningOffer['category'])}
-                  className="px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg bg-white"
+                  className="px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg bg-white"
                 >
                   <option value="Flat Discount">Flat Discount</option>
                   <option value="Complimentary">Complimentary</option>
@@ -1051,11 +1060,11 @@ export function AdminDashboard() {
                   value={offerTerms}
                   onChange={(e) => setOfferTerms(e.target.value)}
                   placeholder="Terms & eligibility details..."
-                  className="flex-1 px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg"
+                  className="flex-1 px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg"
                 />
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-semibold text-white bg-[#702C3A] rounded-lg hover:bg-[#58202C]"
+                  className="px-5 py-2 text-xs font-semibold text-white bg-[#C84A1B] rounded-lg hover:bg-[#A83B19]"
                 >
                   Publish Offer
                 </button>
@@ -1071,14 +1080,14 @@ export function AdminDashboard() {
                 return (
                   <div
                     key={o.id}
-                    className="bg-white border border-[#E8DDD1] rounded-lg p-5 flex items-center justify-between gap-4"
+                    className="bg-white border border-[#EAD8C9] rounded-lg p-5 flex items-center justify-between gap-4"
                   >
                     <div className="space-y-1">
-                      <p className="text-xs font-mono font-semibold text-[#702C3A]">
+                      <p className="text-xs font-mono font-semibold text-[#C84A1B]">
                         {o.code} · {o.discountLabel} · {o.offerTier} Offer (₹{feePerGuest}/guest)
                       </p>
-                      <h3 className="text-base font-semibold text-[#292321]">{o.title}</h3>
-                      <p className="text-xs text-[#6B5F5C]">
+                      <h3 className="text-base font-semibold text-[#321D17]">{o.title}</h3>
+                      <p className="text-xs text-[#6E4B41]">
                         {o.restaurantName} · Valid until {formatDisplayDate(o.validUntil)}
                       </p>
                     </div>
@@ -1088,7 +1097,7 @@ export function AdminDashboard() {
                       className={`px-3 py-1.5 text-xs font-semibold rounded border shrink-0 ${
                         o.active
                           ? 'bg-[#E7EFD9] border-[#C8D8AC]'
-                          : 'bg-[#FFF6E9] border-[#E8DDD1]'
+                          : 'bg-[#FFF5EA] border-[#EAD8C9]'
                       }`}
                     >
                       {o.active ? 'Active' : 'Paused'}
@@ -1104,21 +1113,21 @@ export function AdminDashboard() {
         {activeSection === 'fees' && (
           <div className="max-w-2xl space-y-5">
             <div>
-              <h1 className="font-display text-3xl font-semibold text-[#292321]">
+              <h1 className="font-display text-3xl font-semibold text-[#321D17]">
                 Booking Fee &amp; Advance Payment Settings
               </h1>
-              <p className="text-sm text-[#6B5F5C]">
+              <p className="text-sm text-[#6E4B41]">
                 Configure per-guest platform booking fees for DineRestro Offer Table Bookings and default advance payment percentages for Pre-Orders and Celebration Packages.
               </p>
             </div>
 
             <form
               onSubmit={handleSavePlatformFees}
-              className="bg-white border border-[#E8DDD1] rounded-lg p-6 space-y-5"
+              className="bg-white border border-[#EAD8C9] rounded-lg p-6 space-y-5"
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#6B5F5C] mb-1">
+                  <label className="block text-xs font-semibold text-[#6E4B41] mb-1">
                     Basic Offer Fee Per Guest (₹)
                   </label>
                   <input
@@ -1127,13 +1136,13 @@ export function AdminDashboard() {
                     max={500}
                     value={basicFee}
                     onChange={(e) => setBasicFee(e.target.value)}
-                    className="w-full px-3 py-2 text-sm font-mono border border-[#E8DDD1] rounded-lg"
+                    className="w-full px-3 py-2 text-sm font-mono border border-[#EAD8C9] rounded-lg"
                   />
-                  <p className="text-[11px] text-[#6B5F5C] mt-1">Default: ₹19 per guest</p>
+                  <p className="text-[11px] text-[#6E4B41] mt-1">Default: ₹19 per guest</p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#6B5F5C] mb-1">
+                  <label className="block text-xs font-semibold text-[#6E4B41] mb-1">
                     Premium Offer Fee Per Guest (₹)
                   </label>
                   <input
@@ -1142,13 +1151,13 @@ export function AdminDashboard() {
                     max={500}
                     value={premiumFee}
                     onChange={(e) => setPremiumFee(e.target.value)}
-                    className="w-full px-3 py-2 text-sm font-mono border border-[#E8DDD1] rounded-lg"
+                    className="w-full px-3 py-2 text-sm font-mono border border-[#EAD8C9] rounded-lg"
                   />
-                  <p className="text-[11px] text-[#6B5F5C] mt-1">Default: ₹29 per guest</p>
+                  <p className="text-[11px] text-[#6E4B41] mt-1">Default: ₹29 per guest</p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#6B5F5C] mb-1">
+                  <label className="block text-xs font-semibold text-[#6E4B41] mb-1">
                     Food Pre-Order Advance (%)
                   </label>
                   <input
@@ -1157,13 +1166,13 @@ export function AdminDashboard() {
                     max={100}
                     value={preOrderAdvPct}
                     onChange={(e) => setPreOrderAdvPct(e.target.value)}
-                    className="w-full px-3 py-2 text-sm font-mono border border-[#E8DDD1] rounded-lg"
+                    className="w-full px-3 py-2 text-sm font-mono border border-[#EAD8C9] rounded-lg"
                   />
-                  <p className="text-[11px] text-[#6B5F5C] mt-1">Default: 50% advance</p>
+                  <p className="text-[11px] text-[#6E4B41] mt-1">Default: 50% advance</p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#6B5F5C] mb-1">
+                  <label className="block text-xs font-semibold text-[#6E4B41] mb-1">
                     Celebration Package Advance (%)
                   </label>
                   <input
@@ -1172,22 +1181,28 @@ export function AdminDashboard() {
                     max={100}
                     value={celAdvPct}
                     onChange={(e) => setCelAdvPct(e.target.value)}
-                    className="w-full px-3 py-2 text-sm font-mono border border-[#E8DDD1] rounded-lg"
+                    className="w-full px-3 py-2 text-sm font-mono border border-[#EAD8C9] rounded-lg"
                   />
-                  <p className="text-[11px] text-[#6B5F5C] mt-1">Default: 50% advance</p>
+                  <p className="text-[11px] text-[#6E4B41] mt-1">Default: 50% advance</p>
                 </div>
               </div>
 
-              <div className="bg-[#FFF6E9] border border-[#E8DDD1] rounded-lg p-4 text-xs text-[#292321] space-y-1">
+              <div className="bg-[#FFF5EA] border border-[#EAD8C9] rounded-lg p-4 text-xs text-[#321D17] space-y-1.5">
                 <p className="font-semibold">Business Rule Enforcement:</p>
-                <p>• Regular Table Reservations without an offer (`Order at Restaurant`) always incur ₹0 platform fee.</p>
-                <p>• Offer Table Bookings charge `Number of Guests × Selected Offer Per-Guest Fee` separately from restaurant food bills.</p>
-                <p>• Celebration Decoration Charge is always ₹0 (`Decoration Included – No Additional Charges`).</p>
+                <p>
+                  • <strong>Table Reservations:</strong> ALL table bookings charge a configurable per-guest platform fee (Basic ₹{platformSettings.basicOfferFeePerGuest}/guest or Premium ₹{platformSettings.premiumOfferFeePerGuest}/guest), billed separately from restaurant food bills.
+                </p>
+                <p>
+                  • <strong>Food Pre-Orders:</strong> Advance payment percentage is configurable per restaurant (e.g., 20%, 50%, 100%; platform default {platformSettings.defaultPreOrderAdvancePercent}%).
+                </p>
+                <p>
+                  • <strong>Celebration Bookings &amp; Custom Requests:</strong> Decoration charge is always ₹0 (`Decoration Included – No Additional Charges`). Custom requests require restaurant quotation review and customer acceptance before advance payment unlocks.
+                </p>
               </div>
 
               <button
                 type="submit"
-                className="px-6 py-2.5 text-sm font-semibold text-white bg-[#702C3A] rounded-lg hover:bg-[#58202C]"
+                className="px-6 py-2.5 text-sm font-semibold text-white bg-[#C84A1B] rounded-lg hover:bg-[#A83B19]"
               >
                 Save Platform Fee Settings (Demo)
               </button>
@@ -1199,13 +1214,13 @@ export function AdminDashboard() {
         {activeSection === 'reservations' && (
           <div className="space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h1 className="font-display text-3xl font-semibold text-[#292321]">
+              <h1 className="font-display text-3xl font-semibold text-[#321D17]">
                 All Platform Table Reservations (Demo)
               </h1>
               <select
                 value={resStatusFilter}
                 onChange={(e) => setResStatusFilter(e.target.value)}
-                className="px-3 py-2 text-sm bg-white border border-[#E8DDD1] rounded-lg"
+                className="px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg"
               >
                 <option value="All">All Statuses</option>
                 <option value="Pending">Pending</option>
@@ -1217,10 +1232,10 @@ export function AdminDashboard() {
               </select>
             </div>
 
-            <div className="bg-white border border-[#E8DDD1] rounded-lg overflow-x-auto">
+            <div className="bg-white border border-[#EAD8C9] rounded-lg overflow-x-auto">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
-                  <tr className="border-b border-[#E8DDD1] bg-[#FFF6E9] text-xs text-[#6B5F5C]">
+                  <tr className="border-b border-[#EAD8C9] bg-[#FFF5EA] text-xs text-[#6E4B41]">
                     <th className="py-3 px-4 font-semibold">Ref ID</th>
                     <th className="py-3 px-4 font-semibold">Customer</th>
                     <th className="py-3 px-4 font-semibold">Restaurant</th>
@@ -1230,29 +1245,25 @@ export function AdminDashboard() {
                     <th className="py-3 px-4 font-semibold">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E8DDD1]">
+                <tbody className="divide-y divide-[#EAD8C9]">
                   {reservations
                     .filter((r) => resStatusFilter === 'All' || r.status === resStatusFilter)
                     .map((r) => (
-                      <tr key={r.id} className="hover:bg-[#FFF6E9]/40">
-                        <td className="py-3 px-4 font-mono text-xs font-semibold text-[#702C3A]">
+                      <tr key={r.id} className="hover:bg-[#FFF5EA]/40">
+                        <td className="py-3 px-4 font-mono text-xs font-semibold text-[#C84A1B]">
                           {r.id}
                         </td>
                         <td className="py-3 px-4 font-medium">{r.customerName}</td>
-                        <td className="py-3 px-4 text-xs text-[#6B5F5C]">{r.restaurantName}</td>
+                        <td className="py-3 px-4 text-xs text-[#6E4B41]">{r.restaurantName}</td>
                         <td className="py-3 px-4 text-xs tabular-nums">
                           {formatDisplayDate(r.date)} · {r.time}
                         </td>
                         <td className="py-3 px-4 text-right tabular-nums">{r.guests}</td>
                         <td className="py-3 px-4 text-xs">
-                          <span className="font-medium text-[#292321]">{r.orderMode}</span>
-                          {r.platformFeeTotal ? (
-                            <div className="text-[#702C3A] font-mono">
-                              {formatINR(r.platformFeeTotal)} ({r.offerTier} Offer)
-                            </div>
-                          ) : (
-                            <div className="text-[#6B5F5C]">₹0 Platform Fee</div>
-                          )}
+                          <span className="font-medium text-[#321D17]">{r.orderMode}</span>
+                          <div className="text-[#C84A1B] font-mono tabular-nums">
+                            {formatINR(r.platformFeeTotal || 0)} ({r.bookingTier || r.offerTier || 'Basic'} Tier)
+                          </div>
                         </td>
                         <td className="py-3 px-4">
                           <StatusBadge status={r.status} />
@@ -1268,13 +1279,13 @@ export function AdminDashboard() {
         {/* PRE-ORDERS */}
         {activeSection === 'preorders' && (
           <div className="space-y-5">
-            <h1 className="font-display text-3xl font-semibold text-[#292321]">
+            <h1 className="font-display text-3xl font-semibold text-[#321D17]">
               Platform Food Pre-Orders (Demo)
             </h1>
-            <div className="bg-white border border-[#E8DDD1] rounded-lg overflow-x-auto">
+            <div className="bg-white border border-[#EAD8C9] rounded-lg overflow-x-auto">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
-                  <tr className="border-b border-[#E8DDD1] bg-[#FFF6E9] text-xs text-[#6B5F5C]">
+                  <tr className="border-b border-[#EAD8C9] bg-[#FFF5EA] text-xs text-[#6E4B41]">
                     <th className="py-3 px-4 font-semibold">Ref ID</th>
                     <th className="py-3 px-4 font-semibold">Customer &amp; Restaurant</th>
                     <th className="py-3 px-4 font-semibold">Plate Package</th>
@@ -1283,26 +1294,26 @@ export function AdminDashboard() {
                     <th className="py-3 px-4 font-semibold">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E8DDD1]">
+                <tbody className="divide-y divide-[#EAD8C9]">
                   {preOrders.map((po) => (
-                    <tr key={po.id} className="hover:bg-[#FFF6E9]/40">
-                      <td className="py-3 px-4 font-mono text-xs font-semibold text-[#702C3A]">
+                    <tr key={po.id} className="hover:bg-[#FFF5EA]/40">
+                      <td className="py-3 px-4 font-mono text-xs font-semibold text-[#C84A1B]">
                         {po.id}
                       </td>
                       <td className="py-3 px-4 text-xs">
-                        <div className="font-semibold text-[#292321]">{po.customerName}</div>
-                        <div className="text-[#6B5F5C]">
+                        <div className="font-semibold text-[#321D17]">{po.customerName}</div>
+                        <div className="text-[#6E4B41]">
                           {po.restaurantName} · {formatDisplayDate(po.date)} {po.time}
                         </div>
                       </td>
                       <td className="py-3 px-4 text-xs">
-                        <div className="font-medium text-[#292321]">{po.packageName}</div>
-                        <div className="text-[#6B5F5C]">{po.foodPreference}</div>
+                        <div className="font-medium text-[#321D17]">{po.packageName}</div>
+                        <div className="text-[#6E4B41]">{po.foodPreference}</div>
                       </td>
                       <td className="py-3 px-4 text-right tabular-nums">{po.plateCount}</td>
                       <td className="py-3 px-4 text-right text-xs tabular-nums">
                         <div className="font-semibold">{formatINR(po.totalFoodAmount)}</div>
-                        <div className="text-[#702C3A]">
+                        <div className="text-[#C84A1B]">
                           Adv ({po.advancePercent}%): {formatINR(po.advanceAmount)}{' '}
                           {po.advancePaid ? '(Paid)' : '(Pending)'}
                         </div>
@@ -1321,40 +1332,92 @@ export function AdminDashboard() {
         {/* EVENT QUOTATIONS */}
         {activeSection === 'quotations' && (
           <div className="space-y-5">
-            <h1 className="font-display text-3xl font-semibold text-[#292321]">
+            <h1 className="font-display text-3xl font-semibold text-[#321D17]">
               Celebration Inquiries &amp; Quotations (Demo)
             </h1>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {celebrationBookings.map((cb) => (
                 <div
                   key={cb.id}
-                  className="bg-white border border-[#E8DDD1] rounded-lg p-5 space-y-3"
+                  className="bg-white border border-[#EAD8C9] rounded-lg p-5 space-y-3"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono font-semibold text-[#702C3A]">{cb.id}</span>
+                    <span className="text-xs font-mono font-semibold text-[#C84A1B]">{cb.id}</span>
                     <StatusBadge status={cb.status} />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-[#292321]">
+                    <h3 className="text-lg font-semibold text-[#321D17]">
                       {cb.celebrationType} — {cb.packageName}
                     </h3>
-                    <p className="text-xs text-[#6B5F5C]">
+                    <p className="text-xs text-[#6E4B41]">
                       {cb.customerName} · {cb.restaurantName} · {formatDisplayDate(cb.eventDate)} {cb.eventTime}
                     </p>
                   </div>
-                  <div className="bg-[#FFF6E9] border border-[#E8DDD1] rounded p-3 text-xs space-y-1">
+                  <div className="bg-[#FFF5EA] border border-[#EAD8C9] rounded p-3 text-xs space-y-1">
                     <div className="flex justify-between">
                       <span>Plates ({cb.platesCount} × {formatINR(cb.pricePerPlate)})</span>
                       <span className="font-semibold tabular-nums">{formatINR(cb.totalPackageAmount)}</span>
                     </div>
-                    <div className="flex justify-between text-[#292321]">
+                    <div className="flex justify-between text-[#321D17]">
                       <span>Decoration Included – No Additional Charges</span>
                       <span className="font-mono font-semibold">₹0</span>
                     </div>
-                    <div className="flex justify-between pt-1 border-t border-[#E8DDD1] font-semibold">
+                    <div className="flex justify-between pt-1 border-t border-[#EAD8C9] font-semibold">
                       <span>Quoted Total / {cb.advancePercent}% Advance</span>
                       <span className="tabular-nums">
                         {formatINR(cb.quotedTotalAmount)} / {formatINR(cb.advanceAmount)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* CUSTOM CELEBRATION REQUESTS AUDIT */}
+        {activeSection === 'custom-requests' && (
+          <div className="space-y-5">
+            <div>
+              <h1 className="font-display text-3xl font-semibold text-[#321D17]">
+                Custom Celebration Requests Audit (Demo)
+              </h1>
+              <p className="text-sm text-[#6E4B41]">
+                Monitor 11-field customer celebration briefs, restaurant quotations, quotation acceptance gating, and complimentary ₹0 decor compliance.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {customRequests.map((req) => (
+                <div key={req.id} className="bg-white border border-[#EAD8C9] rounded-lg p-5 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-mono font-semibold text-[#C84A1B]">{req.id}</span>
+                    <StatusBadge status={req.status} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-[#321D17]">
+                      {req.occasionType} — {req.restaurantName}
+                    </h3>
+                    <p className="text-xs text-[#6E4B41]">
+                      {req.customerName} · {req.guestsCount} guests · {formatDisplayDate(req.preferredDate)} at {req.preferredTime}
+                    </p>
+                  </div>
+                  <div className="bg-[#FFF5EA] border border-[#EAD8C9] rounded p-3 text-xs space-y-1">
+                    <div className="flex justify-between">
+                      <span>Estimated Budget</span>
+                      <span className="font-semibold tabular-nums">{formatINR(req.estimatedBudget)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Theme &amp; Colours</span>
+                      <span className="font-medium text-right">{req.decorationTheme} ({req.preferredColors})</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Decoration Charge</span>
+                      <span className="font-mono font-semibold">₹0 (FREE)</span>
+                    </div>
+                    <div className="flex justify-between pt-1 border-t border-[#EAD8C9] font-semibold">
+                      <span>Quoted Amount</span>
+                      <span className="tabular-nums">
+                        {req.quotedAmount ? formatINR(req.quotedAmount) : 'Pending Restaurant Quote'}
                       </span>
                     </div>
                   </div>
@@ -1369,50 +1432,51 @@ export function AdminDashboard() {
           <div className="space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h1 className="font-display text-3xl font-semibold text-[#292321]">
+                <h1 className="font-display text-3xl font-semibold text-[#321D17]">
                   Simulated Payment Records (DEMO ONLY)
                 </h1>
-                <p className="text-sm text-[#6B5F5C]">
-                  Separated transaction logs for Offer Platform Booking Fees, Pre-Order Advances, and Celebration Advances. No real payments processed.
+                <p className="text-sm text-[#6E4B41]">
+                  Separated transaction logs for Table Platform Booking Fees, Pre-Order Advances, and Celebration Advances. No real payments processed.
                 </p>
               </div>
               <select
                 value={paymentTypeFilter}
                 onChange={(e) => setPaymentTypeFilter(e.target.value)}
-                className="px-3 py-2 text-sm bg-white border border-[#E8DDD1] rounded-lg"
+                className="px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg"
               >
                 <option value="All">All Payment Types</option>
                 <option value="Platform Booking Fee">Platform Booking Fee</option>
                 <option value="Food Pre-Order Advance">Food Pre-Order Advance</option>
                 <option value="Celebration Advance">Celebration Advance</option>
+                <option value="Custom Celebration Advance">Custom Celebration Advance</option>
               </select>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-white border border-[#E8DDD1] rounded-lg p-4">
-                <p className="text-xs text-[#6B5F5C]">Platform Booking Fees (DEMO)</p>
-                <p className="text-xl font-semibold font-mono tabular-nums text-[#292321] mt-1">
+              <div className="bg-white border border-[#EAD8C9] rounded-lg p-4">
+                <p className="text-xs text-[#6E4B41]">Platform Booking Fees (DEMO)</p>
+                <p className="text-xl font-semibold font-mono tabular-nums text-[#321D17] mt-1">
                   {formatINR(totalPlatformFeesCollected)}
                 </p>
               </div>
-              <div className="bg-white border border-[#E8DDD1] rounded-lg p-4">
-                <p className="text-xs text-[#6B5F5C]">Food Pre-Order Advances (DEMO)</p>
-                <p className="text-xl font-semibold font-mono tabular-nums text-[#292321] mt-1">
+              <div className="bg-white border border-[#EAD8C9] rounded-lg p-4">
+                <p className="text-xs text-[#6E4B41]">Food Pre-Order Advances (DEMO)</p>
+                <p className="text-xl font-semibold font-mono tabular-nums text-[#321D17] mt-1">
                   {formatINR(totalPreOrderAdvances)}
                 </p>
               </div>
-              <div className="bg-white border border-[#E8DDD1] rounded-lg p-4">
-                <p className="text-xs text-[#6B5F5C]">Celebration Advances (DEMO)</p>
-                <p className="text-xl font-semibold font-mono tabular-nums text-[#292321] mt-1">
+              <div className="bg-white border border-[#EAD8C9] rounded-lg p-4">
+                <p className="text-xs text-[#6E4B41]">Celebration Advances (DEMO)</p>
+                <p className="text-xl font-semibold font-mono tabular-nums text-[#321D17] mt-1">
                   {formatINR(totalCelebrationAdvances)}
                 </p>
               </div>
             </div>
 
-            <div className="bg-white border border-[#E8DDD1] rounded-lg overflow-x-auto">
+            <div className="bg-white border border-[#EAD8C9] rounded-lg overflow-x-auto">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
-                  <tr className="border-b border-[#E8DDD1] bg-[#FFF6E9] text-xs text-[#6B5F5C]">
+                  <tr className="border-b border-[#EAD8C9] bg-[#FFF5EA] text-xs text-[#6E4B41]">
                     <th className="py-3 px-4 font-semibold">Transaction ID</th>
                     <th className="py-3 px-4 font-semibold">Booking Ref</th>
                     <th className="py-3 px-4 font-semibold">Payment Type</th>
@@ -1422,22 +1486,22 @@ export function AdminDashboard() {
                     <th className="py-3 px-4 font-semibold">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E8DDD1]">
+                <tbody className="divide-y divide-[#EAD8C9]">
                   {filteredPayments.map((pay) => (
-                    <tr key={pay.id} className="hover:bg-[#FFF6E9]/40">
-                      <td className="py-3 px-4 font-mono text-xs font-semibold text-[#702C3A]">
+                    <tr key={pay.id} className="hover:bg-[#FFF5EA]/40">
+                      <td className="py-3 px-4 font-mono text-xs font-semibold text-[#C84A1B]">
                         {pay.transactionId}
                       </td>
                       <td className="py-3 px-4 font-mono text-xs">{pay.referenceId}</td>
                       <td className="py-3 px-4 text-xs font-medium">{pay.paymentType}</td>
                       <td className="py-3 px-4 text-xs">
-                        <div className="font-semibold text-[#292321]">{pay.customerName}</div>
-                        <div className="text-[#6B5F5C]">{pay.restaurantName}</div>
+                        <div className="font-semibold text-[#321D17]">{pay.customerName}</div>
+                        <div className="text-[#6E4B41]">{pay.restaurantName}</div>
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-semibold tabular-nums">
                         {formatINR(pay.amount)}
                       </td>
-                      <td className="py-3 px-4 text-xs text-[#6B5F5C]">{pay.paymentMethod}</td>
+                      <td className="py-3 px-4 text-xs text-[#6E4B41]">{pay.paymentMethod}</td>
                       <td className="py-3 px-4">
                         <StatusBadge status={pay.status} />
                       </td>
@@ -1452,31 +1516,31 @@ export function AdminDashboard() {
         {/* REVIEWS MODERATION */}
         {activeSection === 'reviews' && (
           <div className="space-y-5">
-            <h1 className="font-display text-3xl font-semibold text-[#292321]">
+            <h1 className="font-display text-3xl font-semibold text-[#321D17]">
               Customer Reviews Moderation
             </h1>
             <div className="space-y-3">
               {reviews.map((rv) => (
                 <div
                   key={rv.id}
-                  className="bg-white border border-[#E8DDD1] rounded-lg p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  className="bg-white border border-[#EAD8C9] rounded-lg p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                 >
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-xs text-[#6B5F5C]">
-                      <span className="font-semibold text-[#702C3A]">{rv.restaurantName}</span>
+                    <div className="flex items-center gap-2 text-xs text-[#6E4B41]">
+                      <span className="font-semibold text-[#C84A1B]">{rv.restaurantName}</span>
                       <span>· Rating {rv.rating}/5</span>
                       <span>· {formatDisplayDate(rv.date)}</span>
                     </div>
-                    <p className="text-sm font-semibold text-[#292321]">{rv.customerName}</p>
-                    <p className="text-xs text-[#6B5F5C]">{rv.comment}</p>
+                    <p className="text-sm font-semibold text-[#321D17]">{rv.customerName}</p>
+                    <p className="text-xs text-[#6E4B41]">{rv.comment}</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => toggleReviewVisibility(rv.id)}
                     className={`px-3 py-1.5 text-xs font-semibold rounded border shrink-0 ${
                       rv.visible
-                        ? 'bg-[#E7EFD9] border-[#C8D8AC] text-[#292321]'
-                        : 'bg-[#FDECEF] border-[#F4A6B8] text-[#702C3A]'
+                        ? 'bg-[#E7EFD9] border-[#C8D8AC] text-[#321D17]'
+                        : 'bg-[#FDECE6] border-[#F6B27B] text-[#C84A1B]'
                     }`}
                   >
                     {rv.visible ? 'Visible on Profile' : 'Hidden by Admin'}
@@ -1490,24 +1554,24 @@ export function AdminDashboard() {
         {/* SUPPORT TICKETS */}
         {activeSection === 'support' && (
           <div className="space-y-5">
-            <h1 className="font-display text-3xl font-semibold text-[#292321]">
+            <h1 className="font-display text-3xl font-semibold text-[#321D17]">
               Support Tickets Queue (Demo)
             </h1>
             <div className="space-y-3">
               {tickets.map((t) => (
                 <div
                   key={t.id}
-                  className="bg-white border border-[#E8DDD1] rounded-lg p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  className="bg-white border border-[#EAD8C9] rounded-lg p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 text-xs">
-                      <span className="font-mono font-semibold text-[#702C3A]">{t.id}</span>
-                      <span className="text-[#6B5F5C]">
+                      <span className="font-mono font-semibold text-[#C84A1B]">{t.id}</span>
+                      <span className="text-[#6E4B41]">
                         · {t.userName} ({t.userRole})
                       </span>
                     </div>
-                    <h3 className="text-base font-semibold text-[#292321]">{t.subject}</h3>
-                    <p className="text-xs text-[#6B5F5C]">{t.message}</p>
+                    <h3 className="text-base font-semibold text-[#321D17]">{t.subject}</h3>
+                    <p className="text-xs text-[#6E4B41]">{t.message}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <StatusBadge status={t.status} />
@@ -1515,7 +1579,7 @@ export function AdminDashboard() {
                       <button
                         type="button"
                         onClick={() => updateTicketStatus(t.id, 'Resolved')}
-                        className="px-3 py-1.5 text-xs font-semibold text-white bg-[#702C3A] rounded-lg"
+                        className="px-3 py-1.5 text-xs font-semibold text-white bg-[#C84A1B] rounded-lg"
                       >
                         Mark Resolved
                       </button>
@@ -1531,10 +1595,10 @@ export function AdminDashboard() {
         {activeSection === 'analytics' && (
           <div className="space-y-6">
             <div>
-              <h1 className="font-display text-3xl font-semibold text-[#292321]">
+              <h1 className="font-display text-3xl font-semibold text-[#321D17]">
                 Platform Analytics (DEMO DATA)
               </h1>
-              <p className="text-sm text-[#6B5F5C]">
+              <p className="text-sm text-[#6E4B41]">
                 All metrics and revenue numbers shown below are simulated sample data for Phase 1 evaluation.
               </p>
             </div>
@@ -1552,7 +1616,7 @@ export function AdminDashboard() {
                   value: Math.round(d.revenue / 1000),
                 }))}
                 formatValue={(v) => `₹${v}k`}
-                barColor="#292321"
+                barColor="#3A180F"
               />
             </div>
           </div>
@@ -1560,26 +1624,26 @@ export function AdminDashboard() {
 
         {/* SETTINGS */}
         {activeSection === 'settings' && (
-          <div className="max-w-xl bg-white border border-[#E8DDD1] rounded-lg p-6 space-y-4">
-            <h1 className="font-display text-3xl font-semibold text-[#292321]">
+          <div className="max-w-xl bg-white border border-[#EAD8C9] rounded-lg p-6 space-y-4">
+            <h1 className="font-display text-3xl font-semibold text-[#321D17]">
               Platform Configuration (Demo)
             </h1>
             <div className="space-y-3 text-sm">
-              <div className="flex justify-between py-2 border-b border-[#E8DDD1]">
-                <span className="text-[#6B5F5C]">Active Launch City</span>
+              <div className="flex justify-between py-2 border-b border-[#EAD8C9]">
+                <span className="text-[#6E4B41]">Active Launch City</span>
                 <span className="font-semibold">Varanasi, Uttar Pradesh</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-[#E8DDD1]">
-                <span className="text-[#6B5F5C]">Backend Mode</span>
-                <span className="font-mono text-xs text-[#702C3A]">Phase 1 Frontend Simulation</span>
+              <div className="flex justify-between py-2 border-b border-[#EAD8C9]">
+                <span className="text-[#6E4B41]">Backend Mode</span>
+                <span className="font-mono text-xs text-[#C84A1B]">Phase 1 Frontend Simulation</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-[#E8DDD1]">
-                <span className="text-[#6B5F5C]">Celebration Decoration Charge Rule</span>
-                <span className="font-mono text-xs text-[#292321]">Always ₹0 (Free)</span>
+              <div className="flex justify-between py-2 border-b border-[#EAD8C9]">
+                <span className="text-[#6E4B41]">Celebration Decoration Charge Rule</span>
+                <span className="font-mono text-xs text-[#321D17]">Always ₹0 (Free)</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-[#E8DDD1]">
-                <span className="text-[#6B5F5C]">Offer Booking Fee (Basic / Premium)</span>
-                <span className="font-mono text-xs text-[#702C3A]">
+              <div className="flex justify-between py-2 border-b border-[#EAD8C9]">
+                <span className="text-[#6E4B41]">Table Booking Fee (Basic / Premium)</span>
+                <span className="font-mono text-xs text-[#C84A1B]">
                   ₹{platformSettings.basicOfferFeePerGuest} / ₹{platformSettings.premiumOfferFeePerGuest} per guest
                 </span>
               </div>
@@ -1592,7 +1656,7 @@ export function AdminDashboard() {
                     description: 'Phase 2 backend persistence will connect here later.',
                   })
                 }
-                className="px-5 py-2 text-xs font-semibold text-white bg-[#702C3A] rounded-lg"
+                className="px-5 py-2 text-xs font-semibold text-white bg-[#C84A1B] rounded-lg"
               >
                 Save Demo Settings
               </button>
@@ -1604,19 +1668,19 @@ export function AdminDashboard() {
       {/* Restaurant Approval Detail Modal */}
       {inspectRest && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#3A180F]/60 p-4"
           role="dialog"
           aria-modal="true"
         >
-          <div className="bg-white border border-[#E8DDD1] rounded-lg max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white border border-[#EAD8C9] rounded-lg max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
-              <h3 className="text-xl font-semibold text-[#292321]">{inspectRest.name}</h3>
+              <h3 className="text-xl font-semibold text-[#321D17]">{inspectRest.name}</h3>
               <button type="button" onClick={() => setInspectRest(null)} aria-label="Close">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="aspect-[16/7] rounded-lg overflow-hidden border border-[#E8DDD1]">
+            <div className="aspect-[16/7] rounded-lg overflow-hidden border border-[#EAD8C9]">
               <SafeImage
                 src={inspectRest.image}
                 alt={inspectRest.name}
@@ -1627,38 +1691,38 @@ export function AdminDashboard() {
 
             <div className="space-y-2 text-sm">
               <p>
-                <span className="text-[#6B5F5C]">Owner:</span> {inspectRest.ownerName} (
+                <span className="text-[#6E4B41]">Owner:</span> {inspectRest.ownerName} (
                 {inspectRest.ownerEmail})
               </p>
               <p>
-                <span className="text-[#6B5F5C]">Address:</span> {inspectRest.address},{' '}
+                <span className="text-[#6E4B41]">Address:</span> {inspectRest.address},{' '}
                 {inspectRest.city} - {inspectRest.pinCode}
               </p>
               <p>
-                <span className="text-[#6B5F5C]">Contact:</span> {inspectRest.contactNumber}
+                <span className="text-[#6E4B41]">Contact:</span> {inspectRest.contactNumber}
               </p>
               <p>
-                <span className="text-[#6B5F5C]">Cuisine:</span> {inspectRest.cuisines.join(', ')}
+                <span className="text-[#6E4B41]">Cuisine:</span> {inspectRest.cuisines.join(', ')}
               </p>
               <p>
-                <span className="text-[#6B5F5C]">Amenities:</span>{' '}
+                <span className="text-[#6E4B41]">Amenities:</span>{' '}
                 {inspectRest.amenities.join(', ') || 'None selected'}
               </p>
               <p>
-                <span className="text-[#6B5F5C]">Menu Pages Uploaded:</span>{' '}
+                <span className="text-[#6E4B41]">Menu Pages Uploaded:</span>{' '}
                 {inspectRest.menuPhotos.length} photo page(s)
               </p>
-              <p className="text-xs text-[#6B5F5C] pt-1">{inspectRest.description}</p>
+              <p className="text-xs text-[#6E4B41] pt-1">{inspectRest.description}</p>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-[#E8DDD1]">
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#EAD8C9]">
               <button
                 type="button"
                 onClick={() => {
                   updateRestaurantApproval(inspectRest.id, 'Approved');
                   setInspectRest(null);
                 }}
-                className="px-4 py-2 text-xs font-semibold bg-[#E7EFD9] text-[#292321] rounded-lg"
+                className="px-4 py-2 text-xs font-semibold bg-[#E7EFD9] text-[#321D17] rounded-lg"
               >
                 Approve Venue
               </button>
@@ -1668,7 +1732,7 @@ export function AdminDashboard() {
                   updateRestaurantApproval(inspectRest.id, 'Rejected');
                   setInspectRest(null);
                 }}
-                className="px-4 py-2 text-xs font-semibold bg-[#FDECEF] text-[#702C3A] rounded-lg"
+                className="px-4 py-2 text-xs font-semibold bg-[#FDECE6] text-[#C84A1B] rounded-lg"
               >
                 Reject Venue
               </button>

@@ -90,38 +90,37 @@ export function RestaurantSignupPage() {
   };
 
   return (
-    <div className="bg-[#FFF6E9]/45 py-12 sm:py-16">
+    <div className="bg-[#FFF5EA] py-12 sm:py-16">
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
-        <div className="bg-white border border-[#E8DDD1] rounded-lg p-6 sm:p-8 space-y-6">
+        <div className="bg-white border border-[#EAD8C9] rounded-lg p-6 sm:p-8 space-y-6">
           <div>
-            <p className="text-xs font-semibold text-[#702C3A] tracking-wide mb-1">
+            <p className="text-xs font-semibold text-[#C84A1B] tracking-wide mb-1">
               Restaurant Partner Onboarding · DEMO MODE
             </p>
-            <h1 className="font-display text-3xl sm:text-4xl font-semibold text-[#292321]">
+            <h1 className="font-display text-3xl sm:text-4xl font-semibold text-[#321D17]">
               Register Your Restaurant
             </h1>
-            <p className="text-sm text-[#6B5F5C] mt-1">
-              Join DineRestro in Varanasi to accept table bookings, showcase menus, and host special events.
+            <p className="text-sm text-[#6E4B41] mt-1">
+              Join DineRestro in Varanasi to accept table bookings, upload photo menus, and host celebrations.
             </p>
           </div>
 
           <DemoBanner message="Phase 1 demo onboarding only. Submitting creates a simulated restaurant record in Pending Approval status inside local state." />
 
           {error && (
-            <div className="px-4 py-2.5 rounded-lg bg-[#FDECEF] border border-[#F4A6B8] text-xs font-medium text-[#702C3A]">
+            <div className="px-4 py-2.5 rounded-lg bg-[#FDECE6] border border-[#F6B27B] text-xs font-medium text-[#A83B19]">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Owner Information */}
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-[#292321] pb-2 border-b border-[#E8DDD1]">
+              <h2 className="text-lg font-semibold text-[#321D17] pb-2 border-b border-[#EAD8C9]">
                 01. Owner Information
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#292321] mb-1">
+                  <label className="block text-xs font-semibold text-[#321D17] mb-1">
                     Owner Full Name *
                   </label>
                   <input
@@ -129,12 +128,12 @@ export function RestaurantSignupPage() {
                     value={ownerName}
                     onChange={(e) => setOwnerName(e.target.value)}
                     placeholder="Raghavendra Mishra"
-                    className="w-full px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+                    className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#292321] mb-1">
+                  <label className="block text-xs font-semibold text-[#321D17] mb-1">
                     Owner Email *
                   </label>
                   <input
@@ -142,12 +141,12 @@ export function RestaurantSignupPage() {
                     value={ownerEmail}
                     onChange={(e) => setOwnerEmail(e.target.value)}
                     placeholder="owner@restaurant.in"
-                    className="w-full px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+                    className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#292321] mb-1">
+                  <label className="block text-xs font-semibold text-[#321D17] mb-1">
                     Mobile Number *
                   </label>
                   <input
@@ -155,7 +154,7 @@ export function RestaurantSignupPage() {
                     value={mobile}
                     onChange={(e) => setMobile(e.target.value)}
                     placeholder="+91 98390 41201"
-                    className="w-full px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+                    className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
                     required
                   />
                 </div>
@@ -163,7 +162,7 @@ export function RestaurantSignupPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#292321] mb-1">
+                  <label className="block text-xs font-semibold text-[#321D17] mb-1">
                     Password *
                   </label>
                   <div className="relative">
@@ -172,21 +171,21 @@ export function RestaurantSignupPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Minimum 6 characters"
-                      className="w-full pl-3 pr-10 py-2 text-sm border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+                      className="w-full pl-3 pr-10 py-2 text-sm border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
                       required
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword((p) => !p)}
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      className="absolute right-3 top-2.5 text-[#6B5F5C]"
+                      className="absolute right-3 top-2.5 text-[#6E4B41]"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#292321] mb-1">
+                  <label className="block text-xs font-semibold text-[#321D17] mb-1">
                     Confirm Password *
                   </label>
                   <input
@@ -194,22 +193,21 @@ export function RestaurantSignupPage() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter password"
-                    className="w-full px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+                    className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
                     required
                   />
                 </div>
               </div>
             </div>
 
-            {/* Restaurant Information */}
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-[#292321] pb-2 border-b border-[#E8DDD1]">
+              <h2 className="text-lg font-semibold text-[#321D17] pb-2 border-b border-[#EAD8C9]">
                 02. Restaurant Information
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#292321] mb-1">
+                  <label className="block text-xs font-semibold text-[#321D17] mb-1">
                     Restaurant Name *
                   </label>
                   <input
@@ -217,18 +215,18 @@ export function RestaurantSignupPage() {
                     value={restaurantName}
                     onChange={(e) => setRestaurantName(e.target.value)}
                     placeholder="e.g., Ganga View Heritage Kitchen"
-                    className="w-full px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+                    className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#292321] mb-1">
+                  <label className="block text-xs font-semibold text-[#321D17] mb-1">
                     Primary Cuisine Type *
                   </label>
                   <select
                     value={cuisine}
                     onChange={(e) => setCuisine(e.target.value as CuisineType)}
-                    className="w-full px-3 py-2 text-sm bg-white border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+                    className="w-full px-3 py-2 text-sm bg-white border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
                   >
                     {POPULAR_CUISINES.map((c) => (
                       <option key={c.name} value={c.name}>
@@ -240,7 +238,7 @@ export function RestaurantSignupPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#292321] mb-1">
+                <label className="block text-xs font-semibold text-[#321D17] mb-1">
                   Restaurant Address *
                 </label>
                 <input
@@ -248,38 +246,38 @@ export function RestaurantSignupPage() {
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="Street, Landmark, Ghat or Locality"
-                  className="w-full px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+                  className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#292321] mb-1">
+                  <label className="block text-xs font-semibold text-[#321D17] mb-1">
                     City *
                   </label>
                   <input
                     type="text"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+                    className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#292321] mb-1">
+                  <label className="block text-xs font-semibold text-[#321D17] mb-1">
                     State *
                   </label>
                   <input
                     type="text"
                     value={stateName}
                     onChange={(e) => setStateName(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+                    className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#292321] mb-1">
+                  <label className="block text-xs font-semibold text-[#321D17] mb-1">
                     PIN Code *
                   </label>
                   <input
@@ -287,7 +285,7 @@ export function RestaurantSignupPage() {
                     maxLength={6}
                     value={pinCode}
                     onChange={(e) => setPinCode(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A] tabular-nums"
+                    className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B] tabular-nums"
                     required
                   />
                 </div>
@@ -295,7 +293,7 @@ export function RestaurantSignupPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#292321] mb-1">
+                  <label className="block text-xs font-semibold text-[#321D17] mb-1">
                     Restaurant Contact Number *
                   </label>
                   <input
@@ -303,12 +301,12 @@ export function RestaurantSignupPage() {
                     value={contactNumber}
                     onChange={(e) => setContactNumber(e.target.value)}
                     placeholder="+91 98390 00000"
-                    className="w-full px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+                    className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#292321] mb-1">
+                  <label className="block text-xs font-semibold text-[#321D17] mb-1">
                     Restaurant Official Email *
                   </label>
                   <input
@@ -316,14 +314,14 @@ export function RestaurantSignupPage() {
                     value={restaurantEmail}
                     onChange={(e) => setRestaurantEmail(e.target.value)}
                     placeholder="reservations@venue.in"
-                    className="w-full px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+                    className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#292321] mb-1">
+                <label className="block text-xs font-semibold text-[#321D17] mb-1">
                   Restaurant Description *
                 </label>
                 <textarea
@@ -331,7 +329,7 @@ export function RestaurantSignupPage() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe your ambiance, seating zones, signature dishes, and celebration capabilities..."
-                  className="w-full px-3 py-2 text-sm border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+                  className="w-full px-3 py-2 text-sm border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
                   required
                 />
               </div>
@@ -340,7 +338,7 @@ export function RestaurantSignupPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-6 text-sm font-semibold text-white bg-[#702C3A] rounded-lg hover:bg-[#58202C] transition-colors flex items-center justify-center gap-2"
+              className="w-full py-3 px-6 text-sm font-semibold text-white bg-[#C84A1B] rounded-lg hover:bg-[#A83B19] transition-colors flex items-center justify-center gap-2"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               <span>
@@ -351,9 +349,9 @@ export function RestaurantSignupPage() {
             </button>
           </form>
 
-          <p className="text-xs text-center text-[#6B5F5C]">
+          <p className="text-xs text-center text-[#6E4B41]">
             Already registered a partner venue?{' '}
-            <Link to="/restaurant/login" className="font-semibold text-[#702C3A] hover:underline">
+            <Link to="/restaurant/login" className="font-semibold text-[#C84A1B] hover:underline">
               Restaurant Partner Login
             </Link>
           </p>
@@ -394,45 +392,45 @@ export function RestaurantLoginPage() {
   };
 
   return (
-    <div className="bg-[#FFF6E9]/45 py-12 sm:py-16">
+    <div className="bg-[#FFF5EA] py-12 sm:py-16">
       <div className="max-w-md mx-auto px-4 sm:px-6">
-        <div className="bg-white border border-[#E8DDD1] rounded-lg p-6 sm:p-8 space-y-6">
+        <div className="bg-white border border-[#EAD8C9] rounded-lg p-6 sm:p-8 space-y-6">
           <div>
-            <p className="text-xs font-semibold text-[#702C3A] tracking-wide mb-1">
+            <p className="text-xs font-semibold text-[#C84A1B] tracking-wide mb-1">
               Restaurant Partner Portal · DEMO MODE
             </p>
-            <h1 className="font-display text-3xl font-semibold text-[#292321]">
+            <h1 className="font-display text-3xl font-semibold text-[#321D17]">
               Restaurant Owner Login
             </h1>
-            <p className="text-sm text-[#6B5F5C] mt-1">
-              Manage sample table bookings, menu dishes, and floor tables for Kashi Ganga Terrace.
+            <p className="text-sm text-[#6E4B41] mt-1">
+              Manage sample table bookings, menu photos, celebration packages, and floor tables.
             </p>
           </div>
 
           <DemoBanner message="Demo partner credentials are pre-filled. Authentication is simulated on the frontend only." />
 
           {error && (
-            <div className="px-4 py-2.5 rounded-lg bg-[#FDECEF] border border-[#F4A6B8] text-xs font-medium text-[#702C3A]">
+            <div className="px-4 py-2.5 rounded-lg bg-[#FDECE6] border border-[#F6B27B] text-xs font-medium text-[#A83B19]">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-[#292321] mb-1">
+              <label className="block text-xs font-semibold text-[#321D17] mb-1">
                 Partner Email
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3.5 py-2.5 text-sm border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+                className="w-full px-3.5 py-2.5 text-sm border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#292321] mb-1">
+              <label className="block text-xs font-semibold text-[#321D17] mb-1">
                 Password
               </label>
               <div className="relative">
@@ -440,14 +438,14 @@ export function RestaurantLoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-3.5 pr-10 py-2.5 text-sm border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+                  className="w-full pl-3.5 pr-10 py-2.5 text-sm border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((p) => !p)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="absolute right-3 top-2.5 text-[#6B5F5C]"
+                  className="absolute right-3 top-2.5 text-[#6E4B41]"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -455,18 +453,18 @@ export function RestaurantLoginPage() {
             </div>
 
             <div className="flex items-center justify-between text-xs">
-              <label className="flex items-center gap-2 text-[#6B5F5C] cursor-pointer">
+              <label className="flex items-center gap-2 text-[#6E4B41] cursor-pointer">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="accent-[#702C3A]"
+                  className="accent-[#C84A1B]"
                 />
                 <span>Remember Me</span>
               </label>
               <Link
                 to="/restaurant/forgot-password"
-                className="font-semibold text-[#702C3A] hover:underline"
+                className="font-semibold text-[#C84A1B] hover:underline"
               >
                 Forgot Password?
               </Link>
@@ -475,16 +473,16 @@ export function RestaurantLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 text-sm font-semibold text-white bg-[#702C3A] rounded-lg hover:bg-[#58202C] transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 px-4 text-sm font-semibold text-white bg-[#C84A1B] rounded-lg hover:bg-[#A83B19] transition-colors flex items-center justify-center gap-2"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               <span>{loading ? 'Opening Partner Portal...' : 'Login to Partner Dashboard (Demo)'}</span>
             </button>
           </form>
 
-          <p className="text-xs text-center text-[#6B5F5C]">
+          <p className="text-xs text-center text-[#6E4B41]">
             Want to list your restaurant?{' '}
-            <Link to="/restaurant/signup" className="font-semibold text-[#702C3A] hover:underline">
+            <Link to="/restaurant/signup" className="font-semibold text-[#C84A1B] hover:underline">
               Register your venue
             </Link>
           </p>
@@ -505,32 +503,32 @@ export function RestaurantForgotPasswordPage() {
   };
 
   return (
-    <div className="bg-[#FFF6E9]/45 py-12 sm:py-16">
+    <div className="bg-[#FFF5EA] py-12 sm:py-16">
       <div className="max-w-md mx-auto px-4 sm:px-6">
-        <div className="bg-white border border-[#E8DDD1] rounded-lg p-6 sm:p-8 space-y-5">
+        <div className="bg-white border border-[#EAD8C9] rounded-lg p-6 sm:p-8 space-y-5">
           <div>
-            <p className="text-xs font-semibold text-[#702C3A] tracking-wide mb-1">
+            <p className="text-xs font-semibold text-[#C84A1B] tracking-wide mb-1">
               Partner Portal · DEMO MODE
             </p>
-            <h1 className="font-display text-3xl font-semibold text-[#292321]">
+            <h1 className="font-display text-3xl font-semibold text-[#321D17]">
               Partner Password Recovery
             </h1>
-            <p className="text-sm text-[#6B5F5C] mt-1">
+            <p className="text-sm text-[#6E4B41] mt-1">
               Simulated reset flow for Phase 1 demonstration.
             </p>
           </div>
           {sent ? (
-            <div className="p-4 rounded-lg bg-[#E7EFD9] border border-[#C8D8AC] text-xs text-[#292321] space-y-2">
+            <div className="p-4 rounded-lg bg-[#E7EFD9] border border-[#C8D8AC] text-xs text-[#321D17] space-y-2">
               <p className="font-semibold">Simulated Reset Request Logged</p>
               <p>Return to partner login to continue exploring with demo credentials.</p>
-              <Link to="/restaurant/login" className="inline-block font-semibold text-[#702C3A] underline">
+              <Link to="/restaurant/login" className="inline-block font-semibold text-[#C84A1B] underline">
                 Back to Partner Login
               </Link>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-[#292321] mb-1">
+                <label className="block text-xs font-semibold text-[#321D17] mb-1">
                   Partner Email
                 </label>
                 <input
@@ -538,18 +536,18 @@ export function RestaurantForgotPasswordPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="raghav@kashiterrace.in"
-                  className="w-full px-3.5 py-2.5 text-sm border border-[#E8DDD1] rounded-lg focus:outline-none focus:border-[#702C3A]"
+                  className="w-full px-3.5 py-2.5 text-sm border border-[#EAD8C9] rounded-lg focus:outline-none focus:border-[#C84A1B]"
                   required
                 />
               </div>
               <button
                 type="submit"
-                className="w-full py-2.5 text-sm font-semibold text-white bg-[#702C3A] rounded-lg hover:bg-[#58202C]"
+                className="w-full py-2.5 text-sm font-semibold text-white bg-[#C84A1B] rounded-lg hover:bg-[#A83B19]"
               >
                 Simulate Recovery Link
               </button>
               <p className="text-xs text-center">
-                <Link to="/restaurant/login" className="text-[#702C3A] font-semibold hover:underline">
+                <Link to="/restaurant/login" className="text-[#C84A1B] font-semibold hover:underline">
                   Back to Login
                 </Link>
               </p>
