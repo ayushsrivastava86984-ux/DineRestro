@@ -24,6 +24,8 @@ import type {
   CelebrationBookingStatus,
   CelebrationCategory,
   CelebrationPackage,
+  CelebrationQuotation,
+  CelebrationQuotationItem,
   CuisineType,
   CustomCelebrationRequest,
   CustomRequestStatus,
@@ -47,6 +49,7 @@ import type {
   SupportTicket,
   TableStatus,
   ToastMessage,
+  VegNonVegPreference,
 } from '../types';
 
 interface CustomerAuthInfo {
@@ -82,6 +85,21 @@ export interface DemoPaymentPayload {
   amount: number;
   breakdownLines: { label: string; value: string }[];
   onComplete: (transactionId: string, method: string) => void;
+}
+
+export interface CustomQuotationInput {
+  foodPackageDetails: string;
+  pricePerPlate: number;
+  platesCount: number;
+  cakeCharge: number;
+  specialServicesNotes: string;
+  decorationDetails: string;
+  additionalIncludedServices: string;
+  lineItems: CelebrationQuotationItem[];
+  advancePercent: number;
+  validUntil: string;
+  termsAndConditions: string;
+  additionalNotes: string;
 }
 
 interface AppContextValue {
@@ -209,7 +227,7 @@ interface AppContextValue {
   updatePreOrderStatus: (preOrderId: string, status: PreOrderStatus) => void;
   markPreOrderAdvancePaid: (preOrderId: string, transactionId: string) => void;
 
-  // Celebration Bookings & Quotations
+  // Ready-Made Celebration Package Bookings (Direct Booking Without Quotation)
   createCelebrationBooking: (payload: {
     restaurant: Restaurant;
     pkg: CelebrationPackage;
@@ -225,19 +243,14 @@ interface AppContextValue {
     payAdvanceNow: boolean;
     transactionId?: string;
   }) => CelebrationBooking;
-  sendCelebrationQuotation: (
-    bookingId: string,
-    quotedTotalAmount: number,
-    quotationNotes: string
-  ) => void;
-  acceptCelebrationQuotation: (bookingId: string) => void;
   markCelebrationAdvancePaid: (bookingId: string, transactionId: string) => void;
   updateCelebrationBookingStatus: (
     bookingId: string,
     status: CelebrationBookingStatus
   ) => void;
+  cancelCelebrationBooking: (bookingId: string) => void;
 
-  // Custom Celebration Requests (Quotation-gated before advance payment)
+  // Custom Celebration Requests (Quotation Compulsory Before Advance Payment)
   createCustomCelebrationRequest: (payload: {
     restaurant: Restaurant;
     occasionType: CelebrationCategory;
@@ -249,18 +262,23 @@ interface AppContextValue {
     preferredColors: string;
     cakeRequirements: string;
     foodPreferences: string;
+    vegNonVegPreference: VegNonVegPreference;
+    decorationRequirements: string;
     specialInstructions: string;
+    referenceImages?: string[];
     customerName?: string;
     customerEmail?: string;
     customerPhone?: string;
   }) => CustomCelebrationRequest;
-  sendCustomRequestQuotation: (
+  markCustomRequestUnderReview: (requestId: string) => void;
+  upsertAndSendCustomQuotation: (
     requestId: string,
-    quotedAmount: number,
-    quotationNotes: string
+    input: CustomQuotationInput
   ) => void;
   acceptCustomRequestQuotation: (requestId: string) => void;
+  rejectCustomRequestQuotation: (requestId: string, reason?: string) => void;
   markCustomRequestAdvancePaid: (requestId: string, transactionId: string) => void;
+  cancelCustomRequest: (requestId: string) => void;
   updateCustomRequestStatus: (requestId: string, status: CustomRequestStatus) => void;
 
   updateTableStatus: (tableId: string, status: TableStatus) => void;
@@ -786,6 +804,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         id: `celpkg-${Date.now()}`,
         restaurantId: targetRest.id,
         restaurantName: targetRest.name,
+        restaurantArea: targetRest.area,
         approvalStatus: 'Pending Approval',
       };
       setCelebrationPackages((prev) => [created, ...prev]);
@@ -1026,6 +1045,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const totalPackageAmount = payload.pkg.pricePerPlate * payload.platesCount;
       const advanceAmount = Math.round((totalPackageAmount * payload.advancePercent) / 100);
       const remainingAmount = totalPackageAmount - advanceAmount;
+      const isPaid = Boolean(payload.payAdvanceNow && payload.transactionId);
       const created: CelebrationBooking = {
         id: `CEL-${Math.floor(920 + Math.random() * 79)}`,
         restaurantId: payload.restaurant.id,
@@ -1051,64 +1071,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         advancePercent: payload.advancePercent,
         advanceAmount,
         remainingAmount,
-        advancePaid: payload.payAdvanceNow,
+        advancePaid: isPaid,
         transactionId: payload.transactionId,
         foodPreference: payload.foodPreference,
         specialRequests: payload.specialRequests,
-        status: payload.payAdvanceNow ? 'Advance Paid' : 'Inquiry Received',
+        status: isPaid ? 'Confirmed' : 'Advance Pending',
         createdAt: '2026-11-23',
       };
       setCelebrationBookings((prev) => [created, ...prev]);
+      setNotifications((prev) => [
+        {
+          id: `notif-cel-${Date.now()}`,
+          role: 'restaurant',
+          title: `Direct Celebration Booking (${created.id})`,
+          message: `${created.customerName} booked ${created.packageName} (${created.platesCount} plates · Decoration ₹0 · ${isPaid ? 'Confirmed & Advance Paid' : 'Advance Pending'}).`,
+          timeAgo: 'Just now',
+          read: false,
+        },
+        ...prev,
+      ]);
       addToast({
         type: 'success',
-        title: `Celebration Booking Logged (${created.id})`,
-        description: 'Decoration Charge: ₹0 (FREE). Simulated Phase 1 preview.',
+        title: isPaid
+          ? `Celebration Booking Confirmed (${created.id})`
+          : `Celebration Reserved (${created.id})`,
+        description: isPaid
+          ? 'Ready-made package confirmed directly without quotation (Decoration Charge: ₹0).'
+          : 'Complete demo advance payment in Celebration Bookings to confirm.',
       });
       return created;
     },
     [addToast, customerUser.id]
-  );
-
-  const sendCelebrationQuotation = useCallback(
-    (bookingId: string, quotedTotalAmount: number, quotationNotes: string) => {
-      setCelebrationBookings((prev) =>
-        prev.map((cb) => {
-          if (cb.id !== bookingId) return cb;
-          const advanceAmount = Math.round((quotedTotalAmount * cb.advancePercent) / 100);
-          return {
-            ...cb,
-            quotedTotalAmount,
-            decorationCharge: 0, // Always ₹0
-            quotationNotes,
-            advanceAmount,
-            remainingAmount: quotedTotalAmount - advanceAmount,
-            status: 'Quotation Sent',
-          };
-        })
-      );
-      addToast({
-        type: 'success',
-        title: 'Custom Quotation Sent to Customer (Demo)',
-        description: 'Customer must accept quotation before advance payment.',
-      });
-    },
-    [addToast]
-  );
-
-  const acceptCelebrationQuotation = useCallback(
-    (bookingId: string) => {
-      setCelebrationBookings((prev) =>
-        prev.map((cb) =>
-          cb.id === bookingId ? { ...cb, status: 'Advance Pending' } : cb
-        )
-      );
-      addToast({
-        type: 'success',
-        title: 'Quotation Accepted (Demo)',
-        description: 'Proceed to pay the 50% demo advance to confirm your celebration.',
-      });
-    },
-    [addToast]
   );
 
   const markCelebrationAdvancePaid = useCallback(
@@ -1116,12 +1109,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setCelebrationBookings((prev) =>
         prev.map((cb) =>
           cb.id === bookingId
-            ? { ...cb, advancePaid: true, transactionId, status: 'Advance Paid' }
+            ? { ...cb, advancePaid: true, transactionId, status: 'Confirmed' }
             : cb
         )
       );
+      addToast({
+        type: 'success',
+        title: `Celebration Confirmed (${bookingId})`,
+        description: 'Demo advance payment recorded.',
+      });
     },
-    []
+    [addToast]
   );
 
   const updateCelebrationBookingStatus = useCallback(
@@ -1129,7 +1127,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setCelebrationBookings((prev) =>
         prev.map((cb) => (cb.id === bookingId ? { ...cb, status } : cb))
       );
-      addToast({ type: 'success', title: `Celebration Status: ${status} (Demo)` });
+      addToast({ type: 'success', title: `Celebration Booking Marked ${status} (Demo)` });
+    },
+    [addToast]
+  );
+
+  const cancelCelebrationBooking = useCallback(
+    (bookingId: string) => {
+      setCelebrationBookings((prev) =>
+        prev.map((cb) => (cb.id === bookingId ? { ...cb, status: 'Cancelled' } : cb))
+      );
+      addToast({ type: 'info', title: `Celebration Booking Cancelled (${bookingId})` });
     },
     [addToast]
   );
@@ -1146,11 +1154,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       preferredColors: string;
       cakeRequirements: string;
       foodPreferences: string;
+      vegNonVegPreference: VegNonVegPreference;
+      decorationRequirements: string;
       specialInstructions: string;
+      referenceImages?: string[];
       customerName?: string;
       customerEmail?: string;
       customerPhone?: string;
     }) => {
+      const today = '2026-11-23';
       const created: CustomCelebrationRequest = {
         id: `CREQ-${Math.floor(510 + Math.random() * 480)}`,
         restaurantId: payload.restaurant.id,
@@ -1169,83 +1181,295 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         preferredColors: payload.preferredColors,
         cakeRequirements: payload.cakeRequirements,
         foodPreferences: payload.foodPreferences,
+        vegNonVegPreference: payload.vegNonVegPreference,
+        decorationRequirements: payload.decorationRequirements,
         specialInstructions: payload.specialInstructions,
+        referenceImages: payload.referenceImages || [],
         decorationCharge: 0,
         advancePercent: platformSettings.defaultCelebrationAdvancePercent,
         advancePaid: false,
         status: 'Request Received',
-        createdAt: '2026-11-23',
+        createdAt: today,
+        updatedAt: today,
       };
       setCustomRequests((prev) => [created, ...prev]);
+      setNotifications((prev) => [
+        {
+          id: `notif-creq-${Date.now()}`,
+          role: 'restaurant',
+          title: `New Custom Celebration Request (${created.id})`,
+          message: `${created.customerName} requested a custom ${created.occasionType} for ${created.guestsCount} guests. Please review and send a quotation.`,
+          timeAgo: 'Just now',
+          read: false,
+        },
+        ...prev,
+      ]);
       addToast({
         type: 'success',
-        title: `Custom Celebration Request Submitted (${created.id})`,
-        description: `${payload.restaurant.name} will review your request and send a custom quotation (Decoration ₹0).`,
+        title: `Custom Request Submitted (${created.id})`,
+        description: `${payload.restaurant.name} will review your requirements and send a quotation (Decoration ₹0).`,
       });
       return created;
     },
     [addToast, customerUser, platformSettings.defaultCelebrationAdvancePercent]
   );
 
-  const sendCustomRequestQuotation = useCallback(
-    (requestId: string, quotedAmount: number, quotationNotes: string) => {
+  const markCustomRequestUnderReview = useCallback(
+    (requestId: string) => {
       setCustomRequests((prev) =>
-        prev.map((req) => {
-          if (req.id !== requestId) return req;
-          const advanceAmount = Math.round((quotedAmount * req.advancePercent) / 100);
-          return {
-            ...req,
-            quotedAmount,
-            quotationNotes,
-            decorationCharge: 0,
-            advanceAmount,
-            remainingAmount: quotedAmount - advanceAmount,
-            status: 'Quotation Sent',
-          };
-        })
+        prev.map((req) =>
+          req.id === requestId && req.status === 'Request Received'
+            ? { ...req, status: 'Under Review', updatedAt: '2026-11-23' }
+            : req
+        )
       );
-      addToast({
-        type: 'success',
-        title: `Custom Quotation Sent (${requestId})`,
-        description: 'Customer must accept the quotation before demo advance payment unlocks.',
-      });
+      addToast({ type: 'info', title: `Request ${requestId} Marked Under Review` });
     },
     [addToast]
+  );
+
+  const upsertAndSendCustomQuotation = useCallback(
+    (requestId: string, input: CustomQuotationInput) => {
+      const targetReq = customRequests.find((r) => r.id === requestId);
+      if (!targetReq) return;
+      if (targetReq.quotation?.locked) {
+        addToast({
+          type: 'error',
+          title: 'Quotation Locked',
+          description: 'Customer has already accepted this quotation; terms cannot be edited.',
+        });
+        return;
+      }
+
+      const foodTotal = Math.max(0, input.pricePerPlate) * Math.max(1, input.platesCount);
+      const cakeTotal = Math.max(0, input.cakeCharge);
+      const lineItemsTotal = input.lineItems.reduce((sum, item) => sum + Math.max(0, item.amount), 0);
+      const totalAmount = foodTotal + cakeTotal + lineItemsTotal; // decorationCharge is ALWAYS ₹0
+      const advancePercent = Math.min(100, Math.max(10, input.advancePercent));
+      const advanceAmount = Math.round((totalAmount * advancePercent) / 100);
+      const remainingAmount = totalAmount - advanceAmount;
+      const today = '2026-11-23';
+
+      const quotationObj: CelebrationQuotation = {
+        id: targetReq.quotation?.id || `QUOT-${Math.floor(310 + Math.random() * 680)}`,
+        requestId: targetReq.id,
+        restaurantId: targetReq.restaurantId,
+        restaurantName: targetReq.restaurantName,
+        foodPackageDetails: input.foodPackageDetails.trim(),
+        pricePerPlate: Math.max(0, input.pricePerPlate),
+        platesCount: Math.max(1, input.platesCount),
+        cakeCharge: cakeTotal,
+        specialServicesNotes: input.specialServicesNotes.trim(),
+        decorationDetails: input.decorationDetails.trim(),
+        decorationCharge: 0,
+        additionalIncludedServices: input.additionalIncludedServices.trim(),
+        lineItems: input.lineItems,
+        totalAmount,
+        advancePercent,
+        advanceAmount,
+        remainingAmount,
+        validUntil: input.validUntil,
+        termsAndConditions: input.termsAndConditions.trim(),
+        additionalNotes: input.additionalNotes.trim(),
+        status: 'Sent',
+        locked: false,
+        createdAt: targetReq.quotation?.createdAt || today,
+        updatedAt: today,
+      };
+
+      setCustomRequests((prev) =>
+        prev.map((req) =>
+          req.id === requestId
+            ? {
+                ...req,
+                quotation: quotationObj,
+                quotedAmount: totalAmount,
+                quotationNotes: input.additionalNotes.trim() || input.foodPackageDetails.trim(),
+                decorationCharge: 0,
+                advancePercent,
+                advanceAmount,
+                remainingAmount,
+                status: 'Quotation Sent',
+                updatedAt: today,
+              }
+            : req
+        )
+      );
+
+      setNotifications((prev) => [
+        {
+          id: `notif-quot-${Date.now()}`,
+          role: 'customer',
+          title: `Quotation Received for ${requestId}`,
+          message: `${targetReq.restaurantName} sent a quotation of ₹${totalAmount.toLocaleString('en-IN')} (Decoration ₹0). Review & accept to unlock advance payment.`,
+          timeAgo: 'Just now',
+          read: false,
+        },
+        ...prev,
+      ]);
+
+      addToast({
+        type: 'success',
+        title: `Quotation Sent (${quotationObj.id})`,
+        description: 'Customer must review and accept before advance payment unlocks.',
+      });
+    },
+    [addToast, customRequests]
   );
 
   const acceptCustomRequestQuotation = useCallback(
     (requestId: string) => {
+      const target = customRequests.find((r) => r.id === requestId);
+      if (!target || !target.quotation) return;
       setCustomRequests((prev) =>
         prev.map((req) =>
-          req.id === requestId ? { ...req, status: 'Quotation Accepted' } : req
+          req.id === requestId && req.quotation
+            ? {
+                ...req,
+                status: 'Quotation Accepted',
+                updatedAt: '2026-11-23',
+                quotation: {
+                  ...req.quotation,
+                  status: 'Accepted',
+                  locked: true,
+                  updatedAt: '2026-11-23',
+                },
+              }
+            : req
         )
       );
+      setNotifications((prev) => [
+        {
+          id: `notif-qacc-${Date.now()}`,
+          role: 'restaurant',
+          title: `Quotation Accepted (${requestId})`,
+          message: `${target.customerName} accepted your quotation (${target.quotation?.id}). Advance payment is now unlocked.`,
+          timeAgo: 'Just now',
+          read: false,
+        },
+        ...prev,
+      ]);
       addToast({
         type: 'success',
-        title: `Quotation Accepted (${requestId})`,
-        description: 'You may now proceed to simulated advance payment.',
+        title: `Quotation Accepted & Locked (${requestId})`,
+        description: 'Proceed to pay the demo advance to confirm your custom celebration.',
       });
     },
-    [addToast]
+    [addToast, customRequests]
+  );
+
+  const rejectCustomRequestQuotation = useCallback(
+    (requestId: string, reason?: string) => {
+      const target = customRequests.find((r) => r.id === requestId);
+      if (!target) return;
+      setCustomRequests((prev) =>
+        prev.map((req) =>
+          req.id === requestId
+            ? {
+                ...req,
+                status: 'Quotation Rejected',
+                updatedAt: '2026-11-23',
+                quotation: req.quotation
+                  ? {
+                      ...req.quotation,
+                      status: 'Rejected',
+                      locked: false,
+                      rejectionReason: reason?.trim() || 'Customer requested a revised proposal.',
+                      updatedAt: '2026-11-23',
+                    }
+                  : undefined,
+              }
+            : req
+        )
+      );
+      setNotifications((prev) => [
+        {
+          id: `notif-qrej-${Date.now()}`,
+          role: 'restaurant',
+          title: `Quotation Rejected (${requestId})`,
+          message: `${target.customerName} declined the quotation. You may revise terms or coordinate directly.`,
+          timeAgo: 'Just now',
+          read: false,
+        },
+        ...prev,
+      ]);
+      addToast({
+        type: 'info',
+        title: `Quotation Declined (${requestId})`,
+        description: 'You can submit a revised request or contact the restaurant directly.',
+      });
+    },
+    [addToast, customRequests]
   );
 
   const markCustomRequestAdvancePaid = useCallback(
     (requestId: string, transactionId: string) => {
+      const target = customRequests.find((r) => r.id === requestId);
+      if (
+        !target ||
+        !target.quotation?.locked ||
+        (target.status !== 'Quotation Accepted' && target.status !== 'Advance Pending')
+      ) {
+        addToast({
+          type: 'error',
+          title: 'Advance Payment Locked',
+          description: 'Custom celebration requests require quotation acceptance before advance payment.',
+        });
+        return;
+      }
       setCustomRequests((prev) =>
         prev.map((req) =>
           req.id === requestId
-            ? { ...req, advancePaid: true, transactionId, status: 'Advance Paid' }
+            ? {
+                ...req,
+                advancePaid: true,
+                transactionId,
+                status: 'Confirmed',
+                updatedAt: '2026-11-23',
+              }
             : req
         )
       );
+      setNotifications((prev) => [
+        {
+          id: `notif-cpay-${Date.now()}`,
+          role: 'restaurant',
+          title: `Custom Celebration Confirmed (${requestId})`,
+          message: `${target.customerName} completed demo advance payment (${transactionId}).`,
+          timeAgo: 'Just now',
+          read: false,
+        },
+        ...prev,
+      ]);
+      addToast({
+        type: 'success',
+        title: `Custom Celebration Confirmed (${requestId})`,
+        description: 'Advance payment logged and booking confirmed.',
+      });
     },
-    []
+    [addToast, customRequests]
+  );
+
+  const cancelCustomRequest = useCallback(
+    (requestId: string) => {
+      setCustomRequests((prev) =>
+        prev.map((req) =>
+          req.id === requestId
+            ? { ...req, status: 'Cancelled', updatedAt: '2026-11-23' }
+            : req
+        )
+      );
+      addToast({ type: 'info', title: `Custom Request Cancelled (${requestId})` });
+    },
+    [addToast]
   );
 
   const updateCustomRequestStatus = useCallback(
     (requestId: string, status: CustomRequestStatus) => {
       setCustomRequests((prev) =>
-        prev.map((req) => (req.id === requestId ? { ...req, status } : req))
+        prev.map((req) =>
+          req.id === requestId ? { ...req, status, updatedAt: '2026-11-23' } : req
+        )
       );
       addToast({ type: 'success', title: `Custom Request Status: ${status} (Demo)` });
     },
@@ -1476,14 +1700,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updatePreOrderStatus,
         markPreOrderAdvancePaid,
         createCelebrationBooking,
-        sendCelebrationQuotation,
-        acceptCelebrationQuotation,
         markCelebrationAdvancePaid,
         updateCelebrationBookingStatus,
+        cancelCelebrationBooking,
         createCustomCelebrationRequest,
-        sendCustomRequestQuotation,
+        markCustomRequestUnderReview,
+        upsertAndSendCustomQuotation,
         acceptCustomRequestQuotation,
+        rejectCustomRequestQuotation,
         markCustomRequestAdvancePaid,
+        cancelCustomRequest,
         updateCustomRequestStatus,
         updateTableStatus,
         addTable,

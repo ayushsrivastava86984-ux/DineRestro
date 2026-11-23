@@ -29,6 +29,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     normalized === 'rejected' ||
     normalized === 'cancelled' ||
     normalized === 'declined' ||
+    normalized === 'quotation rejected' ||
     normalized === 'suspended' ||
     normalized === 'occupied' ||
     normalized === 'demo refunded'
@@ -37,12 +38,14 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     Icon = XCircle;
   } else if (
     normalized === 'quotation sent' ||
-    normalized === 'preparing'
+    normalized === 'preparing' ||
+    normalized === 'under review'
   ) {
     style = 'bg-[#F3F1ED] text-[#6E1E2E] border-[#D6CFC5]';
     Icon = Sparkles;
   } else if (
     normalized === 'open' ||
+    normalized === 'pending' ||
     normalized === 'advance pending' ||
     normalized === 'request received' ||
     normalized === 'inquiry received'

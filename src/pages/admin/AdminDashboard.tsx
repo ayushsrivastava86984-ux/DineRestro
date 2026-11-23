@@ -53,8 +53,8 @@ const ADMIN_NAV: DashboardNavItem[] = [
   { label: 'Booking Fee Settings', to: '/admin/fees', icon: IndianRupee },
   { label: 'Reservations', to: '/admin/reservations', icon: CalendarCheck },
   { label: 'Pre-orders', to: '/admin/preorders', icon: Utensils },
-  { label: 'Event Quotations', to: '/admin/quotations', icon: MessageSquareQuote },
-  { label: 'Custom Requests', to: '/admin/custom-requests', icon: Wand2 },
+  { label: 'Celebration Bookings', to: '/admin/quotations', icon: MessageSquareQuote },
+  { label: 'Custom Requests & Quotes', to: '/admin/custom-requests', icon: Wand2 },
   { label: 'Payment Records', to: '/admin/payments', icon: Receipt },
   { label: 'Reviews', to: '/admin/reviews', icon: MessageSquare },
   { label: 'Support Tickets', to: '/admin/support', icon: LifeBuoy },
@@ -290,7 +290,7 @@ export function AdminDashboard() {
                 { label: 'Pending Pkg Approvals', val: pendingPkgApprovals.length },
                 { label: 'Table Reservations', val: reservations.length },
                 { label: 'Food Pre-Orders', val: preOrders.length },
-                { label: 'Celebration Inquiries', val: celebrationBookings.length },
+                { label: 'Celebration Bookings', val: celebrationBookings.length },
                 {
                   label: 'Demo Transactions Total',
                   val: formatINR(
@@ -1329,12 +1329,17 @@ export function AdminDashboard() {
           </div>
         )}
 
-        {/* EVENT QUOTATIONS */}
+        {/* READY-MADE CELEBRATION BOOKINGS */}
         {activeSection === 'quotations' && (
           <div className="space-y-5">
-            <h1 className="font-display text-3xl font-semibold text-[#1C1917]">
-              Celebration Inquiries &amp; Quotations (Demo)
-            </h1>
+            <div>
+              <h1 className="font-display text-3xl font-semibold text-[#1C1917]">
+                Ready-Made Celebration Bookings (Direct Flow Audit)
+              </h1>
+              <p className="text-sm text-[#57534E]">
+                Direct package bookings with zero quotation requirement, ₹0 decoration fee enforcement, and cancellation/payment tracking.
+              </p>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {celebrationBookings.map((cb) => (
                 <div
@@ -1358,14 +1363,14 @@ export function AdminDashboard() {
                       <span>Plates ({cb.platesCount} × {formatINR(cb.pricePerPlate)})</span>
                       <span className="font-semibold tabular-nums">{formatINR(cb.totalPackageAmount)}</span>
                     </div>
-                    <div className="flex justify-between text-[#1C1917]">
+                    <div className="flex justify-between text-[#1E462A]">
                       <span>Decoration Included – No Additional Charges</span>
                       <span className="font-mono font-semibold">₹0</span>
                     </div>
                     <div className="flex justify-between pt-1 border-t border-[#E5E0D8] font-semibold">
-                      <span>Quoted Total / {cb.advancePercent}% Advance</span>
+                      <span>Total / {cb.advancePercent}% Advance ({cb.advancePaid ? 'DEMO PAID' : 'Pending'})</span>
                       <span className="tabular-nums">
-                        {formatINR(cb.quotedTotalAmount)} / {formatINR(cb.advanceAmount)}
+                        {formatINR(cb.totalPackageAmount)} / {formatINR(cb.advanceAmount)}
                       </span>
                     </div>
                   </div>
@@ -1375,22 +1380,24 @@ export function AdminDashboard() {
           </div>
         )}
 
-        {/* CUSTOM CELEBRATION REQUESTS AUDIT */}
+        {/* CUSTOM CELEBRATION REQUESTS & QUOTATIONS AUDIT (READ-ONLY OVERSIGHT) */}
         {activeSection === 'custom-requests' && (
           <div className="space-y-5">
             <div>
               <h1 className="font-display text-3xl font-semibold text-[#1C1917]">
-                Custom Celebration Requests Audit (Demo)
+                Custom Celebration Requests &amp; Quotations Audit (Read-Only)
               </h1>
               <p className="text-sm text-[#57534E]">
-                Monitor 11-field customer celebration briefs, restaurant quotations, quotation acceptance gating, and complimentary ₹0 decor compliance.
+                Platform oversight of customer custom requests, restaurant-issued itemized quotations, lock status after customer acceptance, and ₹0 decoration compliance. Admin does not create quotations for partner venues.
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {customRequests.map((req) => (
                 <div key={req.id} className="bg-white border border-[#E5E0D8] rounded-lg p-5 space-y-3">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-mono font-semibold text-[#6E1E2E]">{req.id}</span>
+                    <span className="text-xs font-mono font-semibold text-[#6E1E2E]">
+                      {req.id} {req.quotation ? `· ${req.quotation.id}` : ''}
+                    </span>
                     <StatusBadge status={req.status} />
                   </div>
                   <div>
@@ -1398,26 +1405,37 @@ export function AdminDashboard() {
                       {req.occasionType} — {req.restaurantName}
                     </h3>
                     <p className="text-xs text-[#57534E]">
-                      {req.customerName} · {req.guestsCount} guests · {formatDisplayDate(req.preferredDate)} at {req.preferredTime}
+                      {req.customerName} · {req.guestsCount} guests · {formatDisplayDate(req.preferredDate)} at {req.preferredTime} · {req.vegNonVegPreference}
                     </p>
                   </div>
                   <div className="bg-[#FAF9F6] border border-[#E5E0D8] rounded p-3 text-xs space-y-1">
                     <div className="flex justify-between">
-                      <span>Estimated Budget</span>
+                      <span>Requested Budget</span>
                       <span className="font-semibold tabular-nums">{formatINR(req.estimatedBudget)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Theme &amp; Colours</span>
-                      <span className="font-medium text-right">{req.decorationTheme} ({req.preferredColors})</span>
+                      <span>Theme &amp; Reference Photos</span>
+                      <span className="font-medium text-right">
+                        {req.decorationTheme} ({req.referenceImages.length} images)
+                      </span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between text-[#1E462A]">
                       <span>Decoration Charge</span>
                       <span className="font-mono font-semibold">₹0 (FREE)</span>
                     </div>
                     <div className="flex justify-between pt-1 border-t border-[#E5E0D8] font-semibold">
-                      <span>Quoted Amount</span>
+                      <span>Quotation Total / Lock State</span>
                       <span className="tabular-nums">
-                        {req.quotedAmount ? formatINR(req.quotedAmount) : 'Pending Restaurant Quote'}
+                        {req.quotedAmount ? formatINR(req.quotedAmount) : 'Pending Quote'} ·{' '}
+                        {req.quotation?.locked ? 'Locked (Accepted)' : 'Unlocked'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-[#57534E]">
+                      <span>Advance Payment Status</span>
+                      <span>
+                        {req.advancePaid
+                          ? `DEMO PAID (${formatINR(req.advanceAmount || 0)} · ${req.transactionId})`
+                          : 'Awaiting Quote Acceptance / Payment'}
                       </span>
                     </div>
                   </div>
@@ -1596,12 +1614,41 @@ export function AdminDashboard() {
           <div className="space-y-6">
             <div>
               <h1 className="font-display text-3xl font-semibold text-[#1C1917]">
-                Platform Analytics (DEMO DATA)
+                Platform &amp; Celebration Analytics (DEMO DATA)
               </h1>
               <p className="text-sm text-[#57534E]">
-                All metrics and revenue numbers shown below are simulated sample data for Phase 1 evaluation.
+                Live session celebration metrics combined with simulated weekly demand for Phase 1 evaluation.
               </p>
             </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white border border-[#E5E0D8] rounded-lg p-4">
+                <p className="text-xs text-[#57534E]">Ready-Made Direct Bookings</p>
+                <p className="text-2xl font-semibold font-mono tabular-nums text-[#1C1917] mt-1">
+                  {celebrationBookings.length}
+                </p>
+              </div>
+              <div className="bg-white border border-[#E5E0D8] rounded-lg p-4">
+                <p className="text-xs text-[#57534E]">Custom Celebration Requests</p>
+                <p className="text-2xl font-semibold font-mono tabular-nums text-[#6E1E2E] mt-1">
+                  {customRequests.length}
+                </p>
+              </div>
+              <div className="bg-white border border-[#E5E0D8] rounded-lg p-4">
+                <p className="text-xs text-[#57534E]">Quotes Sent / Accepted</p>
+                <p className="text-2xl font-semibold font-mono tabular-nums text-[#1C1917] mt-1">
+                  {customRequests.filter((r) => Boolean(r.quotation)).length} /{' '}
+                  {customRequests.filter((r) => Boolean(r.quotation?.locked)).length}
+                </p>
+              </div>
+              <div className="bg-white border border-[#E5E0D8] rounded-lg p-4">
+                <p className="text-xs text-[#57534E]">₹0 Decor Rule Compliance</p>
+                <p className="text-2xl font-semibold font-mono tabular-nums text-[#1E462A] mt-1">
+                  100%
+                </p>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <SimpleBarChart
                 title="Weekly Reservation Demand"

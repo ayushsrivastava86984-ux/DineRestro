@@ -56,23 +56,26 @@ export type PreOrderStatus =
   | 'Completed';
 
 export type CelebrationBookingStatus =
-  | 'Inquiry Received'
+  | 'Pending'
+  | 'Accepted'
+  | 'Advance Pending'
+  | 'Advance Paid'
+  | 'Confirmed'
+  | 'Completed'
+  | 'Cancelled'
+  | 'Rejected';
+
+export type CustomRequestStatus =
+  | 'Request Received'
+  | 'Under Review'
   | 'Quotation Sent'
   | 'Quotation Accepted'
+  | 'Quotation Rejected'
   | 'Advance Pending'
   | 'Advance Paid'
   | 'Confirmed'
   | 'Completed'
   | 'Cancelled';
-
-export type CustomRequestStatus =
-  | 'Request Received'
-  | 'Quotation Sent'
-  | 'Quotation Accepted'
-  | 'Advance Paid'
-  | 'Confirmed'
-  | 'Completed'
-  | 'Declined';
 
 export type TableStatus = 'Available' | 'Occupied' | 'Reserved';
 
@@ -127,6 +130,7 @@ export interface CelebrationPackage {
   id: string;
   restaurantId: string;
   restaurantName: string;
+  restaurantArea?: string;
   name: string;
   category: CelebrationCategory;
   description: string;
@@ -137,6 +141,7 @@ export interface CelebrationPackage {
   maxPlates: number;
   dietaryType: 'Veg' | 'Non-Veg' | 'Veg & Non-Veg';
   plateItems: PlateCourseItem[];
+  advancePercent?: number;
   available: boolean;
   specialInstructions: string;
   approvalStatus: RestaurantApprovalStatus;
@@ -270,6 +275,47 @@ export interface CelebrationBooking {
   createdAt: string;
 }
 
+export type VegNonVegPreference =
+  | 'Pure Veg'
+  | 'Veg & Non-Veg'
+  | 'Non-Veg'
+  | 'Jain Options Available';
+
+export interface CelebrationQuotationItem {
+  id: string;
+  label: string;
+  category: 'Food' | 'Cake' | 'Service' | 'Other';
+  amount: number;
+}
+
+export interface CelebrationQuotation {
+  id: string;
+  requestId: string;
+  restaurantId: string;
+  restaurantName: string;
+  foodPackageDetails: string;
+  pricePerPlate: number;
+  platesCount: number;
+  cakeCharge: number;
+  specialServicesNotes: string;
+  decorationDetails: string;
+  decorationCharge: 0; // Always ₹0 — Decoration Included – No Additional Charges
+  additionalIncludedServices: string;
+  lineItems: CelebrationQuotationItem[];
+  totalAmount: number;
+  advancePercent: number;
+  advanceAmount: number;
+  remainingAmount: number;
+  validUntil: string;
+  termsAndConditions: string;
+  additionalNotes: string;
+  status: 'Draft' | 'Sent' | 'Accepted' | 'Rejected';
+  locked: boolean;
+  rejectionReason?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface CustomCelebrationRequest {
   id: string;
   restaurantId: string;
@@ -288,8 +334,12 @@ export interface CustomCelebrationRequest {
   preferredColors: string;
   cakeRequirements: string;
   foodPreferences: string;
+  vegNonVegPreference: VegNonVegPreference;
+  decorationRequirements: string;
   specialInstructions: string;
+  referenceImages: string[];
   decorationCharge: 0; // Always ₹0 — Decoration Included – No Additional Charges
+  quotation?: CelebrationQuotation;
   quotedAmount?: number;
   quotationNotes?: string;
   advancePercent: number;
@@ -299,6 +349,7 @@ export interface CustomCelebrationRequest {
   transactionId?: string;
   status: CustomRequestStatus;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface EventCategory {

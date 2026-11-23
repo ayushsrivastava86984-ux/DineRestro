@@ -24,6 +24,8 @@ import {
   Clock,
   X,
   Bell,
+  Lock,
+  ShieldCheck,
   Wand2,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -42,14 +44,15 @@ import {
 import type {
   AmenityType,
   CelebrationCategory,
-  CustomRequestStatus,
+  CelebrationQuotationItem,
+  CustomCelebrationRequest,
   DiningTable,
   PhotoCategory,
   PlateCourseItem,
   PreOrderStatus,
   Reservation,
 } from '../../types';
-import { formatDisplayDate, formatINR } from '../../utils/formatters';
+import { formatDisplayDate, formatINR, getTodayISO } from '../../utils/formatters';
 
 const RESTAURANT_NAV: DashboardNavItem[] = [
   { label: 'Overview', to: '/restaurant/dashboard', icon: LayoutDashboard },
@@ -62,9 +65,9 @@ const RESTAURANT_NAV: DashboardNavItem[] = [
   { label: 'Food Pre-orders', to: '/restaurant/preorders', icon: Utensils },
   { label: 'Celebration Packages', to: '/restaurant/celebrations', icon: PartyPopper },
   { label: 'Decoration Gallery', to: '/restaurant/decorations', icon: Sparkles },
-  { label: 'Event Inquiries', to: '/restaurant/events', icon: PartyPopper },
+  { label: 'Celebration Bookings', to: '/restaurant/events', icon: PartyPopper },
   { label: 'Custom Requests', to: '/restaurant/custom-requests', icon: Wand2 },
-  { label: 'Quotations', to: '/restaurant/quotations', icon: MessageSquareQuote },
+  { label: 'Custom Quotations', to: '/restaurant/quotations', icon: MessageSquareQuote },
   { label: 'Payment Records', to: '/restaurant/payments', icon: Receipt },
   { label: 'Offers', to: '/restaurant/offers', icon: Tag },
   { label: 'Analytics', to: '/restaurant/analytics', icon: BarChart3 },
@@ -117,10 +120,10 @@ export function RestaurantDashboard() {
     addCelebrationPackage,
     deleteCelebrationPackage,
     celebrationBookings,
-    sendCelebrationQuotation,
     updateCelebrationBookingStatus,
     customRequests,
-    sendCustomRequestQuotation,
+    markCustomRequestUnderReview,
+    upsertAndSendCustomQuotation,
     updateCustomRequestStatus,
     reservations,
     updateReservationStatus,
@@ -181,15 +184,67 @@ export function RestaurantDashboard() {
   const [celItems, setCelItems] = useState<PlateCourseItem[]>([]);
   const [celFormError, setCelFormError] = useState('');
 
-  // Quotation form state
-  const [quoteBookingId, setQuoteBookingId] = useState<string | null>(null);
-  const [quoteTotal, setQuoteTotal] = useState<number>(12000);
-  const [quoteNotes, setQuoteNotes] = useState('');
-
-  // Custom Celebration Request quotation state
+  // Structured Custom Celebration Quotation Builder state
   const [customQuoteReqId, setCustomQuoteReqId] = useState<string | null>(null);
-  const [customQuoteAmount, setCustomQuoteAmount] = useState<number>(18000);
-  const [customQuoteNotes, setCustomQuoteNotes] = useState('');
+  const [qFoodDetails, setQFoodDetails] = useState('');
+  const [qPricePerPlate, setQPricePerPlate] = useState(1250);
+  const [qPlatesCount, setQPlatesCount] = useState(10);
+  const [qCakeCharge, setQCakeCharge] = useState(1200);
+  const [qSpecialServices, setQSpecialServices] = useState('');
+  const [qDecorDetails, setQDecorDetails] = useState('');
+  const [qAdditionalServices, setQAdditionalServices] = useState('');
+  const [qLineItems, setQLineItems] = useState<CelebrationQuotationItem[]>([]);
+  const [newItemLabel, setNewItemLabel] = useState('');
+  const [newItemCategory, setNewItemCategory] = useState<CelebrationQuotationItem['category']>('Service');
+  const [newItemAmount, setNewItemAmount] = useState(500);
+  const [qAdvancePct, setQAdvancePct] = useState(50);
+  const [qValidUntil, setQValidUntil] = useState('2026-12-10');
+  const [qTerms, setQTerms] = useState(
+    'Advance payment confirms custom celebration slot and menu preparation. Remaining balance settled at restaurant.'
+  );
+  const [qAdditionalNotes, setQAdditionalNotes] = useState('');
+
+  const openQuotationBuilder = (req: CustomCelebrationRequest) => {
+    if (req.quotation?.locked) {
+      addToast({
+        type: 'error',
+        title: 'Quotation Locked',
+        description: 'This quotation has been accepted by the customer and cannot be modified.',
+      });
+      return;
+    }
+    const existing = req.quotation;
+    setCustomQuoteReqId(req.id);
+    setQFoodDetails(
+      existing?.foodPackageDetails ||
+        `${req.guestsCount} guests · ${req.foodPreferences} (${req.vegNonVegPreference})`
+    );
+    setQPricePerPlate(
+      existing?.pricePerPlate ??
+        Math.max(500, Math.round((req.estimatedBudget * 0.85) / Math.max(1, req.guestsCount)))
+    );
+    setQPlatesCount(existing?.platesCount ?? req.guestsCount);
+    setQCakeCharge(existing?.cakeCharge ?? (req.cakeRequirements.toLowerCase().includes('no') ? 0 : 1200));
+    setQSpecialServices(existing?.specialServicesNotes || '');
+    setQDecorDetails(
+      existing?.decorationDetails || `${req.decorationTheme} (${req.preferredColors}) — ${req.decorationRequirements}`
+    );
+    setQAdditionalServices(existing?.additionalIncludedServices || 'Dedicated celebration table steward');
+    setQLineItems(existing?.lineItems || []);
+    setQAdvancePct(existing?.advancePercent ?? req.advancePercent ?? 50);
+    setQValidUntil(existing?.validUntil || req.preferredDate || getTodayISO());
+    setQTerms(
+      existing?.termsAndConditions ||
+        'Advance payment confirms custom celebration setup and food preparation. Balance due at restaurant.'
+    );
+    setQAdditionalNotes(existing?.additionalNotes || 'Decoration Included – No Additional Charges (₹0).');
+  };
+
+  const qFoodSubtotal = Math.max(0, qPricePerPlate) * Math.max(1, qPlatesCount);
+  const qLineItemsTotal = qLineItems.reduce((sum, li) => sum + Math.max(0, li.amount), 0);
+  const qGrandTotal = qFoodSubtotal + Math.max(0, qCakeCharge) + qLineItemsTotal; // Decoration is ALWAYS ₹0
+  const qAdvanceAmt = Math.round((qGrandTotal * qAdvancePct) / 100);
+  const qRemainingAmt = qGrandTotal - qAdvanceAmt;
 
   // Pre-Order Advance Percentage custom input state
   const [customAdvancePct, setCustomAdvancePct] = useState<number>(
@@ -404,7 +459,7 @@ export function RestaurantDashboard() {
                   {activeRestaurant.name} Overview
                 </h1>
                 <p className="text-sm text-[#57534E] mt-1">
-                  Reservations, food pre-orders, celebration inquiries &amp; sample revenue (DEMO DATA).
+                  Reservations, food pre-orders, celebration bookings, custom quotations &amp; sample revenue (DEMO DATA).
                 </p>
               </div>
               <StatusBadge status={activeRestaurant.approvalStatus} />
@@ -414,7 +469,7 @@ export function RestaurantDashboard() {
               {[
                 { label: 'Reservations', val: displayReservations.length },
                 { label: 'Food Pre-Orders', val: displayPreOrders.length },
-                { label: 'Celebration Inquiries', val: displayCelBookings.length },
+                { label: 'Celebration Bookings', val: displayCelBookings.length },
                 { label: 'Menu Pages', val: activeRestaurant.menuPhotos.length },
                 { label: 'Celebration Pkgs', val: restCelPackages.length },
                 { label: 'Sample Revenue (Demo)', val: formatINR(184500) },
@@ -1541,15 +1596,17 @@ export function RestaurantDashboard() {
           </div>
         )}
 
-        {/* CUSTOM CELEBRATION REQUESTS (11-FIELD BRIEF + QUOTATION WORKFLOW) */}
-        {activeSection === 'custom-requests' && (
+        {/* CUSTOM CELEBRATION REQUESTS & QUOTATION BUILDER */}
+        {(activeSection === 'custom-requests' || activeSection === 'quotations') && (
           <div className="space-y-5">
             <div>
               <h1 className="font-display text-3xl font-semibold text-[#1C1917]">
-                Custom Celebration Requests &amp; Quotations
+                {activeSection === 'quotations'
+                  ? 'Custom Celebration Quotations'
+                  : 'Custom Celebration Requests'}
               </h1>
               <p className="text-sm text-[#57534E] mt-1">
-                Review custom celebration briefs submitted by guests. Send an itemized quotation (decoration is always ₹0). Guests must accept your quotation before demo advance payment unlocks.
+                Review incoming bespoke celebration briefs &amp; reference photos, mark requests Under Review, and build itemized quotations (Decoration Charge is permanently locked at ₹0). Once accepted by the customer, quotations become locked.
               </p>
             </div>
 
@@ -1558,161 +1615,443 @@ export function RestaurantDashboard() {
                 No custom celebration requests received yet.
               </div>
             ) : (
-              <div className="space-y-4">
-                {displayCustomRequests.map((req) => (
-                  <div key={req.id} className="bg-white border border-[#E5E0D8] rounded-lg p-5 space-y-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-mono font-semibold text-[#6E1E2E]">
-                          {req.id} · {req.occasionType} · {formatDisplayDate(req.preferredDate)} at {req.preferredTime}
-                        </p>
-                        <h3 className="text-lg font-semibold text-[#1C1917] mt-0.5">
-                          {req.customerName} — {req.guestsCount} Guests (Est. Budget: {formatINR(req.estimatedBudget)})
-                        </h3>
-                        <p className="text-xs text-[#57534E] mt-0.5">
-                          {req.customerEmail} · {req.customerPhone}
-                        </p>
-                      </div>
-                      <StatusBadge status={req.status} />
-                    </div>
+              <div className="space-y-5">
+                {displayCustomRequests
+                  .filter((req) => (activeSection === 'quotations' ? Boolean(req.quotation) || customQuoteReqId === req.id : true))
+                  .map((req) => {
+                    const isLocked = Boolean(req.quotation?.locked);
+                    return (
+                      <div key={req.id} className="bg-white border border-[#E5E0D8] rounded-lg p-5 sm:p-6 space-y-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <p className="text-xs font-mono font-semibold text-[#6E1E2E]">
+                              {req.id} · {req.occasionType} · {formatDisplayDate(req.preferredDate)} at {req.preferredTime}
+                            </p>
+                            <h3 className="text-lg font-semibold text-[#1C1917] mt-0.5">
+                              {req.customerName} — {req.guestsCount} Guests (Approx. Budget: {formatINR(req.estimatedBudget)})
+                            </h3>
+                            <p className="text-xs text-[#57534E] mt-0.5">
+                              {req.customerEmail} · {req.customerPhone} · Dietary: {req.vegNonVegPreference}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {isLocked && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#ECF4EE] border border-[#BBD6C3] text-[11px] font-semibold text-[#1E462A]">
+                                <Lock className="w-3 h-3" /> Quote Locked
+                              </span>
+                            )}
+                            <StatusBadge status={req.status} />
+                          </div>
+                        </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 bg-[#FAF9F6]/70 border border-[#E5E0D8] rounded-lg p-4 text-xs">
-                      <div>
-                        <span className="text-[#57534E] block">Decoration Theme</span>
-                        <span className="font-semibold text-[#1C1917]">{req.decorationTheme}</span>
-                      </div>
-                      <div>
-                        <span className="text-[#57534E] block">Preferred Colours</span>
-                        <span className="font-semibold text-[#1C1917]">{req.preferredColors}</span>
-                      </div>
-                      <div>
-                        <span className="text-[#57534E] block">Cake Requirements</span>
-                        <span className="font-semibold text-[#1C1917]">{req.cakeRequirements}</span>
-                      </div>
-                      <div>
-                        <span className="text-[#57534E] block">Food Preferences</span>
-                        <span className="font-semibold text-[#1C1917]">{req.foodPreferences}</span>
-                      </div>
-                      <div>
-                        <span className="text-[#57534E] block">Decoration Charge</span>
-                        <span className="font-semibold text-[#1C1917]">₹0 (Complimentary)</span>
-                      </div>
-                      <div>
-                        <span className="text-[#57534E] block">Special Instructions</span>
-                        <span className="font-medium text-[#1C1917]">
-                          {req.specialInstructions || 'None specified'}
-                        </span>
-                      </div>
-                    </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 bg-[#FAF9F6] border border-[#E5E0D8] rounded-lg p-4 text-xs">
+                          <div>
+                            <span className="text-[#57534E] block">Decoration Theme</span>
+                            <span className="font-semibold text-[#1C1917]">{req.decorationTheme}</span>
+                          </div>
+                          <div>
+                            <span className="text-[#57534E] block">Preferred Colours</span>
+                            <span className="font-semibold text-[#1C1917]">{req.preferredColors}</span>
+                          </div>
+                          <div>
+                            <span className="text-[#57534E] block">Decoration Requirements</span>
+                            <span className="font-semibold text-[#1C1917]">{req.decorationRequirements}</span>
+                          </div>
+                          <div>
+                            <span className="text-[#57534E] block">Cake Requirements</span>
+                            <span className="font-semibold text-[#1C1917]">{req.cakeRequirements}</span>
+                          </div>
+                          <div>
+                            <span className="text-[#57534E] block">Food Preferences</span>
+                            <span className="font-semibold text-[#1C1917]">
+                              {req.foodPreferences} ({req.vegNonVegPreference})
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[#57534E] block">Decoration Charge Rule</span>
+                            <span className="font-semibold text-[#1E462A]">₹0 (Complimentary)</span>
+                          </div>
+                          <div className="sm:col-span-2 lg:col-span-3">
+                            <span className="text-[#57534E] block">Special Instructions</span>
+                            <span className="font-medium text-[#1C1917]">
+                              {req.specialInstructions || 'None specified'}
+                            </span>
+                          </div>
+                        </div>
 
-                    {req.quotedAmount && (
-                      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 rounded-lg bg-[#ECF4EE]/55 border border-[#BBD6C3] text-xs">
-                        <span className="font-medium text-[#1C1917]">
-                          Sent Quote: <strong className="font-mono">{formatINR(req.quotedAmount)}</strong> ·{' '}
-                          {req.advancePercent}% Advance: <strong className="font-mono">{formatINR(req.advanceAmount || 0)}</strong>{' '}
-                          ({req.advancePaid ? 'DEMO PAID' : 'Awaiting guest acceptance/payment'})
-                        </span>
-                        {req.quotationNotes && (
-                          <span className="text-[#57534E]">Notes: {req.quotationNotes}</span>
+                        {req.referenceImages.length > 0 && (
+                          <div className="space-y-1.5">
+                            <p className="text-xs font-semibold text-[#1C1917]">
+                              Customer Reference Images ({req.referenceImages.length}):
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {req.referenceImages.map((img, i) => (
+                                <div key={i} className="w-24 h-16 rounded overflow-hidden border border-[#E5E0D8]">
+                                  <SafeImage src={img} alt={`Customer ref ${i + 1}`} className="w-full h-full object-cover" />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {req.quotation && (
+                          <div className="rounded-lg border border-[#BBD6C3] bg-[#ECF4EE]/45 p-4 text-xs space-y-1.5">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="font-semibold text-[#1C1917] inline-flex items-center gap-1.5">
+                                <ShieldCheck className="w-4 h-4 text-[#1E462A]" />
+                                Quotation {req.quotation.id} ({req.quotation.status}) · Total:{' '}
+                                <strong className="font-mono text-[#6E1E2E]">{formatINR(req.quotation.totalAmount)}</strong>
+                              </span>
+                              <span className="text-[#57534E] tabular-nums">
+                                Valid Until {formatDisplayDate(req.quotation.validUntil)} · {req.quotation.advancePercent}% Advance: {formatINR(req.quotation.advanceAmount)}{' '}
+                                {req.advancePaid ? `(DEMO PAID · ${req.transactionId})` : '(Unpaid)'}
+                              </span>
+                            </div>
+                            <p className="text-[#57534E]">
+                              Food: {req.quotation.platesCount} × {formatINR(req.quotation.pricePerPlate)} · Cake: {formatINR(req.quotation.cakeCharge)} · Decor: ₹0 · Line Items: {req.quotation.lineItems.length}
+                            </p>
+                            {req.quotation.rejectionReason && (
+                              <p className="text-[#8B1E35] font-medium">
+                                Customer Decline Reason: {req.quotation.rejectionReason}
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {customQuoteReqId === req.id && !isLocked ? (
+                          <div className="bg-[#FAF9F6] border-2 border-[#6E1E2E]/30 rounded-lg p-5 space-y-4">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <h4 className="font-display text-xl font-semibold text-[#1C1917]">
+                                Structured Quotation Builder ({req.id})
+                              </h4>
+                              <span className="px-2.5 py-1 rounded bg-[#ECF4EE] border border-[#BBD6C3] text-[11px] font-semibold text-[#1E462A]">
+                                Decoration Charge Locked at ₹0
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                              <div className="sm:col-span-2">
+                                <label className="block text-xs font-semibold mb-1">Food Package Details *</label>
+                                <input
+                                  type="text"
+                                  value={qFoodDetails}
+                                  onChange={(e) => setQFoodDetails(e.target.value)}
+                                  className="w-full px-3 py-2 text-xs bg-white border border-[#E5E0D8] rounded-lg"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-semibold mb-1">Price Per Plate (₹) *</label>
+                                <input
+                                  type="number"
+                                  min={100}
+                                  value={qPricePerPlate}
+                                  onChange={(e) => setQPricePerPlate(Number(e.target.value))}
+                                  className="w-full px-3 py-2 text-xs bg-white border border-[#E5E0D8] rounded-lg tabular-nums"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-semibold mb-1">Number of Plates *</label>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={qPlatesCount}
+                                  onChange={(e) => setQPlatesCount(Number(e.target.value))}
+                                  className="w-full px-3 py-2 text-xs bg-white border border-[#E5E0D8] rounded-lg tabular-nums"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                              <div>
+                                <label className="block text-xs font-semibold mb-1">Custom Cake Charge (₹)</label>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={qCakeCharge}
+                                  onChange={(e) => setQCakeCharge(Number(e.target.value))}
+                                  className="w-full px-3 py-2 text-xs bg-white border border-[#E5E0D8] rounded-lg tabular-nums"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-semibold mb-1">Advance Percentage (%)</label>
+                                <select
+                                  value={qAdvancePct}
+                                  onChange={(e) => setQAdvancePct(Number(e.target.value))}
+                                  className="w-full px-3 py-2 text-xs bg-white border border-[#E5E0D8] rounded-lg"
+                                >
+                                  <option value={20}>20% Advance</option>
+                                  <option value={30}>30% Advance</option>
+                                  <option value={50}>50% Advance</option>
+                                  <option value={100}>100% Full Advance</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-xs font-semibold mb-1">Quotation Validity Date *</label>
+                                <input
+                                  type="date"
+                                  value={qValidUntil}
+                                  min={getTodayISO()}
+                                  onChange={(e) => setQValidUntil(e.target.value)}
+                                  className="w-full px-3 py-2 text-xs bg-white border border-[#E5E0D8] rounded-lg"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-xs font-semibold mb-1">
+                                  Decoration Arrangement Details (Fee: ₹0 Fixed)
+                                </label>
+                                <input
+                                  type="text"
+                                  value={qDecorDetails}
+                                  onChange={(e) => setQDecorDetails(e.target.value)}
+                                  className="w-full px-3 py-2 text-xs bg-white border border-[#E5E0D8] rounded-lg"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-semibold mb-1">Special Services &amp; Charges Note</label>
+                                <input
+                                  type="text"
+                                  value={qSpecialServices}
+                                  onChange={(e) => setQSpecialServices(e.target.value)}
+                                  placeholder="Live acoustic artist, photographer window, dedicated host..."
+                                  className="w-full px-3 py-2 text-xs bg-white border border-[#E5E0D8] rounded-lg"
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-semibold mb-1">Additional Included Services</label>
+                              <input
+                                type="text"
+                                value={qAdditionalServices}
+                                onChange={(e) => setQAdditionalServices(e.target.value)}
+                                className="w-full px-3 py-2 text-xs bg-white border border-[#E5E0D8] rounded-lg"
+                              />
+                            </div>
+
+                            {/* Itemized Special Line Items */}
+                            <div className="bg-white border border-[#E5E0D8] rounded-lg p-3.5 space-y-2.5">
+                              <p className="text-xs font-semibold text-[#1C1917]">
+                                Additional Itemized Charges (Music, AV, Exclusive Lounge, etc.)
+                              </p>
+                              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                                <input
+                                  type="text"
+                                  value={newItemLabel}
+                                  onChange={(e) => setNewItemLabel(e.target.value)}
+                                  placeholder="e.g., Acoustic Flute Artist"
+                                  className="sm:col-span-2 px-3 py-1.5 text-xs border border-[#E5E0D8] rounded"
+                                />
+                                <select
+                                  value={newItemCategory}
+                                  onChange={(e) =>
+                                    setNewItemCategory(e.target.value as CelebrationQuotationItem['category'])
+                                  }
+                                  className="px-2.5 py-1.5 text-xs bg-white border border-[#E5E0D8] rounded"
+                                >
+                                  <option value="Service">Service</option>
+                                  <option value="Food">Food</option>
+                                  <option value="Cake">Cake</option>
+                                  <option value="Other">Other</option>
+                                </select>
+                                <div className="flex gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={newItemAmount}
+                                    onChange={(e) => setNewItemAmount(Number(e.target.value))}
+                                    className="w-full px-2.5 py-1.5 text-xs border border-[#E5E0D8] rounded tabular-nums"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (!newItemLabel.trim()) return;
+                                      setQLineItems((prev) => [
+                                        ...prev,
+                                        {
+                                          id: `qli-${Date.now()}`,
+                                          label: newItemLabel.trim(),
+                                          category: newItemCategory,
+                                          amount: Math.max(0, newItemAmount),
+                                        },
+                                      ]);
+                                      setNewItemLabel('');
+                                    }}
+                                    className="px-3 py-1.5 text-xs font-semibold bg-[#1C1917] text-white rounded shrink-0"
+                                  >
+                                    Add
+                                  </button>
+                                </div>
+                              </div>
+
+                              {qLineItems.length > 0 && (
+                                <div className="divide-y divide-[#E5E0D8] text-xs">
+                                  {qLineItems.map((li) => (
+                                    <div key={li.id} className="py-1.5 flex items-center justify-between">
+                                      <span>
+                                        {li.label} <span className="text-[#57534E]">({li.category})</span>
+                                      </span>
+                                      <div className="flex items-center gap-3">
+                                        <span className="font-mono tabular-nums">{formatINR(li.amount)}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            setQLineItems((prev) => prev.filter((item) => item.id !== li.id))
+                                          }
+                                          className="text-[#8B1E35] hover:underline"
+                                        >
+                                          Remove
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-xs font-semibold mb-1">Terms &amp; Conditions *</label>
+                                <textarea
+                                  rows={2}
+                                  value={qTerms}
+                                  onChange={(e) => setQTerms(e.target.value)}
+                                  className="w-full px-3 py-2 text-xs bg-white border border-[#E5E0D8] rounded-lg"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-semibold mb-1">Additional Notes to Guest</label>
+                                <textarea
+                                  rows={2}
+                                  value={qAdditionalNotes}
+                                  onChange={(e) => setQAdditionalNotes(e.target.value)}
+                                  className="w-full px-3 py-2 text-xs bg-white border border-[#E5E0D8] rounded-lg"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Live Total Preview */}
+                            <div className="bg-white border border-[#E5E0D8] rounded-lg p-3.5 text-xs space-y-1">
+                              <div className="flex justify-between">
+                                <span className="text-[#57534E]">
+                                  Food Total ({qPlatesCount} × {formatINR(qPricePerPlate)})
+                                </span>
+                                <span className="font-mono tabular-nums">{formatINR(qFoodSubtotal)}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-[#57534E]">Cake + Additional Line Items</span>
+                                <span className="font-mono tabular-nums">
+                                  {formatINR(qCakeCharge + qLineItemsTotal)}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-[#57534E]">Decoration Charge (Mandatory Rule)</span>
+                                <span className="font-mono font-semibold text-[#1E462A]">₹0 (FREE)</span>
+                              </div>
+                              <div className="flex justify-between pt-1.5 border-t border-[#E5E0D8] font-semibold text-sm text-[#1C1917]">
+                                <span>Total Quoted Amount</span>
+                                <span className="font-mono tabular-nums">{formatINR(qGrandTotal)}</span>
+                              </div>
+                              <div className="flex justify-between font-semibold text-[#6E1E2E]">
+                                <span>Advance ({qAdvancePct}%) / Remaining at Venue</span>
+                                <span className="font-mono tabular-nums">
+                                  {formatINR(qAdvanceAmt)} / {formatINR(qRemainingAmt)}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  upsertAndSendCustomQuotation(req.id, {
+                                    foodPackageDetails: qFoodDetails,
+                                    pricePerPlate: Number(qPricePerPlate),
+                                    platesCount: Number(qPlatesCount),
+                                    cakeCharge: Number(qCakeCharge),
+                                    specialServicesNotes: qSpecialServices,
+                                    decorationDetails: qDecorDetails,
+                                    additionalIncludedServices: qAdditionalServices,
+                                    lineItems: qLineItems,
+                                    advancePercent: Number(qAdvancePct),
+                                    validUntil: qValidUntil,
+                                    termsAndConditions: qTerms,
+                                    additionalNotes: qAdditionalNotes,
+                                  });
+                                  setCustomQuoteReqId(null);
+                                }}
+                                className="px-5 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
+                              >
+                                Send Quotation to Customer
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCustomQuoteReqId(null)}
+                                className="px-4 py-2 text-xs border border-[#E5E0D8] bg-white rounded-lg"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
+                            {req.status === 'Request Received' && (
+                              <button
+                                type="button"
+                                onClick={() => markCustomRequestUnderReview(req.id)}
+                                className="px-3.5 py-1.5 text-xs font-semibold border border-[#E5E0D8] bg-[#FAF9F6] rounded-lg hover:bg-[#F3F1ED]"
+                              >
+                                Mark Under Review
+                              </button>
+                            )}
+                            {!isLocked && req.status !== 'Cancelled' && (
+                              <button
+                                type="button"
+                                onClick={() => openQuotationBuilder(req)}
+                                className="px-4 py-1.5 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
+                              >
+                                {req.quotation ? 'Edit & Resend Quotation' : 'Create & Send Quotation'}
+                              </button>
+                            )}
+                            {req.advancePaid && req.status !== 'Completed' && (
+                              <button
+                                type="button"
+                                onClick={() => updateCustomRequestStatus(req.id, 'Completed')}
+                                className="px-3.5 py-1.5 text-xs font-semibold bg-[#ECF4EE] text-[#1E462A] border border-[#BBD6C3] rounded-lg"
+                              >
+                                Mark Completed
+                              </button>
+                            )}
+                            {!req.advancePaid && req.status !== 'Cancelled' && req.status !== 'Completed' && (
+                              <button
+                                type="button"
+                                onClick={() => updateCustomRequestStatus(req.id, 'Cancelled')}
+                                className="px-3 py-1.5 text-xs font-semibold text-[#8B1E35] border border-[#EAC4CC] bg-[#FDF2F4] rounded-lg"
+                              >
+                                Cancel Request
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
-                    )}
-
-                    {customQuoteReqId === req.id ? (
-                      <div className="bg-[#FAF9F6] border border-[#E5E0D8] rounded-lg p-4 space-y-3">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          <div>
-                            <label className="block text-xs font-semibold mb-1">
-                              Custom Quoted Amount (₹) — Decor ₹0
-                            </label>
-                            <input
-                              type="number"
-                              min={1000}
-                              value={customQuoteAmount}
-                              onChange={(e) => setCustomQuoteAmount(Number(e.target.value))}
-                              className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg tabular-nums"
-                            />
-                          </div>
-                          <div className="sm:col-span-2">
-                            <label className="block text-xs font-semibold mb-1">Quotation Breakdown &amp; Notes</label>
-                            <input
-                              type="text"
-                              value={customQuoteNotes}
-                              onChange={(e) => setCustomQuoteNotes(e.target.value)}
-                              placeholder="Multi-course feast, custom cake coordination & free floral setup included"
-                              className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
-                            />
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              sendCustomRequestQuotation(
-                                req.id,
-                                Number(customQuoteAmount),
-                                customQuoteNotes.trim() || 'Custom quotation prepared with complimentary ₹0 venue decoration.'
-                              );
-                              setCustomQuoteReqId(null);
-                            }}
-                            className="px-4 py-1.5 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg"
-                          >
-                            Send Quotation to Customer
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setCustomQuoteReqId(null)}
-                            className="px-3 py-1.5 text-xs border border-[#E5E0D8] bg-white rounded-lg"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCustomQuoteReqId(req.id);
-                            setCustomQuoteAmount(req.quotedAmount || req.estimatedBudget);
-                            setCustomQuoteNotes(req.quotationNotes || '');
-                          }}
-                          className="px-3.5 py-1.5 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
-                        >
-                          {req.quotedAmount ? 'Update Custom Quotation' : 'Prepare & Send Quotation'}
-                        </button>
-                        {(['Confirmed', 'Completed', 'Declined'] as CustomRequestStatus[]).map((st) => (
-                          <button
-                            key={st}
-                            type="button"
-                            onClick={() => updateCustomRequestStatus(req.id, st)}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg border ${
-                              st === 'Declined'
-                                ? 'border-[#E5E0D8] text-[#8B1E35] hover:bg-[#FDF2F4]'
-                                : 'border-[#E5E0D8] bg-white hover:bg-[#FAF9F6]'
-                            }`}
-                          >
-                            Mark {st}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                    );
+                  })}
               </div>
             )}
           </div>
         )}
 
-        {/* EVENT INQUIRIES & QUOTATIONS */}
-        {(activeSection === 'events' || activeSection === 'quotations') && (
+        {/* READY-MADE CELEBRATION BOOKINGS (DIRECT BOOKING — NO QUOTATION) */}
+        {activeSection === 'events' && (
           <div className="space-y-5">
             <div>
               <h1 className="font-display text-3xl font-semibold text-[#1C1917]">
-                {activeSection === 'quotations' ? 'Celebration Quotations' : 'Event Inquiries'}
+                Ready-Made Celebration Package Bookings
               </h1>
               <p className="text-sm text-[#57534E]">
-                Send custom quotations (Decoration Charge locked at ₹0) and manage confirmed celebration events.
+                Direct bookings placed from your approved celebration packages. Pricing is auto-calculated from price per plate (Decoration Charge: ₹0); no quotation is required.
               </p>
             </div>
 
@@ -1728,7 +2067,9 @@ export function RestaurantDashboard() {
                         {cb.customerName} — {cb.packageName}
                       </h3>
                       <p className="text-xs text-[#57534E] tabular-nums">
-                        {cb.platesCount} Plates × {formatINR(cb.pricePerPlate)} · Quoted Total: {formatINR(cb.quotedTotalAmount)} · Decoration: ₹0 (FREE) · Advance ({cb.advancePercent}%): {formatINR(cb.advanceAmount)} ({cb.advancePaid ? 'DEMO PAID' : 'Pending'})
+                        {cb.platesCount} Plates × {formatINR(cb.pricePerPlate)} ={' '}
+                        <strong className="text-[#1C1917]">{formatINR(cb.totalPackageAmount)}</strong> · Decoration: ₹0 (FREE) · Advance ({cb.advancePercent}%): {formatINR(cb.advanceAmount)}{' '}
+                        ({cb.advancePaid ? `DEMO PAID · ${cb.transactionId}` : 'Advance Pending'})
                       </p>
                       {cb.specialRequests && (
                         <p className="text-xs text-[#1C1917] mt-1">Requests: {cb.specialRequests}</p>
@@ -1737,80 +2078,35 @@ export function RestaurantDashboard() {
                     <StatusBadge status={cb.status} />
                   </div>
 
-                  {quoteBookingId === cb.id ? (
-                    <div className="bg-[#FAF9F6] border border-[#E5E0D8] rounded-lg p-4 space-y-3">
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div>
-                          <label className="block text-xs font-semibold mb-1">
-                            Quoted Food Total (₹) — Decor ₹0
-                          </label>
-                          <input
-                            type="number"
-                            value={quoteTotal}
-                            onChange={(e) => setQuoteTotal(Number(e.target.value))}
-                            className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg tabular-nums"
-                          />
-                        </div>
-                        <div className="sm:col-span-2">
-                          <label className="block text-xs font-semibold mb-1">Quotation Notes</label>
-                          <input
-                            type="text"
-                            value={quoteNotes}
-                            onChange={(e) => setQuoteNotes(e.target.value)}
-                            placeholder="Includes terrace corner reserve & custom floral runner (FREE)"
-                            className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            sendCelebrationQuotation(cb.id, Number(quoteTotal), quoteNotes);
-                            setQuoteBookingId(null);
-                          }}
-                          className="px-4 py-1.5 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg"
-                        >
-                          Send Quotation to Customer
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setQuoteBookingId(null)}
-                          className="px-3 py-1.5 text-xs border border-[#E5E0D8] bg-white rounded-lg"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setQuoteBookingId(cb.id);
-                          setQuoteTotal(cb.quotedTotalAmount);
-                          setQuoteNotes(cb.quotationNotes || '');
-                        }}
-                        className="px-3 py-1.5 text-xs font-semibold text-[#6E1E2E] border border-[#6E1E2E] rounded-lg hover:bg-[#FAF9F6]"
-                      >
-                        Send / Update Custom Quotation
-                      </button>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {cb.status !== 'Confirmed' && cb.status !== 'Completed' && cb.status !== 'Cancelled' && cb.status !== 'Rejected' && (
                       <button
                         type="button"
                         onClick={() => updateCelebrationBookingStatus(cb.id, 'Confirmed')}
-                        className="px-3 py-1.5 text-xs font-semibold bg-[#ECF4EE] text-[#1C1917] rounded-lg"
+                        className="px-3.5 py-1.5 text-xs font-semibold bg-[#ECF4EE] text-[#1E462A] border border-[#BBD6C3] rounded-lg"
                       >
                         Mark Confirmed
                       </button>
+                    )}
+                    {cb.status !== 'Completed' && cb.status !== 'Cancelled' && cb.status !== 'Rejected' && (
                       <button
                         type="button"
                         onClick={() => updateCelebrationBookingStatus(cb.id, 'Completed')}
-                        className="px-3 py-1.5 text-xs font-semibold border border-[#E5E0D8] rounded-lg"
+                        className="px-3.5 py-1.5 text-xs font-semibold border border-[#E5E0D8] rounded-lg hover:bg-[#FAF9F6]"
                       >
                         Mark Completed
                       </button>
-                    </div>
-                  )}
+                    )}
+                    {!cb.advancePaid && cb.status !== 'Rejected' && cb.status !== 'Cancelled' && (
+                      <button
+                        type="button"
+                        onClick={() => updateCelebrationBookingStatus(cb.id, 'Rejected')}
+                        className="px-3.5 py-1.5 text-xs font-semibold text-[#8B1E35] border border-[#EAC4CC] bg-[#FDF2F4] rounded-lg"
+                      >
+                        Reject Booking
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

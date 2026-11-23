@@ -11,12 +11,14 @@ import {
   Phone,
   Sparkles,
   Star,
+  Trash2,
+  Upload,
   Utensils,
   X,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { CELEBRATION_CATEGORIES } from '../../data/mockData';
-import type { CelebrationCategory } from '../../types';
+import { CELEBRATION_CATEGORIES, IMAGES } from '../../data/mockData';
+import type { CelebrationCategory, VegNonVegPreference } from '../../types';
 import { SafeImage } from './SafeImage';
 import { PaymentBreakdownCard } from './PaymentBreakdownCard';
 import {
@@ -101,7 +103,10 @@ export function RestaurantModal() {
   const [customTheme, setCustomTheme] = useState('Marigold & Candlelight Courtyard');
   const [customColors, setCustomColors] = useState('Deep Burgundy, Warm Ivory & Champagne Gold');
   const [customCake, setCustomCake] = useState('1 kg Eggless Chocolate Truffle Cake');
-  const [customFoodPref, setCustomFoodPref] = useState('Pure Vegetarian Multi-Course');
+  const [customFoodPref, setCustomFoodPref] = useState('Multi-Course Celebration Menu');
+  const [customVegPref, setCustomVegPref] = useState<VegNonVegPreference>('Pure Veg');
+  const [customDecorReqs, setCustomDecorReqs] = useState('Floral centerpiece and warm candle setup');
+  const [customRefImages, setCustomRefImages] = useState<string[]>([]);
   const [customInstructions, setCustomInstructions] = useState('');
   const [customConfirmedRef, setCustomConfirmedRef] = useState<string | null>(null);
 
@@ -378,7 +383,10 @@ export function RestaurantModal() {
       preferredColors: customColors.trim(),
       cakeRequirements: customCake.trim() || 'No cake required',
       foodPreferences: customFoodPref.trim(),
+      vegNonVegPreference: customVegPref,
+      decorationRequirements: customDecorReqs.trim() || customTheme.trim(),
       specialInstructions: customInstructions.trim(),
+      referenceImages: customRefImages,
       customerName: guestName.trim(),
       customerEmail: celEmail.trim(),
       customerPhone: guestPhone.trim(),
@@ -1220,7 +1228,7 @@ export function RestaurantModal() {
                     Celebrate an Occasion at {restaurant.name}
                   </h3>
                   <p className="text-xs text-[#57534E] mt-0.5">
-                    Decoration Included – No Additional Charges (₹0). Choose an approved package or submit a bespoke request.
+                    Decoration Included – No Additional Charges (₹0). Ready-made packages book directly without quotation; custom requests receive a tailored quote first.
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -1236,7 +1244,7 @@ export function RestaurantModal() {
                         : 'bg-white text-[#1C1917] border-[#E5E0D8]'
                     }`}
                   >
-                    Approved Packages
+                    Ready-Made Packages (Direct)
                   </button>
                   <button
                     type="button"
@@ -1250,7 +1258,7 @@ export function RestaurantModal() {
                         : 'bg-white text-[#1C1917] border-[#E5E0D8]'
                     }`}
                   >
-                    Custom Celebration Request
+                    Custom Request (Quote Required)
                   </button>
                 </div>
               </div>
@@ -1260,17 +1268,17 @@ export function RestaurantModal() {
                   <div className="py-8 text-center space-y-3">
                     <PartyPopper className="w-10 h-10 text-[#6E1E2E] mx-auto" />
                     <h3 className="font-display text-2xl font-semibold text-[#1C1917]">
-                      Celebration Booking Logged ({celConfirmedRef})
+                      Celebration Booking Recorded ({celConfirmedRef})
                     </h3>
                     <p className="text-sm text-[#57534E] max-w-md mx-auto">
-                      {chosenCelPkg?.name} for {celPlates} plates on {formatDisplayDate(celDate)}. Decoration Charge: ₹0 (Included). Track quotation &amp; confirmation inside your Customer Portal.
+                      {chosenCelPkg?.name} for {celPlates} plates on {formatDisplayDate(celDate)}. Decoration Charge: ₹0 (Included). Track or manage inside Customer Portal → Celebration Bookings.
                     </p>
                     <button
                       type="button"
                       onClick={() => setCelConfirmedRef(null)}
                       className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg"
                     >
-                      Plan Another Celebration
+                      Book Another Celebration
                     </button>
                   </div>
                 ) : restCelPackages.length === 0 ? (
@@ -1457,7 +1465,7 @@ export function RestaurantModal() {
                     </div>
 
                     <PaymentBreakdownCard
-                      title="Celebration Payment Summary"
+                      title="Direct Celebration Booking Summary (No Quotation Required)"
                       rows={[
                         { label: 'Package', value: chosenCelPkg?.name || '' },
                         { label: 'Plates & Rate', value: `${celPlates} × ${formatINR(chosenCelPkg?.pricePerPlate || 0)}` },
@@ -1473,16 +1481,16 @@ export function RestaurantModal() {
                       <button
                         type="button"
                         onClick={() => handleCelebrationSubmit(false)}
-                        className="px-4 py-2.5 text-xs font-semibold text-[#6E1E2E] border border-[#6E1E2E] rounded-lg hover:bg-[#FAF9F6]"
+                        className="px-4 py-2.5 text-xs font-semibold text-[#1C1917] border border-[#D6CFC5] bg-white rounded-lg hover:bg-[#F3F1ED]"
                       >
-                        Request Quotation First
+                        Save Booking (Pay Advance Later)
                       </button>
                       <button
                         type="button"
                         onClick={() => handleCelebrationSubmit(true)}
                         className="px-5 py-2.5 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
                       >
-                        Pay {celAdvPercent}% Demo Advance ({formatINR(celAdvAmt)})
+                        Pay {celAdvPercent}% Demo Advance &amp; Confirm ({formatINR(celAdvAmt)})
                       </button>
                     </div>
                   </div>
@@ -1603,9 +1611,22 @@ export function RestaurantModal() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold mb-1">9. Cake Requirements</label>
+                      <label className="block text-xs font-semibold mb-1">9. Veg / Non-Veg Preference</label>
+                      <select
+                        value={customVegPref}
+                        onChange={(e) => setCustomVegPref(e.target.value as VegNonVegPreference)}
+                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
+                      >
+                        <option value="Pure Veg">Pure Veg</option>
+                        <option value="Veg & Non-Veg">Veg &amp; Non-Veg</option>
+                        <option value="Non-Veg">Non-Veg</option>
+                        <option value="Jain Options Available">Jain Options Available</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1">10. Cake Requirements</label>
                       <input
                         type="text"
                         value={customCake}
@@ -1614,7 +1635,7 @@ export function RestaurantModal() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold mb-1">10. Food Preferences</label>
+                      <label className="block text-xs font-semibold mb-1">11. Food Preferences</label>
                       <input
                         type="text"
                         value={customFoodPref}
@@ -1625,19 +1646,92 @@ export function RestaurantModal() {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold mb-1">11. Special Instructions</label>
-                    <textarea
-                      rows={2}
-                      value={customInstructions}
-                      onChange={(e) => setCustomInstructions(e.target.value)}
-                      placeholder="Music, surprise entrance timing, seating preference..."
-                      className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold mb-1">12. Decoration Requirements (₹0 Fee)</label>
+                      <textarea
+                        rows={2}
+                        value={customDecorReqs}
+                        onChange={(e) => setCustomDecorReqs(e.target.value)}
+                        placeholder="Floral runner, candles, signage, rose petals..."
+                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1">13. Special Instructions</label>
+                      <textarea
+                        rows={2}
+                        value={customInstructions}
+                        onChange={(e) => setCustomInstructions(e.target.value)}
+                        placeholder="Music, surprise entrance timing, seating preference..."
+                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="border border-[#E5E0D8] rounded-lg p-3.5 bg-[#FAF9F6] space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-[#1C1917]">
+                        14. Reference Images (Optional — {customRefImages.length} attached)
+                      </span>
+                      <div className="flex gap-2">
+                        <label className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-[#6E1E2E] rounded cursor-pointer">
+                          <Upload className="w-3 h-3" />
+                          <span>Upload Images</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => {
+                              const files = e.target.files;
+                              if (!files) return;
+                              Array.from(files).forEach((file) => {
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                  if (reader.result) {
+                                    setCustomRefImages((prev) => [...prev, String(reader.result)]);
+                                  }
+                                };
+                                reader.readAsDataURL(file);
+                              });
+                            }}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setCustomRefImages((prev) =>
+                              prev.includes(IMAGES.decorProposal) ? prev : [...prev, IMAGES.decorProposal]
+                            )
+                          }
+                          className="px-2.5 py-1.5 text-xs border border-[#E5E0D8] bg-white rounded"
+                        >
+                          + Sample Photo
+                        </button>
+                      </div>
+                    </div>
+                    {customRefImages.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {customRefImages.map((url, idx) => (
+                          <div key={idx} className="relative w-16 h-12 rounded overflow-hidden border border-[#E5E0D8]">
+                            <SafeImage src={url} alt={`Ref ${idx + 1}`} className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => setCustomRefImages((prev) => prev.filter((_, i) => i !== idx))}
+                              className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-white/90 text-[#8B1E35]"
+                              aria-label="Remove reference"
+                            >
+                              <Trash2 className="w-2.5 h-2.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="px-4 py-3 rounded-lg bg-[#ECF4EE] border border-[#BBD6C3] text-xs text-[#1C1917] flex flex-wrap justify-between gap-2">
-                    <span>Decoration Included – No Additional Charges (₹0). Quote acceptance required before advance payment.</span>
+                    <span>Decoration Included – No Additional Charges (₹0). Quote acceptance required before advance payment unlocks.</span>
                   </div>
 
                   <div className="flex justify-end">

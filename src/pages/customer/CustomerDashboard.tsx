@@ -9,10 +9,13 @@ import {
   Heart,
   LayoutDashboard,
   LifeBuoy,
+  Lock,
   MapPin,
   MessageSquare,
   PartyPopper,
+  Phone,
   Receipt,
+  ShieldCheck,
   Sparkles,
   Star,
   Tag,
@@ -26,6 +29,7 @@ import { StatusBadge } from '../../components/common/StatusBadge';
 import { RestaurantCard } from '../../components/cards/RestaurantCard';
 import { RestaurantModal } from '../../components/common/RestaurantModal';
 import { EmptyStateCard } from '../../components/common/EmptyStateCard';
+import { SafeImage } from '../../components/common/SafeImage';
 import { POPULAR_CUISINES } from '../../data/mockData';
 import type { CuisineType } from '../../types';
 import { formatDisplayDate, formatINR } from '../../utils/formatters';
@@ -35,7 +39,7 @@ const CUSTOMER_NAV: DashboardNavItem[] = [
   { label: 'My Reservations', to: '/customer/reservations', icon: CalendarCheck },
   { label: 'Food Pre-Orders', to: '/customer/preorders', icon: Utensils },
   { label: 'Celebration Bookings', to: '/customer/celebrations', icon: PartyPopper },
-  { label: 'Custom Requests', to: '/customer/custom-requests', icon: Sparkles },
+  { label: 'Custom Requests & Quotes', to: '/customer/custom-requests', icon: Sparkles },
   { label: 'Payment History', to: '/customer/payments', icon: Receipt },
   { label: 'Reviews', to: '/customer/reviews', icon: MessageSquare },
   { label: 'Notifications', to: '/customer/notifications', icon: Bell },
@@ -57,11 +61,13 @@ export function CustomerDashboard() {
     preOrders,
     markPreOrderAdvancePaid,
     celebrationBookings,
-    acceptCelebrationQuotation,
     markCelebrationAdvancePaid,
+    cancelCelebrationBooking,
     customRequests,
     acceptCustomRequestQuotation,
+    rejectCustomRequestQuotation,
     markCustomRequestAdvancePaid,
+    cancelCustomRequest,
     payments,
     reviews,
     submitReview,
@@ -74,6 +80,9 @@ export function CustomerDashboard() {
     openDemoPayment,
     addToast,
   } = useApp();
+
+  const [rejectingReqId, setRejectingReqId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
 
   const [searchExplore, setSearchExplore] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -239,19 +248,20 @@ export function CustomerDashboard() {
               </div>
             </div>
 
-            {/* Action Alerts for Celebration & Custom Request Quotations */}
-            {(myCelebrations.some((c) => c.status === 'Quotation Sent' || c.status === 'Advance Pending') ||
-              myCustomRequests.some((cr) => cr.status === 'Quotation Sent' || cr.status === 'Quotation Accepted')) && (
+            {/* Action Alerts for Custom Request Quotations */}
+            {myCustomRequests.some(
+              (cr) => cr.status === 'Quotation Sent' || cr.status === 'Quotation Accepted'
+            ) && (
               <div className="bg-[#FAF9F6] border border-[#6E1E2E]/35 rounded-lg p-5 space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <h2 className="text-base font-semibold text-[#6E1E2E]">
-                    Action Required: Celebration Quotations Ready
+                    Action Required: Custom Celebration Quotations
                   </h2>
                   <Link
                     to="/customer/custom-requests"
                     className="text-xs font-semibold text-[#6E1E2E] underline"
                   >
-                    Open Custom Requests
+                    Open Custom Requests &amp; Quotes
                   </Link>
                 </div>
 
@@ -511,106 +521,123 @@ export function CustomerDashboard() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h1 className="font-display text-3xl font-semibold text-[#1C1917]">
-                  Celebration Package Bookings
+                  Celebration Bookings (Ready-Made Packages)
                 </h1>
                 <p className="text-sm text-[#57534E]">
-                  Decoration is always FREE (₹0). Accept quotations and pay your demo advance securely.
+                  Direct package bookings with transparent plate pricing and Decoration Included – No Additional Charges (₹0). No quotation required.
                 </p>
               </div>
               <Link
-                to="/events"
-                className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg"
+                to="/events#ready-made-packages"
+                className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
               >
-                Explore Celebration Packages
+                Book Ready-Made Package
               </Link>
             </div>
 
-            <div className="space-y-4">
-              {myCelebrations.map((cel) => (
-                <div key={cel.id} className="bg-white border border-[#E5E0D8] rounded-lg p-5 space-y-4">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <p className="text-xs font-mono font-semibold text-[#6E1E2E]">
-                        {cel.id} · {cel.celebrationType} · {formatDisplayDate(cel.eventDate)} at {cel.eventTime}
-                      </p>
-                      <h3 className="font-display text-xl font-semibold text-[#1C1917]">
-                        {cel.packageName} — {cel.restaurantName}
-                      </h3>
-                      <p className="text-xs text-[#57534E] mt-0.5">{cel.decorationArrangement}</p>
+            {myCelebrations.length === 0 ? (
+              <EmptyStateCard
+                title="No ready-made celebration bookings yet"
+                description="Browse approved celebration packages on the Celebrate page and confirm directly with no quotation wait."
+              />
+            ) : (
+              <div className="space-y-4">
+                {myCelebrations.map((cel) => (
+                  <div key={cel.id} className="bg-white border border-[#E5E0D8] rounded-lg p-5 space-y-4">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-mono font-semibold text-[#6E1E2E]">
+                          {cel.id} · {cel.celebrationType} · {formatDisplayDate(cel.eventDate)} at {cel.eventTime}
+                        </p>
+                        <h3 className="font-display text-xl font-semibold text-[#1C1917]">
+                          {cel.packageName} — {cel.restaurantName}
+                        </h3>
+                        <p className="text-xs text-[#57534E] mt-0.5">{cel.decorationArrangement}</p>
+                      </div>
+                      <StatusBadge status={cel.status} />
                     </div>
-                    <StatusBadge status={cel.status} />
-                  </div>
 
-                  <div className="bg-[#FAF9F6]/55 border border-[#E5E0D8] rounded-lg p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                    <div>
-                      <p className="text-[#57534E]">Plates × Price</p>
-                      <p className="font-mono font-semibold tabular-nums">
-                        {cel.platesCount} × {formatINR(cel.pricePerPlate)}
-                      </p>
+                    <div className="bg-[#FAF9F6] border border-[#E5E0D8] rounded-lg p-4 grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+                      <div>
+                        <p className="text-[#57534E]">Plates × Price</p>
+                        <p className="font-mono font-semibold tabular-nums">
+                          {cel.platesCount} × {formatINR(cel.pricePerPlate)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[#57534E]">Decoration Charge</p>
+                        <p className="font-semibold text-[#1E462A]">FREE (₹0)</p>
+                      </div>
+                      <div>
+                        <p className="text-[#57534E]">Total Package Price</p>
+                        <p className="font-mono font-semibold tabular-nums">{formatINR(cel.totalPackageAmount)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[#57534E]">Advance ({cel.advancePercent}%)</p>
+                        <p className="font-mono font-semibold text-[#6E1E2E] tabular-nums">
+                          {formatINR(cel.advanceAmount)} ({cel.advancePaid ? 'DEMO PAID' : 'Pending'})
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[#57534E]">Remaining at Venue</p>
+                        <p className="font-mono font-semibold tabular-nums">{formatINR(cel.remainingAmount)}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[#57534E]">Decoration Charge</p>
-                      <p className="font-semibold text-[#1C1917]">FREE (₹0)</p>
-                    </div>
-                    <div>
-                      <p className="text-[#57534E]">Quoted Total Amount</p>
-                      <p className="font-mono font-semibold tabular-nums">{formatINR(cel.quotedTotalAmount)}</p>
-                    </div>
-                    <div>
-                      <p className="text-[#57534E]">Approved Advance ({cel.advancePercent}%)</p>
-                      <p className="font-mono font-semibold text-[#6E1E2E] tabular-nums">
-                        {formatINR(cel.advanceAmount)} · Rem: {formatINR(cel.remainingAmount)}
-                      </p>
+
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                      <span className="text-xs text-[#57534E]">
+                        {cel.transactionId
+                          ? `Demo Txn ID: ${cel.transactionId} · Food Pref: ${cel.foodPreference}`
+                          : `Booked ${formatDisplayDate(cel.createdAt)} · Food Pref: ${cel.foodPreference}`}
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        {!cel.advancePaid &&
+                          cel.status !== 'Cancelled' &&
+                          cel.status !== 'Rejected' &&
+                          cel.status !== 'Completed' && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openDemoPayment({
+                                  title: `Celebration ${cel.advancePercent}% Advance (DEMO ONLY)`,
+                                  referenceId: cel.id,
+                                  paymentType: 'Celebration Advance',
+                                  customerName: cel.customerName,
+                                  restaurantName: cel.restaurantName,
+                                  amount: cel.advanceAmount,
+                                  breakdownLines: [
+                                    { label: 'Ready-Made Package', value: cel.packageName },
+                                    { label: 'Food Included', value: `${cel.plateItems.length} courses per plate` },
+                                    { label: 'Plates × Price', value: `${cel.platesCount} × ${formatINR(cel.pricePerPlate)}` },
+                                    { label: 'Decoration Charge', value: 'FREE (₹0 — Decoration Included)' },
+                                    { label: 'Total Package Price', value: formatINR(cel.totalPackageAmount) },
+                                    { label: 'Remaining Payable at Venue', value: formatINR(cel.remainingAmount) },
+                                  ],
+                                  onComplete: (txnId) => markCelebrationAdvancePaid(cel.id, txnId),
+                                })
+                              }
+                              className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
+                            >
+                              Pay {formatINR(cel.advanceAmount)} Demo Advance &amp; Confirm
+                            </button>
+                          )}
+                        {cel.status !== 'Cancelled' &&
+                          cel.status !== 'Completed' &&
+                          cel.status !== 'Rejected' && (
+                            <button
+                              type="button"
+                              onClick={() => cancelCelebrationBooking(cel.id)}
+                              className="px-3.5 py-2 text-xs font-semibold text-[#8B1E35] border border-[#EAC4CC] bg-[#FDF2F4] rounded-lg hover:bg-[#F8DCE6]/50"
+                            >
+                              Cancel Booking
+                            </button>
+                          )}
+                      </div>
                     </div>
                   </div>
-
-                  {cel.quotationNotes && (
-                    <p className="text-xs text-[#57534E]">
-                      <strong>Restaurant Quotation Note:</strong> {cel.quotationNotes}
-                    </p>
-                  )}
-
-                  <div className="flex flex-wrap justify-end gap-2">
-                    {cel.status === 'Quotation Sent' && (
-                      <button
-                        type="button"
-                        onClick={() => acceptCelebrationQuotation(cel.id)}
-                        className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg"
-                      >
-                        Accept Quotation
-                      </button>
-                    )}
-                    {cel.status === 'Advance Pending' && !cel.advancePaid && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openDemoPayment({
-                            title: `Celebration ${cel.advancePercent}% Advance (DEMO ONLY)`,
-                            referenceId: cel.id,
-                            paymentType: 'Celebration Advance',
-                            customerName: cel.customerName,
-                            restaurantName: cel.restaurantName,
-                            amount: cel.advanceAmount,
-                            breakdownLines: [
-                              { label: 'Package Name', value: cel.packageName },
-                              { label: 'Food Included', value: `${cel.plateItems.length} courses per plate` },
-                              { label: 'Plates × Price', value: `${cel.platesCount} × ${formatINR(cel.pricePerPlate)}` },
-                              { label: 'Decoration Charge', value: 'FREE (₹0)' },
-                              { label: 'Approved Total', value: formatINR(cel.quotedTotalAmount) },
-                              { label: 'Remaining Payable at Venue', value: formatINR(cel.remainingAmount) },
-                            ],
-                            onComplete: (txnId) => markCelebrationAdvancePaid(cel.id, txnId),
-                          })
-                        }
-                        className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg"
-                      >
-                        Pay {formatINR(cel.advanceAmount)} Demo Advance
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -619,15 +646,15 @@ export function CustomerDashboard() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h1 className="font-display text-3xl font-semibold text-[#1C1917]">
-                  Custom Celebration Requests
+                  Custom Requests &amp; Quotations
                 </h1>
                 <p className="text-sm text-[#57534E]">
-                  Track bespoke theme requests. Decoration is always ₹0; advance payment unlocks only after you review and accept a restaurant&apos;s quotation.
+                  Custom celebrations require a restaurant quotation. Advance payment remains locked until you review and accept the itemized quotation.
                 </p>
               </div>
               <Link
                 to="/events#custom-celebration-form"
-                className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg"
+                className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
               >
                 New Custom Request
               </Link>
@@ -636,110 +663,342 @@ export function CustomerDashboard() {
             {myCustomRequests.length === 0 ? (
               <EmptyStateCard
                 title="No custom celebration requests yet"
-                description="Submit your custom occasion theme, colours, cake note, and estimated budget on the Celebrate page."
+                description="Submit your custom occasion theme, Veg/Non-Veg preference, decoration brief, and estimated budget on the Celebrate page."
               />
             ) : (
-              <div className="space-y-4">
-                {myCustomRequests.map((req) => (
-                  <div key={req.id} className="bg-white border border-[#E5E0D8] rounded-lg p-5 space-y-4">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div>
-                        <p className="text-xs font-mono font-semibold text-[#6E1E2E]">
-                          {req.id} · {req.occasionType} · {formatDisplayDate(req.preferredDate)} at {req.preferredTime}
-                        </p>
-                        <h3 className="font-display text-xl font-semibold text-[#1C1917]">
-                          {req.restaurantName} ({req.guestsCount} Guests)
-                        </h3>
-                        <p className="text-xs text-[#57534E] mt-0.5">
-                          Theme: {req.decorationTheme} · Colours: {req.preferredColors}
-                        </p>
+              <div className="space-y-5">
+                {myCustomRequests.map((req) => {
+                  const targetRest = restaurants.find((r) => r.id === req.restaurantId);
+                  const quote = req.quotation;
+                  return (
+                    <div key={req.id} className="bg-white border border-[#E5E0D8] rounded-lg p-5 sm:p-6 space-y-4">
+                      {/* Header Metadata */}
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p className="text-xs font-mono font-semibold text-[#6E1E2E]">
+                            {req.id} · Submitted {formatDisplayDate(req.createdAt)} · {req.occasionType}
+                          </p>
+                          <h3 className="font-display text-2xl font-semibold text-[#1C1917] mt-0.5">
+                            {req.restaurantName} — {req.guestsCount} Guests
+                          </h3>
+                          <p className="text-xs text-[#57534E] mt-0.5">
+                            Event Date: {formatDisplayDate(req.preferredDate)} at {req.preferredTime} · Preference: {req.vegNonVegPreference}
+                          </p>
+                        </div>
+                        <StatusBadge status={req.status} />
                       </div>
-                      <StatusBadge status={req.status} />
-                    </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-[#FAF9F6]/55 border border-[#E5E0D8] rounded-lg p-3.5">
-                      <div>
-                        <p className="text-[#57534E]">Your Estimated Budget</p>
-                        <p className="font-mono font-semibold tabular-nums">
-                          {formatINR(req.estimatedBudget)} (Reference Only)
-                        </p>
+                      {/* Summary Bar */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-[#FAF9F6] border border-[#E5E0D8] rounded-lg p-3.5">
+                        <div>
+                          <p className="text-[#57534E]">Requested Budget</p>
+                          <p className="font-mono font-semibold tabular-nums">
+                            {formatINR(req.estimatedBudget)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[#57534E]">Decoration Charge</p>
+                          <p className="font-semibold text-[#1E462A]">₹0 (Included Free)</p>
+                        </div>
+                        <div>
+                          <p className="text-[#57534E]">Quotation Amount</p>
+                          <p className="font-mono font-semibold text-[#6E1E2E] tabular-nums">
+                            {req.quotedAmount ? formatINR(req.quotedAmount) : 'Pending Quote'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[#57534E]">Advance Status</p>
+                          <p className="font-semibold text-[#1C1917]">
+                            {req.advancePaid
+                              ? `DEMO PAID (${formatINR(req.advanceAmount || 0)})`
+                              : quote?.locked
+                                ? `Unlocked (${formatINR(req.advanceAmount || 0)})`
+                                : 'Locked Until Quote Accepted'}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-[#57534E]">Decoration Charge</p>
-                        <p className="font-semibold text-[#1C1917]">FREE (₹0 — Included)</p>
-                      </div>
-                      <div>
-                        <p className="text-[#57534E]">Restaurant Final Quote</p>
-                        <p className="font-mono font-semibold text-[#6E1E2E] tabular-nums">
-                          {req.quotedAmount ? formatINR(req.quotedAmount) : 'Awaiting Restaurant Review'}
+
+                      {/* Brief Details + Reference Images */}
+                      <div className="text-xs text-[#57534E] space-y-1.5">
+                        <p>
+                          <strong className="text-[#1C1917]">Theme &amp; Colours:</strong> {req.decorationTheme} ({req.preferredColors})
                         </p>
-                      </div>
-                    </div>
-
-                    <div className="text-xs text-[#57534E] space-y-1">
-                      <p><strong>Cake:</strong> {req.cakeRequirements}</p>
-                      <p><strong>Food Preferences:</strong> {req.foodPreferences}</p>
-                      {req.specialInstructions && (
-                        <p><strong>Special Instructions:</strong> {req.specialInstructions}</p>
-                      )}
-                      {req.quotationNotes && (
-                        <p className="text-[#1C1917]">
-                          <strong>Restaurant Quotation Note:</strong> {req.quotationNotes}
+                        <p>
+                          <strong className="text-[#1C1917]">Decoration Brief:</strong> {req.decorationRequirements}
                         </p>
-                      )}
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#E5E0D8]">
-                      <span className="text-xs text-[#57534E]">
-                        {req.status === 'Request Received'
-                          ? 'Advance payment is locked until the restaurant sends a quote and you accept it.'
-                          : req.status === 'Quotation Sent'
-                            ? 'Step 1: Review and accept this quotation to unlock simulated advance payment.'
-                            : req.status === 'Quotation Accepted'
-                              ? `Accepted Quote: ${req.advancePercent}% Advance = ${formatINR(req.advanceAmount || 0)}`
-                              : `Demo Txn: ${req.transactionId || 'Logged'}`}
-                      </span>
-
-                      <div className="flex gap-2">
-                        {req.status === 'Quotation Sent' && (
-                          <button
-                            type="button"
-                            onClick={() => acceptCustomRequestQuotation(req.id)}
-                            className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg"
-                          >
-                            Accept Quotation
-                          </button>
-                        )}
-                        {req.status === 'Quotation Accepted' && !req.advancePaid && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              openDemoPayment({
-                                title: `Custom Celebration ${req.advancePercent}% Advance (DEMO ONLY)`,
-                                referenceId: req.id,
-                                paymentType: 'Custom Celebration Advance',
-                                customerName: req.customerName,
-                                restaurantName: req.restaurantName,
-                                amount: req.advanceAmount || 0,
-                                breakdownLines: [
-                                  { label: 'Occasion', value: req.occasionType },
-                                  { label: 'Guests', value: `${req.guestsCount} Guests` },
-                                  { label: 'Decoration Charge', value: 'FREE (₹0)' },
-                                  { label: 'Accepted Quote Total', value: formatINR(req.quotedAmount || 0) },
-                                  { label: 'Remaining at Venue', value: formatINR(req.remainingAmount || 0) },
-                                ],
-                                onComplete: (txnId) => markCustomRequestAdvancePaid(req.id, txnId),
-                              })
-                            }
-                            className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg"
-                          >
-                            Pay {formatINR(req.advanceAmount || 0)} Demo Advance
-                          </button>
+                        <p>
+                          <strong className="text-[#1C1917]">Cake &amp; Food:</strong> {req.cakeRequirements} · {req.foodPreferences} ({req.vegNonVegPreference})
+                        </p>
+                        {req.specialInstructions && (
+                          <p>
+                            <strong className="text-[#1C1917]">Special Instructions:</strong> {req.specialInstructions}
+                          </p>
                         )}
                       </div>
+
+                      {req.referenceImages.length > 0 && (
+                        <div className="space-y-1.5">
+                          <p className="text-[11px] font-semibold text-[#1C1917]">
+                            Your Uploaded Reference Photos:
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {req.referenceImages.map((img, i) => (
+                              <div key={i} className="w-20 h-14 rounded overflow-hidden border border-[#E5E0D8]">
+                                <SafeImage src={img} alt={`Ref ${i + 1}`} className="w-full h-full object-cover" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Structured Quotation Card */}
+                      {quote && (
+                        <div className="border-2 border-[#6E1E2E]/25 bg-[#FAF9F6] rounded-lg p-4 sm:p-5 space-y-4">
+                          <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#E5E0D8]">
+                            <div>
+                              <p className="text-[11px] font-mono uppercase tracking-wider text-[#6E1E2E] font-semibold">
+                                Quotation Card ({quote.id}) · {quote.restaurantName}
+                              </p>
+                              <h4 className="font-display text-xl font-semibold text-[#1C1917]">
+                                Itemized Celebration Proposal
+                              </h4>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {quote.locked && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#ECF4EE] border border-[#BBD6C3] text-[11px] font-semibold text-[#1E462A]">
+                                  <ShieldCheck className="w-3.5 h-3.5" /> Accepted &amp; Locked
+                                </span>
+                              )}
+                              <span className="text-[11px] text-[#57534E] tabular-nums">
+                                Valid Until: {formatDisplayDate(quote.validUntil)}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                            <div className="space-y-1.5">
+                              <p className="font-semibold text-[#1C1917]">Food &amp; Culinary Scope</p>
+                              <p className="text-[#57534E] leading-relaxed">{quote.foodPackageDetails}</p>
+                              {quote.specialServicesNotes && (
+                                <p className="text-[#1C1917]">
+                                  <strong>Special Services:</strong> {quote.specialServicesNotes}
+                                </p>
+                              )}
+                              {quote.additionalIncludedServices && (
+                                <p className="text-[#1C1917]">
+                                  <strong>Included Services:</strong> {quote.additionalIncludedServices}
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <p className="font-semibold text-[#1C1917]">Decoration Scope</p>
+                              <p className="text-[#57534E] leading-relaxed">{quote.decorationDetails}</p>
+                              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-[#ECF4EE] border border-[#BBD6C3] text-[11px] font-semibold text-[#1E462A]">
+                                <span>Decoration Included – No Additional Charges (₹0)</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Cost Breakdown Table */}
+                          <div className="bg-white border border-[#E5E0D8] rounded-lg p-3.5 space-y-1.5 text-xs">
+                            <div className="flex justify-between">
+                              <span className="text-[#57534E]">
+                                Plates ({quote.platesCount} × {formatINR(quote.pricePerPlate)})
+                              </span>
+                              <span className="font-mono tabular-nums font-medium">
+                                {formatINR(quote.platesCount * quote.pricePerPlate)}
+                              </span>
+                            </div>
+                            {quote.cakeCharge > 0 && (
+                              <div className="flex justify-between">
+                                <span className="text-[#57534E]">Custom Cake Charge</span>
+                                <span className="font-mono tabular-nums font-medium">
+                                  {formatINR(quote.cakeCharge)}
+                                </span>
+                              </div>
+                            )}
+                            {quote.lineItems.map((li) => (
+                              <div key={li.id} className="flex justify-between">
+                                <span className="text-[#57534E]">
+                                  {li.label} ({li.category})
+                                </span>
+                                <span className="font-mono tabular-nums font-medium">
+                                  {formatINR(li.amount)}
+                                </span>
+                              </div>
+                            ))}
+                            <div className="flex justify-between">
+                              <span className="text-[#57534E]">Decoration Fee</span>
+                              <span className="font-mono font-semibold text-[#1E462A]">
+                                ₹0 (No Additional Charges)
+                              </span>
+                            </div>
+                            <div className="flex justify-between pt-2 border-t border-[#E5E0D8] font-semibold text-sm text-[#1C1917]">
+                              <span>Total Quoted Amount</span>
+                              <span className="font-mono tabular-nums">{formatINR(quote.totalAmount)}</span>
+                            </div>
+                            <div className="flex justify-between font-semibold text-[#6E1E2E]">
+                              <span>Advance Payable ({quote.advancePercent}%)</span>
+                              <span className="font-mono tabular-nums">{formatINR(quote.advanceAmount)}</span>
+                            </div>
+                            <div className="flex justify-between text-[#57534E]">
+                              <span>Remaining Balance at Restaurant</span>
+                              <span className="font-mono tabular-nums">{formatINR(quote.remainingAmount)}</span>
+                            </div>
+                          </div>
+
+                          <div className="text-[11px] text-[#57534E] space-y-1">
+                            <p>
+                              <strong className="text-[#1C1917]">Terms &amp; Conditions:</strong> {quote.termsAndConditions}
+                            </p>
+                            {quote.additionalNotes && (
+                              <p>
+                                <strong className="text-[#1C1917]">Restaurant Notes:</strong> {quote.additionalNotes}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Reject Quotation Inline Box */}
+                      {rejectingReqId === req.id && (
+                        <div className="bg-[#FDF2F4] border border-[#EAC4CC] rounded-lg p-4 space-y-3">
+                          <label className="block text-xs font-semibold text-[#8B1E35]">
+                            Optional Reason for Declining Quotation
+                          </label>
+                          <input
+                            type="text"
+                            value={rejectReason}
+                            onChange={(e) => setRejectReason(e.target.value)}
+                            placeholder="e.g., Exceeds budget or need revised plate menu..."
+                            className="w-full px-3 py-2 text-xs bg-white border border-[#EAC4CC] rounded-lg"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                rejectCustomRequestQuotation(req.id, rejectReason);
+                                setRejectingReqId(null);
+                                setRejectReason('');
+                              }}
+                              className="px-3.5 py-1.5 text-xs font-semibold text-white bg-[#8B1E35] rounded-lg"
+                            >
+                              Confirm Decline Quotation
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setRejectingReqId(null)}
+                              className="px-3 py-1.5 text-xs border border-[#E5E0D8] bg-white rounded-lg"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Action Footer */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#E5E0D8]">
+                        <span className="text-xs text-[#57534E] inline-flex items-center gap-1.5">
+                          {(req.status === 'Request Received' || req.status === 'Under Review') && (
+                            <>
+                              <Lock className="w-3.5 h-3.5 text-[#6E1E2E]" />
+                              <span>
+                                Advance payment is locked until the restaurant sends a quotation and you accept it.
+                              </span>
+                            </>
+                          )}
+                          {req.status === 'Quotation Sent' &&
+                            'Review the quotation card above and Accept or Reject before payment.'}
+                          {req.status === 'Quotation Accepted' &&
+                            `Quotation accepted & locked. Pay ${req.advancePercent}% advance (${formatINR(req.advanceAmount || 0)}) to confirm.`}
+                          {req.status === 'Quotation Rejected' &&
+                            'You declined this quotation. Submit a revised request or contact the restaurant.'}
+                          {req.advancePaid && `Demo Txn: ${req.transactionId || 'Logged'} · Confirmed`}
+                        </span>
+
+                        <div className="flex flex-wrap gap-2">
+                          {req.status === 'Quotation Sent' && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setRejectingReqId(req.id)}
+                                className="px-3.5 py-2 text-xs font-semibold text-[#8B1E35] border border-[#EAC4CC] bg-[#FDF2F4] rounded-lg"
+                              >
+                                Reject Quotation
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => acceptCustomRequestQuotation(req.id)}
+                                className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
+                              >
+                                Accept Quotation
+                              </button>
+                            </>
+                          )}
+
+                          {(req.status === 'Quotation Accepted' || req.status === 'Advance Pending') &&
+                            !req.advancePaid && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openDemoPayment({
+                                    title: `Custom Celebration ${req.advancePercent}% Advance (DEMO ONLY)`,
+                                    referenceId: req.id,
+                                    paymentType: 'Custom Celebration Advance',
+                                    customerName: req.customerName,
+                                    restaurantName: req.restaurantName,
+                                    amount: req.advanceAmount || 0,
+                                    breakdownLines: [
+                                      { label: 'Occasion', value: req.occasionType },
+                                      { label: 'Quotation ID', value: quote?.id || req.id },
+                                      { label: 'Guests', value: `${req.guestsCount} Guests` },
+                                      { label: 'Decoration Charge', value: 'FREE (₹0 — No Additional Charges)' },
+                                      { label: 'Accepted Quote Total', value: formatINR(req.quotedAmount || 0) },
+                                      { label: 'Remaining at Venue', value: formatINR(req.remainingAmount || 0) },
+                                    ],
+                                    onComplete: (txnId) => markCustomRequestAdvancePaid(req.id, txnId),
+                                  })
+                                }
+                                className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
+                              >
+                                Pay {formatINR(req.advanceAmount || 0)} Demo Advance
+                              </button>
+                            )}
+
+                          {req.status === 'Quotation Rejected' && (
+                            <>
+                              <Link
+                                to="/events#custom-celebration-form"
+                                className="px-3.5 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg"
+                              >
+                                Submit Revised Request
+                              </Link>
+                              {targetRest && (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-[#FAF9F6] border border-[#E5E0D8] rounded-lg text-[#1C1917]">
+                                  <Phone className="w-3.5 h-3.5 text-[#6E1E2E]" />
+                                  {targetRest.contactNumber}
+                                </span>
+                              )}
+                            </>
+                          )}
+
+                          {(req.status === 'Request Received' ||
+                            req.status === 'Under Review' ||
+                            req.status === 'Quotation Sent') && (
+                            <button
+                              type="button"
+                              onClick={() => cancelCustomRequest(req.id)}
+                              className="px-3 py-2 text-xs font-medium text-[#57534E] border border-[#E5E0D8] bg-white rounded-lg hover:bg-[#FAF9F6]"
+                            >
+                              Cancel Request
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
