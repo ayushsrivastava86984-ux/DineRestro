@@ -7,21 +7,18 @@ import {
   Heart,
   Image as ImageIcon,
   MapPin,
+  MessageSquarePlus,
   PartyPopper,
   Phone,
-  Sparkles,
   Star,
-  Trash2,
-  Upload,
   Utensils,
   X,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { CELEBRATION_CATEGORIES, IMAGES } from '../../data/mockData';
-import type { CelebrationCategory, VegNonVegPreference } from '../../types';
 import { SafeImage } from './SafeImage';
 import { PaymentBreakdownCard } from './PaymentBreakdownCard';
 import {
+  MAX_CELEBRATION_NOTE_LENGTH,
   formatDisplayDate,
   formatINR,
   getTodayISO,
@@ -55,7 +52,6 @@ export function RestaurantModal() {
     createTableReservation,
     createFoodPreOrder,
     createCelebrationBooking,
-    createCustomCelebrationRequest,
     openDemoPayment,
   } = useApp();
 
@@ -83,32 +79,18 @@ export function RestaurantModal() {
   const [preOrderTime, setPreOrderTime] = useState('08:00 PM');
   const [preOrderConfirmedRef, setPreOrderConfirmedRef] = useState<string | null>(null);
 
-  // C. Celebrate an Occasion state (Approved Packages vs Custom Request)
-  const [celSubTab, setCelSubTab] = useState<'packages' | 'custom'>('packages');
+  // C. Celebrate an Occasion state (Ready-Made Packages + Optional Note)
   const [selectedCelPkgId, setSelectedCelPkgId] = useState('');
   const [celDate, setCelDate] = useState(getTodayISO());
   const [celTime, setCelTime] = useState('07:30 PM');
   const [celPlates, setCelPlates] = useState(6);
   const [celFoodPref, setCelFoodPref] = useState('Pure Veg · Standard Spice');
-  const [celSpecialReq, setCelSpecialReq] = useState('');
+  const [celCustomerNote, setCelCustomerNote] = useState('');
   const [celEmail, setCelEmail] = useState(customerUser.email);
-  const [celConfirmedRef, setCelConfirmedRef] = useState<string | null>(null);
-
-  // Custom Celebration Request (inside Modal)
-  const [customOccasion, setCustomOccasion] = useState<CelebrationCategory>('Birthday');
-  const [customDate, setCustomDate] = useState(getTodayISO());
-  const [customTime, setCustomTime] = useState('07:30 PM');
-  const [customGuests, setCustomGuests] = useState(10);
-  const [customBudget, setCustomBudget] = useState(14000);
-  const [customTheme, setCustomTheme] = useState('Marigold & Candlelight Courtyard');
-  const [customColors, setCustomColors] = useState('Deep Burgundy, Warm Ivory & Champagne Gold');
-  const [customCake, setCustomCake] = useState('1 kg Eggless Chocolate Truffle Cake');
-  const [customFoodPref, setCustomFoodPref] = useState('Multi-Course Celebration Menu');
-  const [customVegPref, setCustomVegPref] = useState<VegNonVegPreference>('Pure Veg');
-  const [customDecorReqs, setCustomDecorReqs] = useState('Floral centerpiece and warm candle setup');
-  const [customRefImages, setCustomRefImages] = useState<string[]>([]);
-  const [customInstructions, setCustomInstructions] = useState('');
-  const [customConfirmedRef, setCustomConfirmedRef] = useState<string | null>(null);
+  const [celConfirmedInfo, setCelConfirmedInfo] = useState<{
+    id: string;
+    note?: string;
+  } | null>(null);
 
   const [formError, setFormError] = useState('');
 
@@ -139,9 +121,8 @@ export function RestaurantModal() {
       setFormError('');
       setTableConfirmedRef(null);
       setPreOrderConfirmedRef(null);
-      setCelConfirmedRef(null);
-      setCustomConfirmedRef(null);
-      setCelSubTab(restCelPackages.length > 0 ? 'packages' : 'custom');
+      setCelConfirmedInfo(null);
+      setCelCustomerNote('');
       setGuestName(customerUser.fullName);
       setGuestPhone(customerUser.mobile);
       setCelEmail(customerUser.email);
@@ -309,6 +290,11 @@ export function RestaurantModal() {
       setFormError('Please enter valid guest name, email, and 10-digit mobile number.');
       return;
     }
+    const trimmedNote = celCustomerNote.trim();
+    if (trimmedNote.length > MAX_CELEBRATION_NOTE_LENGTH) {
+      setFormError(`Your note must be ${MAX_CELEBRATION_NOTE_LENGTH} characters or fewer.`);
+      return;
+    }
 
     if (payAdvanceNow) {
       openDemoPayment({
@@ -335,7 +321,7 @@ export function RestaurantModal() {
             eventTime: celTime,
             platesCount: celPlates,
             foodPreference: celFoodPref,
-            specialRequests: celSpecialReq,
+            customerNote: trimmedNote,
             customerName: guestName.trim(),
             customerEmail: celEmail.trim(),
             customerPhone: guestPhone.trim(),
@@ -343,7 +329,8 @@ export function RestaurantModal() {
             payAdvanceNow: true,
             transactionId: txnId,
           });
-          setCelConfirmedRef(created.id);
+          setCelConfirmedInfo({ id: created.id, note: created.customerNote });
+          setCelCustomerNote('');
         },
       });
     } else {
@@ -354,45 +341,16 @@ export function RestaurantModal() {
         eventTime: celTime,
         platesCount: celPlates,
         foodPreference: celFoodPref,
-        specialRequests: celSpecialReq,
+        customerNote: trimmedNote,
         customerName: guestName.trim(),
         customerEmail: celEmail.trim(),
         customerPhone: guestPhone.trim(),
         advancePercent: celAdvPercent,
         payAdvanceNow: false,
       });
-      setCelConfirmedRef(created.id);
+      setCelConfirmedInfo({ id: created.id, note: created.customerNote });
+      setCelCustomerNote('');
     }
-  };
-
-  const handleCustomRequestSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError('');
-    if (customGuests < 2 || customBudget < 1000 || !customTheme.trim() || !customFoodPref.trim()) {
-      setFormError('Please provide valid guest count, estimated budget, decoration theme, and food preferences.');
-      return;
-    }
-    const created = createCustomCelebrationRequest({
-      restaurant,
-      occasionType: customOccasion,
-      preferredDate: customDate,
-      preferredTime: customTime,
-      guestsCount: customGuests,
-      estimatedBudget: customBudget,
-      decorationTheme: customTheme.trim(),
-      preferredColors: customColors.trim(),
-      cakeRequirements: customCake.trim() || 'No cake required',
-      foodPreferences: customFoodPref.trim(),
-      vegNonVegPreference: customVegPref,
-      decorationRequirements: customDecorReqs.trim() || customTheme.trim(),
-      specialInstructions: customInstructions.trim(),
-      referenceImages: customRefImages,
-      customerName: guestName.trim(),
-      customerEmail: celEmail.trim(),
-      customerPhone: guestPhone.trim(),
-    });
-    setCustomConfirmedRef(created.id);
-    setCustomInstructions('');
   };
 
   return (
@@ -555,7 +513,7 @@ export function RestaurantModal() {
                   <p className="text-xs font-semibold text-[#6E1E2E]">Option C</p>
                   <p className="text-base font-semibold text-[#1C1917] mt-0.5">Celebrate an Occasion</p>
                   <p className="text-xs text-[#57534E] mt-1">
-                    Ready celebration packages or Custom Celebration Request (₹0 decor charge).
+                    Ready celebration packages with ₹0 decoration &amp; optional special instructions.
                   </p>
                 </button>
               </div>
@@ -1219,82 +1177,54 @@ export function RestaurantModal() {
             </div>
           )}
 
-          {/* TAB 4: C. CELEBRATE AN OCCASION (Packages + Custom Request) */}
+          {/* TAB 4: C. CELEBRATE AN OCCASION (Ready-Made Packages + Optional Note) */}
           {activeTab === 'celebrate' && (
             <div className="space-y-5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h3 className="font-display text-2xl font-semibold text-[#1C1917]">
-                    Celebrate an Occasion at {restaurant.name}
-                  </h3>
-                  <p className="text-xs text-[#57534E] mt-0.5">
-                    Decoration Included – No Additional Charges (₹0). Ready-made packages book directly without quotation; custom requests receive a tailored quote first.
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCelSubTab('packages');
-                      setFormError('');
-                    }}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg border ${
-                      celSubTab === 'packages'
-                        ? 'bg-[#6E1E2E] text-white border-[#6E1E2E]'
-                        : 'bg-white text-[#1C1917] border-[#E5E0D8]'
-                    }`}
-                  >
-                    Ready-Made Packages (Direct)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCelSubTab('custom');
-                      setFormError('');
-                    }}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg border ${
-                      celSubTab === 'custom'
-                        ? 'bg-[#6E1E2E] text-white border-[#6E1E2E]'
-                        : 'bg-white text-[#1C1917] border-[#E5E0D8]'
-                    }`}
-                  >
-                    Custom Request (Quote Required)
-                  </button>
-                </div>
+              <div>
+                <h3 className="font-display text-2xl font-semibold text-[#1C1917]">
+                  Celebrate an Occasion at {restaurant.name}
+                </h3>
+                <p className="text-xs text-[#57534E] mt-0.5">
+                  Decoration Included – No Additional Charges (₹0). Select a ready-made package, share any optional instructions, and book directly.
+                </p>
               </div>
 
-              {celSubTab === 'packages' ? (
-                celConfirmedRef ? (
-                  <div className="py-8 text-center space-y-3">
-                    <PartyPopper className="w-10 h-10 text-[#6E1E2E] mx-auto" />
-                    <h3 className="font-display text-2xl font-semibold text-[#1C1917]">
-                      Celebration Booking Recorded ({celConfirmedRef})
-                    </h3>
-                    <p className="text-sm text-[#57534E] max-w-md mx-auto">
-                      {chosenCelPkg?.name} for {celPlates} plates on {formatDisplayDate(celDate)}. Decoration Charge: ₹0 (Included). Track or manage inside Customer Portal → Celebration Bookings.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setCelConfirmedRef(null)}
-                      className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg"
-                    >
-                      Book Another Celebration
-                    </button>
-                  </div>
-                ) : restCelPackages.length === 0 ? (
-                  <div className="p-5 border border-[#E5E0D8] rounded-lg space-y-3">
-                    <p className="text-sm text-[#57534E]">
-                      No pre-built celebration packages are published for {restaurant.name} yet. Submit a Custom Celebration Request instead!
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setCelSubTab('custom')}
-                      className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg"
-                    >
-                      Open Custom Celebration Request Form
-                    </button>
-                  </div>
-                ) : (
+              {celConfirmedInfo ? (
+                <div className="py-6 text-center space-y-4">
+                  <PartyPopper className="w-10 h-10 text-[#6E1E2E] mx-auto" />
+                  <h3 className="font-display text-2xl font-semibold text-[#1C1917]">
+                    Celebration Booking Recorded ({celConfirmedInfo.id})
+                  </h3>
+                  <p className="text-sm text-[#57534E] max-w-md mx-auto">
+                    {chosenCelPkg?.name} for {celPlates} plates on {formatDisplayDate(celDate)}. Decoration Charge: ₹0 (Included). Track or manage inside Customer Portal → My Celebrations.
+                  </p>
+                  {celConfirmedInfo.note && (
+                    <div className="max-w-md mx-auto text-left bg-[#FAF9F6] border border-[#E5E0D8] rounded-lg p-3.5 text-xs space-y-1">
+                      <p className="font-semibold text-[#1C1917]">Special Instructions (Your Note)</p>
+                      <p className="text-[#57534E]">{celConfirmedInfo.note}</p>
+                      <p className="text-[11px] text-[#57534E]">
+                        Your note has been shared with the restaurant. The restaurant will confirm whether it can accommodate your request.
+                      </p>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setCelConfirmedInfo(null)}
+                    className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg"
+                  >
+                    Book Another Celebration
+                  </button>
+                </div>
+              ) : restCelPackages.length === 0 ? (
+                <div className="p-5 border border-[#E5E0D8] bg-[#FAF9F6] rounded-lg space-y-2">
+                  <p className="text-sm font-medium text-[#1C1917]">
+                    No ready-made celebration packages are published for {restaurant.name} yet.
+                  </p>
+                  <p className="text-xs text-[#57534E]">
+                    You can reserve a dining table under Tab A and include your occasion details in the reservation notes.
+                  </p>
+                </div>
+              ) : (
                   <div className="space-y-5">
                     <div className="space-y-3">
                       {restCelPackages.map((pkg) => (
@@ -1442,30 +1372,48 @@ export function RestaurantModal() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-semibold mb-1">Food Preferences</label>
-                        <input
-                          type="text"
-                          value={celFoodPref}
-                          onChange={(e) => setCelFoodPref(e.target.value)}
-                          className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
-                        />
+                    <div>
+                      <label className="block text-xs font-semibold mb-1">Food Preferences</label>
+                      <input
+                        type="text"
+                        value={celFoodPref}
+                        onChange={(e) => setCelFoodPref(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
+                      />
+                    </div>
+
+                    {/* Add a Note — Optional Special Instructions */}
+                    <div className="bg-[#FAF9F6] border border-[#E5E0D8] rounded-lg p-4 space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <label
+                          htmlFor="modal-special-instructions-note"
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1C1917]"
+                        >
+                          <MessageSquarePlus className="w-3.5 h-3.5 text-[#6E1E2E]" aria-hidden="true" />
+                          <span>Special Instructions (Optional)</span>
+                        </label>
+                        <span className="text-[11px] font-mono tabular-nums text-[#57534E]">
+                          {celCustomerNote.length} / {MAX_CELEBRATION_NOTE_LENGTH}
+                        </span>
                       </div>
-                      <div>
-                        <label className="block text-xs font-semibold mb-1">Special Requests</label>
-                        <input
-                          type="text"
-                          value={celSpecialReq}
-                          onChange={(e) => setCelSpecialReq(e.target.value)}
-                          placeholder="Custom cake note, floral color..."
-                          className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
-                        />
-                      </div>
+                      <textarea
+                        id="modal-special-instructions-note"
+                        rows={3}
+                        maxLength={MAX_CELEBRATION_NOTE_LENGTH}
+                        value={celCustomerNote}
+                        onChange={(e) =>
+                          setCelCustomerNote(e.target.value.slice(0, MAX_CELEBRATION_NOTE_LENGTH))
+                        }
+                        placeholder="Tell the restaurant about any special requests, preferences, or arrangements..."
+                        className="w-full px-3 py-2.5 text-sm bg-white border border-[#E5E0D8] rounded-lg text-[#1C1917] placeholder:text-[#57534E]/75 focus:outline-none focus:border-[#6E1E2E] resize-y min-h-[84px]"
+                      />
+                      <p className="text-[11px] text-[#57534E] leading-relaxed">
+                        Your note will be shared with the restaurant. The restaurant will confirm whether it can accommodate your request.
+                      </p>
                     </div>
 
                     <PaymentBreakdownCard
-                      title="Direct Celebration Booking Summary (No Quotation Required)"
+                      title="Direct Celebration Booking Summary"
                       rows={[
                         { label: 'Package', value: chosenCelPkg?.name || '' },
                         { label: 'Plates & Rate', value: `${celPlates} × ${formatINR(chosenCelPkg?.pricePerPlate || 0)}` },
@@ -1494,255 +1442,6 @@ export function RestaurantModal() {
                       </button>
                     </div>
                   </div>
-                )
-              ) : customConfirmedRef ? (
-                <div className="py-8 text-center space-y-3">
-                  <Sparkles className="w-10 h-10 text-[#6E1E2E] mx-auto" />
-                  <h3 className="font-display text-2xl font-semibold text-[#1C1917]">
-                    Custom Celebration Request Submitted ({customConfirmedRef})
-                  </h3>
-                  <p className="text-sm text-[#57534E] max-w-md mx-auto">
-                    {restaurant.name} will review your theme and budget and send a custom quotation (Decoration ₹0). Advance payment unlocks only after you accept their quote in Customer Portal → Custom Requests.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setCustomConfirmedRef(null)}
-                    className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg"
-                  >
-                    Submit Another Custom Request
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={handleCustomRequestSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold mb-1">1. Occasion Type</label>
-                      <select
-                        value={customOccasion}
-                        onChange={(e) => setCustomOccasion(e.target.value as CelebrationCategory)}
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
-                      >
-                        {CELEBRATION_CATEGORIES.map((cat) => (
-                          <option key={cat} value={cat}>{cat}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold mb-1">2. Restaurant</label>
-                      <input
-                        type="text"
-                        value={`${restaurant.name} (${restaurant.area})`}
-                        readOnly
-                        className="w-full px-3 py-2 text-sm bg-[#FAF9F6] border border-[#E5E0D8] rounded-lg text-[#1C1917]"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold mb-1">3. Preferred Date</label>
-                      <input
-                        type="date"
-                        value={customDate}
-                        min={getTodayISO()}
-                        onChange={(e) => setCustomDate(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold mb-1">4. Preferred Time</label>
-                      <select
-                        value={customTime}
-                        onChange={(e) => setCustomTime(e.target.value)}
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
-                      >
-                        {TIME_SLOTS.map((s) => (
-                          <option key={s} value={s}>{s}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold mb-1">5. Number of Guests</label>
-                      <input
-                        type="number"
-                        min={2}
-                        max={150}
-                        value={customGuests}
-                        onChange={(e) => setCustomGuests(Number(e.target.value))}
-                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg tabular-nums"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold mb-1">6. Estimated Budget (₹)</label>
-                      <input
-                        type="number"
-                        min={1000}
-                        step={500}
-                        value={customBudget}
-                        onChange={(e) => setCustomBudget(Number(e.target.value))}
-                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg tabular-nums"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold mb-1">7. Decoration Theme (₹0 Fee)</label>
-                      <input
-                        type="text"
-                        value={customTheme}
-                        onChange={(e) => setCustomTheme(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold mb-1">8. Preferred Colours</label>
-                      <input
-                        type="text"
-                        value={customColors}
-                        onChange={(e) => setCustomColors(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold mb-1">9. Veg / Non-Veg Preference</label>
-                      <select
-                        value={customVegPref}
-                        onChange={(e) => setCustomVegPref(e.target.value as VegNonVegPreference)}
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
-                      >
-                        <option value="Pure Veg">Pure Veg</option>
-                        <option value="Veg & Non-Veg">Veg &amp; Non-Veg</option>
-                        <option value="Non-Veg">Non-Veg</option>
-                        <option value="Jain Options Available">Jain Options Available</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold mb-1">10. Cake Requirements</label>
-                      <input
-                        type="text"
-                        value={customCake}
-                        onChange={(e) => setCustomCake(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold mb-1">11. Food Preferences</label>
-                      <input
-                        type="text"
-                        value={customFoodPref}
-                        onChange={(e) => setCustomFoodPref(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold mb-1">12. Decoration Requirements (₹0 Fee)</label>
-                      <textarea
-                        rows={2}
-                        value={customDecorReqs}
-                        onChange={(e) => setCustomDecorReqs(e.target.value)}
-                        placeholder="Floral runner, candles, signage, rose petals..."
-                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold mb-1">13. Special Instructions</label>
-                      <textarea
-                        rows={2}
-                        value={customInstructions}
-                        onChange={(e) => setCustomInstructions(e.target.value)}
-                        placeholder="Music, surprise entrance timing, seating preference..."
-                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="border border-[#E5E0D8] rounded-lg p-3.5 bg-[#FAF9F6] space-y-2">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-xs font-semibold text-[#1C1917]">
-                        14. Reference Images (Optional — {customRefImages.length} attached)
-                      </span>
-                      <div className="flex gap-2">
-                        <label className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-[#6E1E2E] rounded cursor-pointer">
-                          <Upload className="w-3 h-3" />
-                          <span>Upload Images</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            className="hidden"
-                            onChange={(e) => {
-                              const files = e.target.files;
-                              if (!files) return;
-                              Array.from(files).forEach((file) => {
-                                const reader = new FileReader();
-                                reader.onload = () => {
-                                  if (reader.result) {
-                                    setCustomRefImages((prev) => [...prev, String(reader.result)]);
-                                  }
-                                };
-                                reader.readAsDataURL(file);
-                              });
-                            }}
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setCustomRefImages((prev) =>
-                              prev.includes(IMAGES.decorProposal) ? prev : [...prev, IMAGES.decorProposal]
-                            )
-                          }
-                          className="px-2.5 py-1.5 text-xs border border-[#E5E0D8] bg-white rounded"
-                        >
-                          + Sample Photo
-                        </button>
-                      </div>
-                    </div>
-                    {customRefImages.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {customRefImages.map((url, idx) => (
-                          <div key={idx} className="relative w-16 h-12 rounded overflow-hidden border border-[#E5E0D8]">
-                            <SafeImage src={url} alt={`Ref ${idx + 1}`} className="w-full h-full object-cover" />
-                            <button
-                              type="button"
-                              onClick={() => setCustomRefImages((prev) => prev.filter((_, i) => i !== idx))}
-                              className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-white/90 text-[#8B1E35]"
-                              aria-label="Remove reference"
-                            >
-                              <Trash2 className="w-2.5 h-2.5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="px-4 py-3 rounded-lg bg-[#ECF4EE] border border-[#BBD6C3] text-xs text-[#1C1917] flex flex-wrap justify-between gap-2">
-                    <span>Decoration Included – No Additional Charges (₹0). Quote acceptance required before advance payment unlocks.</span>
-                  </div>
-
-                  <div className="flex justify-end">
-                    <button
-                      type="submit"
-                      className="px-6 py-2.5 text-sm font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
-                    >
-                      Submit Custom Request for Quotation (Demo)
-                    </button>
-                  </div>
-                </form>
               )}
             </div>
           )}

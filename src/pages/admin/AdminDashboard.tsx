@@ -1374,6 +1374,12 @@ export function AdminDashboard() {
                       </span>
                     </div>
                   </div>
+                  {(cb.customerNote || cb.specialRequests) && (
+                    <p className="text-xs text-[#57534E] bg-[#FAF9F6] border border-[#E5E0D8] rounded p-2.5">
+                      <strong className="text-[#1C1917]">Customer Note (Unconfirmed Request):</strong>{' '}
+                      {cb.customerNote || cb.specialRequests}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

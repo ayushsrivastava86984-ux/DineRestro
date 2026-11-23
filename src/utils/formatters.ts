@@ -30,6 +30,8 @@ export function validatePinCode(pin: string): boolean {
   return /^\d{6}$/.test(pin.trim());
 }
 
+export const MAX_CELEBRATION_NOTE_LENGTH = 500;
+
 export function getTodayISO(): string {
   const now = new Date();
   const y = now.getFullYear();

@@ -43,6 +43,7 @@ import {
 } from '../../data/mockData';
 import type {
   AmenityType,
+  CelebrationBooking,
   CelebrationCategory,
   CelebrationQuotationItem,
   CustomCelebrationRequest,
@@ -65,7 +66,7 @@ const RESTAURANT_NAV: DashboardNavItem[] = [
   { label: 'Food Pre-orders', to: '/restaurant/preorders', icon: Utensils },
   { label: 'Celebration Packages', to: '/restaurant/celebrations', icon: PartyPopper },
   { label: 'Decoration Gallery', to: '/restaurant/decorations', icon: Sparkles },
-  { label: 'Celebration Bookings', to: '/restaurant/events', icon: PartyPopper },
+  { label: 'Celebration Reservations', to: '/restaurant/events', icon: PartyPopper },
   { label: 'Custom Requests', to: '/restaurant/custom-requests', icon: Wand2 },
   { label: 'Custom Quotations', to: '/restaurant/quotations', icon: MessageSquareQuote },
   { label: 'Payment Records', to: '/restaurant/payments', icon: Receipt },
@@ -140,6 +141,7 @@ export function RestaurantDashboard() {
   } = useApp();
 
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
+  const [selectedCelReservation, setSelectedCelReservation] = useState<CelebrationBooking | null>(null);
   const [resFilter, setResFilter] = useState<string>('All');
   const [menuPreviewUrl, setMenuPreviewUrl] = useState<{ url: string; title: string } | null>(null);
 
@@ -2043,73 +2045,103 @@ export function RestaurantDashboard() {
           </div>
         )}
 
-        {/* READY-MADE CELEBRATION BOOKINGS (DIRECT BOOKING — NO QUOTATION) */}
+        {/* READY-MADE CELEBRATION RESERVATIONS (WITH OPTIONAL CUSTOMER NOTES) */}
         {activeSection === 'events' && (
           <div className="space-y-5">
             <div>
               <h1 className="font-display text-3xl font-semibold text-[#1C1917]">
-                Ready-Made Celebration Package Bookings
+                Celebration Reservations
               </h1>
               <p className="text-sm text-[#57534E]">
-                Direct bookings placed from your approved celebration packages. Pricing is auto-calculated from price per plate (Decoration Charge: ₹0); no quotation is required.
+                Ready-made celebration package reservations (Decoration Charge: ₹0). Review optional customer notes carefully — notes are guest requests and are not automatically confirmed as included services or extra items.
               </p>
             </div>
 
-            <div className="space-y-4">
-              {displayCelBookings.map((cb) => (
-                <div key={cb.id} className="bg-white border border-[#E5E0D8] rounded-lg p-5 space-y-3">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <p className="text-xs font-mono font-semibold text-[#6E1E2E]">
-                        {cb.id} · {cb.celebrationType} · {formatDisplayDate(cb.eventDate)} at {cb.eventTime}
-                      </p>
-                      <h3 className="text-lg font-semibold text-[#1C1917]">
-                        {cb.customerName} — {cb.packageName}
-                      </h3>
-                      <p className="text-xs text-[#57534E] tabular-nums">
-                        {cb.platesCount} Plates × {formatINR(cb.pricePerPlate)} ={' '}
-                        <strong className="text-[#1C1917]">{formatINR(cb.totalPackageAmount)}</strong> · Decoration: ₹0 (FREE) · Advance ({cb.advancePercent}%): {formatINR(cb.advanceAmount)}{' '}
-                        ({cb.advancePaid ? `DEMO PAID · ${cb.transactionId}` : 'Advance Pending'})
-                      </p>
-                      {cb.specialRequests && (
-                        <p className="text-xs text-[#1C1917] mt-1">Requests: {cb.specialRequests}</p>
-                      )}
-                    </div>
-                    <StatusBadge status={cb.status} />
-                  </div>
+            {displayCelBookings.length === 0 ? (
+              <div className="bg-white border border-[#E5E0D8] rounded-lg p-8 text-center text-sm text-[#57534E]">
+                No celebration reservations logged yet.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {displayCelBookings.map((cb) => {
+                  const noteText = cb.customerNote || cb.specialRequests;
+                  return (
+                    <div key={cb.id} className="bg-white border border-[#E5E0D8] rounded-lg p-5 space-y-3">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p className="text-xs font-mono font-semibold text-[#6E1E2E]">
+                            {cb.id} · {cb.celebrationType} · {formatDisplayDate(cb.eventDate)} at {cb.eventTime}
+                          </p>
+                          <h3 className="text-lg font-semibold text-[#1C1917]">
+                            {cb.customerName} — {cb.packageName}
+                          </h3>
+                          <p className="text-xs text-[#57534E] tabular-nums">
+                            {cb.platesCount} Plates × {formatINR(cb.pricePerPlate)} ={' '}
+                            <strong className="text-[#1C1917]">{formatINR(cb.totalPackageAmount)}</strong> · Decoration: ₹0 (FREE) · Advance ({cb.advancePercent}%): {formatINR(cb.advanceAmount)}{' '}
+                            ({cb.advancePaid ? `DEMO PAID · ${cb.transactionId}` : 'Advance Pending'})
+                          </p>
+                        </div>
+                        <StatusBadge status={cb.status} />
+                      </div>
 
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {cb.status !== 'Confirmed' && cb.status !== 'Completed' && cb.status !== 'Cancelled' && cb.status !== 'Rejected' && (
-                      <button
-                        type="button"
-                        onClick={() => updateCelebrationBookingStatus(cb.id, 'Confirmed')}
-                        className="px-3.5 py-1.5 text-xs font-semibold bg-[#ECF4EE] text-[#1E462A] border border-[#BBD6C3] rounded-lg"
-                      >
-                        Mark Confirmed
-                      </button>
-                    )}
-                    {cb.status !== 'Completed' && cb.status !== 'Cancelled' && cb.status !== 'Rejected' && (
-                      <button
-                        type="button"
-                        onClick={() => updateCelebrationBookingStatus(cb.id, 'Completed')}
-                        className="px-3.5 py-1.5 text-xs font-semibold border border-[#E5E0D8] rounded-lg hover:bg-[#FAF9F6]"
-                      >
-                        Mark Completed
-                      </button>
-                    )}
-                    {!cb.advancePaid && cb.status !== 'Rejected' && cb.status !== 'Cancelled' && (
-                      <button
-                        type="button"
-                        onClick={() => updateCelebrationBookingStatus(cb.id, 'Rejected')}
-                        className="px-3.5 py-1.5 text-xs font-semibold text-[#8B1E35] border border-[#EAC4CC] bg-[#FDF2F4] rounded-lg"
-                      >
-                        Reject Booking
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+                      {noteText && (
+                        <div className="bg-[#FAF9F6] border-l-4 border-[#B8863B] border-y border-r border-y-[#E5E0D8] border-r-[#E5E0D8] rounded-r-lg p-3.5 text-xs space-y-1">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="font-semibold text-[#1C1917]">
+                              Customer Note — Special Instructions
+                            </span>
+                            <span className="px-2 py-0.5 rounded bg-[#F3F1ED] border border-[#D6CFC5] text-[10px] font-semibold text-[#6E1E2E]">
+                              Unconfirmed Request · Review Required
+                            </span>
+                          </div>
+                          <p className="text-[#1C1917] leading-relaxed">{noteText}</p>
+                          <p className="text-[11px] text-[#57534E]">
+                            Note only: Not automatically confirmed as an included service or extra item. Confirm feasibility directly with the guest ({cb.customerPhone}).
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCelReservation(cb)}
+                          className="px-3.5 py-1.5 text-xs font-semibold text-[#1C1917] border border-[#E5E0D8] bg-[#FAF9F6] rounded-lg hover:bg-[#F3F1ED]"
+                        >
+                          View Details
+                        </button>
+                        {cb.status !== 'Confirmed' && cb.status !== 'Completed' && cb.status !== 'Cancelled' && cb.status !== 'Rejected' && (
+                          <button
+                            type="button"
+                            onClick={() => updateCelebrationBookingStatus(cb.id, 'Confirmed')}
+                            className="px-3.5 py-1.5 text-xs font-semibold bg-[#ECF4EE] text-[#1E462A] border border-[#BBD6C3] rounded-lg"
+                          >
+                            Mark Confirmed
+                          </button>
+                        )}
+                        {cb.status !== 'Completed' && cb.status !== 'Cancelled' && cb.status !== 'Rejected' && (
+                          <button
+                            type="button"
+                            onClick={() => updateCelebrationBookingStatus(cb.id, 'Completed')}
+                            className="px-3.5 py-1.5 text-xs font-semibold border border-[#E5E0D8] rounded-lg hover:bg-[#FAF9F6]"
+                          >
+                            Mark Completed
+                          </button>
+                        )}
+                        {!cb.advancePaid && cb.status !== 'Rejected' && cb.status !== 'Cancelled' && (
+                          <button
+                            type="button"
+                            onClick={() => updateCelebrationBookingStatus(cb.id, 'Rejected')}
+                            className="px-3.5 py-1.5 text-xs font-semibold text-[#8B1E35] border border-[#EAC4CC] bg-[#FDF2F4] rounded-lg"
+                          >
+                            Reject Booking
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -2393,6 +2425,84 @@ export function RestaurantDashboard() {
                 type="button"
                 onClick={() => setSelectedReservation(null)}
                 className="px-4 py-2 text-xs font-medium border border-[#E5E0D8] rounded-lg"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Celebration Reservation Detail Modal */}
+      {selectedCelReservation && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#1C1917]/65 p-4 overflow-y-auto"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="bg-white border border-[#E5E0D8] rounded-lg max-w-lg w-full p-6 space-y-4 my-auto shadow-xl">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-[11px] font-mono font-semibold text-[#6E1E2E]">
+                  Celebration Reservation · {selectedCelReservation.id}
+                </p>
+                <h3 className="font-display text-xl font-semibold text-[#1C1917]">
+                  {selectedCelReservation.packageName}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedCelReservation(null)}
+                aria-label="Close celebration details"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-2 text-xs bg-[#FAF9F6] border border-[#E5E0D8] rounded-lg p-4">
+              <p>
+                <span className="text-[#57534E]">Guest:</span>{' '}
+                <strong className="text-[#1C1917]">{selectedCelReservation.customerName}</strong>
+              </p>
+              <p>
+                <span className="text-[#57534E]">Contact:</span> {selectedCelReservation.customerPhone} ·{' '}
+                {selectedCelReservation.customerEmail}
+              </p>
+              <p>
+                <span className="text-[#57534E]">Schedule:</span>{' '}
+                {formatDisplayDate(selectedCelReservation.eventDate)} at {selectedCelReservation.eventTime}
+              </p>
+              <p>
+                <span className="text-[#57534E]">Package Total:</span> {selectedCelReservation.platesCount} ×{' '}
+                {formatINR(selectedCelReservation.pricePerPlate)} ={' '}
+                <strong>{formatINR(selectedCelReservation.totalPackageAmount)}</strong> (Decor ₹0)
+              </p>
+              <p>
+                <span className="text-[#57534E]">Advance ({selectedCelReservation.advancePercent}%):</span>{' '}
+                {formatINR(selectedCelReservation.advanceAmount)} (
+                {selectedCelReservation.advancePaid ? 'DEMO PAID' : 'Pending'})
+              </p>
+              <p>
+                <span className="text-[#57534E]">Food Preference:</span> {selectedCelReservation.foodPreference}
+              </p>
+            </div>
+            <div className="bg-[#FAF9F6] border-l-4 border-[#B8863B] border-y border-r border-y-[#E5E0D8] border-r-[#E5E0D8] rounded-r-lg p-3.5 text-xs space-y-1">
+              <p className="font-semibold text-[#1C1917]">Customer Special Instructions (Note)</p>
+              <p className="text-[#1C1917]">
+                {selectedCelReservation.customerNote ||
+                  selectedCelReservation.specialRequests ||
+                  'No special instructions provided.'}
+              </p>
+              {(selectedCelReservation.customerNote || selectedCelReservation.specialRequests) && (
+                <p className="text-[11px] text-[#57534E]">
+                  Advisory: Treat as an unconfirmed request until your team verifies availability; it does not add automatic included services or extra items.
+                </p>
+              )}
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setSelectedCelReservation(null)}
+                className="px-4 py-2 text-xs font-semibold bg-[#6E1E2E] text-white rounded-lg"
               >
                 Close
               </button>

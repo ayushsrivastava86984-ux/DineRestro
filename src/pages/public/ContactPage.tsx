@@ -17,8 +17,8 @@ const FAQS = [
     a: 'Hospitality owners can submit their venue profile through the Partner With Us registration form (/restaurant/signup) for curation review.',
   },
   {
-    q: 'Can I inquire about group celebrations like birthdays or anniversaries?',
-    a: 'Yes. Visit the Events page to select your celebration category and submit a customized guest count and budget inquiry with ₹0 decoration charges.',
+    q: 'Can I book group celebrations like birthdays or anniversaries?',
+    a: 'Yes. Visit the Events page to choose a ready-made celebration package with ₹0 decoration charges and add optional Special Instructions for the restaurant.',
   },
 ];
 

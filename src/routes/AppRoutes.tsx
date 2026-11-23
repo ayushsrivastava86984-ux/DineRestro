@@ -94,7 +94,6 @@ export function AppRoutes() {
           '/customer/bookings',
           '/customer/preorders',
           '/customer/celebrations',
-          '/customer/custom-requests',
           '/customer/events',
           '/customer/payments',
           '/customer/reviews',
@@ -114,6 +113,14 @@ export function AppRoutes() {
             }
           />
         ))}
+        <Route
+          path="/customer/custom-requests"
+          element={
+            <PortalGuard requiredRole="customer" redirectTo="/customer/login">
+              <Navigate to="/customer/celebrations" replace />
+            </PortalGuard>
+          }
+        />
 
         {/* Restaurant Owner Portal Routes */}
         {[

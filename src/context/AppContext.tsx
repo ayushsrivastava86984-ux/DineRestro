@@ -235,7 +235,8 @@ interface AppContextValue {
     eventTime: string;
     platesCount: number;
     foodPreference: string;
-    specialRequests: string;
+    customerNote?: string;
+    specialRequests?: string;
     customerName: string;
     customerEmail: string;
     customerPhone: string;
@@ -1034,7 +1035,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       eventTime: string;
       platesCount: number;
       foodPreference: string;
-      specialRequests: string;
+      customerNote?: string;
+      specialRequests?: string;
       customerName: string;
       customerEmail: string;
       customerPhone: string;
@@ -1046,6 +1048,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const advanceAmount = Math.round((totalPackageAmount * payload.advancePercent) / 100);
       const remainingAmount = totalPackageAmount - advanceAmount;
       const isPaid = Boolean(payload.payAdvanceNow && payload.transactionId);
+      const normalizedNote = (payload.customerNote ?? payload.specialRequests ?? '')
+        .trim()
+        .slice(0, 500);
       const created: CelebrationBooking = {
         id: `CEL-${Math.floor(920 + Math.random() * 79)}`,
         restaurantId: payload.restaurant.id,
@@ -1074,7 +1079,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         advancePaid: isPaid,
         transactionId: payload.transactionId,
         foodPreference: payload.foodPreference,
-        specialRequests: payload.specialRequests,
+        customerNote: normalizedNote,
+        specialRequests: normalizedNote,
         status: isPaid ? 'Confirmed' : 'Advance Pending',
         createdAt: '2026-11-23',
       };
@@ -1083,8 +1089,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         {
           id: `notif-cel-${Date.now()}`,
           role: 'restaurant',
-          title: `Direct Celebration Booking (${created.id})`,
-          message: `${created.customerName} booked ${created.packageName} (${created.platesCount} plates · Decoration ₹0 · ${isPaid ? 'Confirmed & Advance Paid' : 'Advance Pending'}).`,
+          title: `Celebration Reservation (${created.id})`,
+          message: `${created.customerName} booked ${created.packageName} (${created.platesCount} plates · Decoration ₹0 · ${isPaid ? 'Confirmed & Advance Paid' : 'Advance Pending'}).${normalizedNote ? ' Includes a customer note — review and confirm availability.' : ''}`,
           timeAgo: 'Just now',
           read: false,
         },
@@ -1096,8 +1102,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ? `Celebration Booking Confirmed (${created.id})`
           : `Celebration Reserved (${created.id})`,
         description: isPaid
-          ? 'Ready-made package confirmed directly without quotation (Decoration Charge: ₹0).'
-          : 'Complete demo advance payment in Celebration Bookings to confirm.',
+          ? 'Ready-made package confirmed directly (Decoration Charge: ₹0).'
+          : 'Complete demo advance payment in My Celebrations to confirm.',
       });
       return created;
     },

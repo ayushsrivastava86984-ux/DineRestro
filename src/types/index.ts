@@ -270,6 +270,7 @@ export interface CelebrationBooking {
   advancePaid: boolean;
   transactionId?: string;
   foodPreference: string;
+  customerNote?: string;
   specialRequests: string;
   status: CelebrationBookingStatus;
   createdAt: string;

@@ -192,7 +192,7 @@ export function HomePage() {
                 Beautiful decorations. Delicious food. Unforgettable memories.
               </p>
               <p className="text-sm text-[#D6CFC5] leading-relaxed max-w-lg">
-                Reserve curated Birthday, Anniversary, Candlelight, and Marriage Proposal plate packages with authentic setup photos—or submit a tailored Custom Celebration Request with ₹0 decoration fees.
+                Reserve curated Birthday, Anniversary, Candlelight, and Marriage Proposal plate packages with authentic setup photos, ₹0 decoration fees, and optional special instructions for the host team.
               </p>
               <div className="pt-2 flex flex-wrap gap-3">
                 <Link
@@ -200,12 +200,6 @@ export function HomePage() {
                   className="px-6 py-3 text-sm font-semibold bg-[#6E1E2E] text-white rounded-lg hover:bg-[#541522] transition-colors whitespace-nowrap"
                 >
                   Explore Celebration Packages
-                </Link>
-                <Link
-                  to="/events#custom-celebration-form"
-                  className="px-5 py-3 text-sm font-semibold bg-[#292524] border border-[#57534E] text-[#FAF9F6] rounded-lg hover:bg-[#3F3A36] transition-colors whitespace-nowrap"
-                >
-                  Request Custom Setup
                 </Link>
               </div>
             </div>

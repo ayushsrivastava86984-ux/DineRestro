@@ -1,25 +1,15 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import {
-  ArrowRight,
-  Calendar,
-  CheckCircle2,
-  Eye,
-  Lock,
-  PartyPopper,
-  Sparkles,
-  Trash2,
-  Upload,
-  X,
-} from 'lucide-react';
+import { Calendar, Eye, MessageSquarePlus, PartyPopper, Sparkles, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { CELEBRATION_CATEGORIES, IMAGES, SPECIAL_EVENTS } from '../../data/mockData';
-import type { CelebrationCategory, CelebrationPackage, VegNonVegPreference } from '../../types';
+import { SPECIAL_EVENTS } from '../../data/mockData';
+import type { CelebrationCategory, CelebrationPackage } from '../../types';
 import { SafeImage } from '../../components/common/SafeImage';
 import { DemoBanner } from '../../components/common/DemoBanner';
 import { CelebrationPackageCard } from '../../components/common/CelebrationPackageCard';
 import { PaymentBreakdownCard } from '../../components/common/PaymentBreakdownCard';
 import {
+  MAX_CELEBRATION_NOTE_LENGTH,
   formatDisplayDate,
   formatINR,
   getTodayISO,
@@ -38,30 +28,6 @@ const READY_OCCASION_FILTERS: ('All' | CelebrationCategory)[] = [
   'Private Party',
 ];
 
-const VEG_OPTIONS: VegNonVegPreference[] = [
-  'Pure Veg',
-  'Veg & Non-Veg',
-  'Non-Veg',
-  'Jain Options Available',
-];
-
-function readFilesAsDataUrls(files: FileList | null, callback: (urls: string[]) => void) {
-  if (!files || files.length === 0) return;
-  const promises = Array.from(files).map(
-    (file) =>
-      new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result || ''));
-        reader.onerror = () => resolve('');
-        reader.readAsDataURL(file);
-      })
-  );
-  Promise.all(promises).then((urls) => {
-    const valid = urls.filter(Boolean);
-    if (valid.length > 0) callback(valid);
-  });
-}
-
 export function EventsPage() {
   const [searchParams] = useSearchParams();
   const initialOccasion = searchParams.get('occasion') || '';
@@ -69,7 +35,6 @@ export function EventsPage() {
     restaurants,
     celebrationPackages,
     createCelebrationBooking,
-    createCustomCelebrationRequest,
     openDemoPayment,
     openRestaurantModal,
     platformSettings,
@@ -77,25 +42,23 @@ export function EventsPage() {
     role,
   } = useApp();
 
-  const approvedRestaurants = restaurants.filter((r) => r.approvalStatus === 'Approved');
   const approvedPackages = celebrationPackages.filter(
     (p) => p.approvalStatus === 'Approved' && p.available
   );
 
-  // Filter state for Option A (Ready-Made Packages)
+  // Filter state for Ready-Made Packages
   const initialFilter: 'All' | CelebrationCategory =
     READY_OCCASION_FILTERS.find(
       (cat) => cat !== 'All' && initialOccasion.toLowerCase().includes(cat.toLowerCase())
     ) || 'All';
   const [occasionFilter, setOccasionFilter] = useState<'All' | CelebrationCategory>(initialFilter);
-  const [activeOptionView, setActiveOptionView] = useState<'both' | 'ready' | 'custom'>('both');
 
   const filteredPackages = useMemo(() => {
     if (occasionFilter === 'All') return approvedPackages;
     return approvedPackages.filter((p) => p.category === occasionFilter);
   }, [approvedPackages, occasionFilter]);
 
-  // Direct Booking Modal State (Option A — NO Quotation Required)
+  // Celebration Package Direct Booking Modal State
   const [bookingPkg, setBookingPkg] = useState<CelebrationPackage | null>(null);
   const [customerName, setCustomerName] = useState(customerUser.fullName);
   const [customerEmail, setCustomerEmail] = useState(customerUser.email);
@@ -104,7 +67,7 @@ export function EventsPage() {
   const [eventTime, setEventTime] = useState('07:30 PM');
   const [platesCount, setPlatesCount] = useState(10);
   const [foodPreference, setFoodPreference] = useState('Pure Veg · Standard Spice');
-  const [specialRequests, setSpecialRequests] = useState('');
+  const [customerNote, setCustomerNote] = useState('');
   const [bookingError, setBookingError] = useState('');
   const [confirmedBooking, setConfirmedBooking] = useState<{
     id: string;
@@ -118,30 +81,8 @@ export function EventsPage() {
     total: number;
     advance: number;
     remaining: number;
+    note?: string;
   } | null>(null);
-
-  // Option B: Custom Celebration Request State (Quotation Compulsory)
-  const [customRestaurantId, setCustomRestaurantId] = useState(approvedRestaurants[0]?.id || '');
-  const [customOccasion, setCustomOccasion] = useState<CelebrationCategory>('Anniversary');
-  const [customDate, setCustomDate] = useState(getTodayISO());
-  const [customTime, setCustomTime] = useState('07:30 PM');
-  const [customGuests, setCustomGuests] = useState(12);
-  const [customBudget, setCustomBudget] = useState(15000);
-  const [customTheme, setCustomTheme] = useState('Marigold & Brass Heritage Candlelight');
-  const [customColors, setCustomColors] = useState('Deep Burgundy, Warm Ivory & Champagne Gold');
-  const [customCake, setCustomCake] = useState('1 kg Eggless Saffron Pistachio Cake');
-  const [customFoodPref, setCustomFoodPref] = useState('Multi-Course Banarasi Feast with Live Starter Station');
-  const [customVegPref, setCustomVegPref] = useState<VegNonVegPreference>('Pure Veg');
-  const [customDecorReqs, setCustomDecorReqs] = useState(
-    'Floral table runner, brass lamps, and personalized milestone welcome board'
-  );
-  const [customInstructions, setCustomInstructions] = useState('');
-  const [customRefImages, setCustomRefImages] = useState<string[]>([]);
-  const [customContactName, setCustomContactName] = useState(customerUser.fullName);
-  const [customContactEmail, setCustomContactEmail] = useState(customerUser.email);
-  const [customContactPhone, setCustomContactPhone] = useState(customerUser.mobile);
-  const [customError, setCustomError] = useState('');
-  const [customSubmittedRef, setCustomSubmittedRef] = useState<string | null>(null);
 
   const openDirectBooking = (pkg: CelebrationPackage) => {
     setBookingPkg(pkg);
@@ -153,6 +94,7 @@ export function EventsPage() {
           ? 'Non-Veg · Standard Spice'
           : 'Veg & Non-Veg Mixed'
     );
+    setCustomerNote('');
     setBookingError('');
     setConfirmedBooking(null);
   };
@@ -182,6 +124,13 @@ export function EventsPage() {
       );
       return;
     }
+    const trimmedNote = customerNote.trim();
+    if (trimmedNote.length > MAX_CELEBRATION_NOTE_LENGTH) {
+      setBookingError(
+        `Your note must be ${MAX_CELEBRATION_NOTE_LENGTH} characters or fewer.`
+      );
+      return;
+    }
 
     if (payAdvanceNow) {
       openDemoPayment({
@@ -208,7 +157,7 @@ export function EventsPage() {
             eventTime,
             platesCount,
             foodPreference,
-            specialRequests: specialRequests.trim(),
+            customerNote: trimmedNote,
             customerName: customerName.trim(),
             customerEmail: customerEmail.trim(),
             customerPhone: customerPhone.trim(),
@@ -228,6 +177,7 @@ export function EventsPage() {
             total: totalPackageAmount,
             advance: advAmount,
             remaining: remAmount,
+            note: created.customerNote,
           });
         },
       });
@@ -239,7 +189,7 @@ export function EventsPage() {
         eventTime,
         platesCount,
         foodPreference,
-        specialRequests: specialRequests.trim(),
+        customerNote: trimmedNote,
         customerName: customerName.trim(),
         customerEmail: customerEmail.trim(),
         customerPhone: customerPhone.trim(),
@@ -257,655 +207,163 @@ export function EventsPage() {
         total: totalPackageAmount,
         advance: advAmount,
         remaining: remAmount,
+        note: created.customerNote,
       });
     }
-  };
-
-  const handleCustomRequestSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setCustomError('');
-    const targetRest = approvedRestaurants.find((r) => r.id === customRestaurantId);
-    if (!targetRest) {
-      setCustomError('Please select a Varanasi restaurant.');
-      return;
-    }
-    if (
-      !customContactName.trim() ||
-      !validateEmail(customContactEmail) ||
-      !validateIndianMobile(customContactPhone)
-    ) {
-      setCustomError('Please enter valid contact name, email, and 10-digit Indian mobile number.');
-      return;
-    }
-    if (customGuests < 2 || customBudget < 1000 || !customTheme.trim() || !customFoodPref.trim()) {
-      setCustomError(
-        'Please specify valid guest count (min 2), approximate budget, decoration theme, and food preferences.'
-      );
-      return;
-    }
-    const created = createCustomCelebrationRequest({
-      restaurant: targetRest,
-      occasionType: customOccasion,
-      preferredDate: customDate,
-      preferredTime: customTime,
-      guestsCount: customGuests,
-      estimatedBudget: customBudget,
-      decorationTheme: customTheme.trim(),
-      preferredColors: customColors.trim(),
-      cakeRequirements: customCake.trim() || 'No cake required',
-      foodPreferences: customFoodPref.trim(),
-      vegNonVegPreference: customVegPref,
-      decorationRequirements: customDecorReqs.trim() || customTheme.trim(),
-      specialInstructions: customInstructions.trim(),
-      referenceImages: customRefImages,
-      customerName: customContactName.trim(),
-      customerEmail: customContactEmail.trim(),
-      customerPhone: customContactPhone.trim(),
-    });
-    setCustomSubmittedRef(created.id);
-    setCustomInstructions('');
   };
 
   return (
     <div className="bg-[#FAF9F6] py-10 sm:py-14">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-        {/* Hero Header + Two Clear Booking Paths */}
-        <div className="space-y-6">
-          <div className="space-y-3 max-w-3xl">
-            <p className="text-xs font-semibold text-[#6E1E2E] tracking-widest uppercase">
-              Celebrate With DineRestro · Varanasi
-            </p>
-            <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold text-[#1C1917]">
-              Two Ways to Plan Your Celebration
-            </h1>
-            <p className="text-sm sm:text-base text-[#57534E] leading-relaxed">
-              Every celebration booked on DineRestro includes authentic venue decoration at ₹0 (
-              <strong>Decoration Included – No Additional Charges</strong>). Book a ready-made package directly without quotation, or request a tailored celebration proposal reviewed by the restaurant.
-            </p>
-          </div>
-
-          <DemoBanner message="Ready-made Celebration Packages support instant direct booking (Package → Details → Advance Payment → Confirmed) with NO quotation required. Custom Celebration Requests require a restaurant quotation and your explicit acceptance before advance payment unlocks." />
-
-          {/* Two Prominent Option Selector Cards */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white border-2 border-[#6E1E2E]/25 rounded-lg p-6 space-y-4 shadow-sm flex flex-col justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-[#6E1E2E]">
-                    Option A · Direct Instant Booking
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded bg-[#ECF4EE] border border-[#BBD6C3] text-[11px] font-semibold text-[#1E462A]">
-                    No Quotation Required
-                  </span>
-                </div>
-                <h2 className="font-display text-2xl font-semibold text-[#1C1917]">
-                  Choose Your Perfect Celebration
-                </h2>
-                <p className="text-sm text-[#57534E]">
-                  Explore beautiful celebration packages designed by our restaurant partners. Fixed price per plate, real decor photos, and instant advance confirmation.
-                </p>
-                <p className="text-xs font-mono text-[#1C1917] bg-[#F3F1ED] border border-[#E5E0D8] rounded px-3 py-2">
-                  Package Selected → Booking Details → Advance Payment → Booking Confirmed
-                </p>
+        {/* Hero Header */}
+        <div className="space-y-5">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
+            <div className="space-y-3 max-w-3xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-[#F3F1ED] border border-[#D6CFC5] text-xs font-semibold text-[#6E1E2E] tracking-wider uppercase">
+                <Sparkles className="w-3.5 h-3.5 text-[#B8863B]" aria-hidden="true" />
+                <span>Celebrate With DineRestro · Varanasi</span>
               </div>
-              <div className="flex flex-wrap gap-3 pt-1">
-                <a
-                  href="#ready-made-packages"
-                  onClick={() => setActiveOptionView('ready')}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522] transition-colors"
-                >
-                  <span>Browse Ready-Made Packages ({approvedPackages.length})</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </a>
-                <button
-                  type="button"
-                  onClick={() => setActiveOptionView('both')}
-                  className="px-4 py-2.5 text-xs font-semibold text-[#1C1917] border border-[#E5E0D8] rounded-lg hover:bg-[#F3F1ED]"
-                >
-                  Show All Options
-                </button>
-              </div>
+              <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold text-[#1C1917]">
+                Choose Your Perfect Celebration
+              </h1>
+              <p className="text-sm sm:text-base text-[#57534E] leading-relaxed">
+                Explore curated celebration packages designed by our restaurant partners. Every package includes authentic venue decoration at ₹0 (
+                <strong className="text-[#1C1917]">Decoration Included – No Additional Charges</strong>
+                ) and lets you share an optional note directly with the restaurant.
+              </p>
             </div>
-
-            <div className="bg-white border border-[#E5E0D8] rounded-lg p-6 space-y-4 shadow-sm flex flex-col justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-[#6E1E2E]">
-                    Option B · Bespoke Venue Planning
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded bg-[#F3F1ED] border border-[#D6CFC5] text-[11px] font-semibold text-[#6E1E2E] inline-flex items-center gap-1">
-                    <Lock className="w-3 h-3" /> Quotation Compulsory
-                  </span>
-                </div>
-                <h2 className="font-display text-2xl font-semibold text-[#1C1917]">
-                  Create Your Own Celebration
-                </h2>
-                <p className="text-sm text-[#57534E]">
-                  Have something special in mind? Tell us your requirements and let the restaurant create a personalised celebration experience with a custom quotation.
-                </p>
-                <p className="text-xs font-mono text-[#1C1917] bg-[#F3F1ED] border border-[#E5E0D8] rounded px-3 py-2">
-                  Request → Review → Quotation Sent → Accepted → Advance → Confirmed
-                </p>
-              </div>
-              <div className="pt-1">
-                <a
-                  href="#custom-celebration-form"
-                  onClick={() => setActiveOptionView('custom')}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-semibold text-[#6E1E2E] bg-[#F3F1ED] border border-[#6E1E2E]/40 rounded-lg hover:bg-[#E5E0D8]/60 transition-colors"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Request Custom Celebration Quote</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </a>
-              </div>
+            <div className="bg-white border border-[#E5E0D8] rounded-lg px-4 py-3 text-xs text-[#1C1917] shrink-0 space-y-1">
+              <p className="font-semibold text-[#6E1E2E] uppercase tracking-wider text-[11px]">
+                Direct Package Flow
+              </p>
+              <p className="font-mono text-[#57534E]">
+                Package → Details &amp; Optional Note → Advance → Confirmed
+              </p>
             </div>
           </div>
+
+          <DemoBanner message="Ready-made Celebration Packages support direct instant booking (Package Selected → Booking Details → Advance Payment → Booking Confirmed) with ₹0 decoration fees and optional Special Instructions notes." />
         </div>
 
         {/* Supported Celebration Categories Showcase */}
-        {activeOptionView === 'both' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {SPECIAL_EVENTS.map((evt) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {SPECIAL_EVENTS.map((evt) => (
+            <button
+              key={evt.id}
+              type="button"
+              onClick={() => {
+                setOccasionFilter(evt.category);
+                const el = document.getElementById('ready-made-packages');
+                el?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="text-left border border-[#E5E0D8] rounded-lg overflow-hidden bg-white flex flex-col hover:border-[#6E1E2E] transition-colors"
+            >
+              <div className="aspect-[4/3] w-full overflow-hidden">
+                <SafeImage
+                  src={evt.image}
+                  alt={evt.title}
+                  className="w-full h-full object-cover"
+                  fallbackTitle={evt.title}
+                />
+              </div>
+              <div className="p-5 flex-1 flex flex-col">
+                <p className="text-xs text-[#57534E] tabular-nums">
+                  {evt.idealGroupSize} · {evt.startingBudget}
+                </p>
+                <h2 className="font-display text-2xl font-semibold text-[#1C1917] mt-1">
+                  {evt.title}
+                </h2>
+                <p className="text-sm text-[#57534E] mt-1.5 leading-relaxed flex-1">
+                  {evt.description}
+                </p>
+                <p className="text-xs font-semibold text-[#1E462A] mt-3">
+                  Decoration Included – No Additional Charges (₹0)
+                </p>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* READY-MADE CELEBRATION PACKAGES (DIRECT BOOKING) */}
+        <section id="ready-made-packages" className="space-y-6 scroll-mt-20">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold text-[#6E1E2E] tracking-widest uppercase">
+                Curated Celebration Packages ({approvedPackages.length})
+              </p>
+              <h2 className="font-display text-3xl sm:text-4xl font-semibold text-[#1C1917] mt-1">
+                Book a Ready-Made Celebration Package
+              </h2>
+              <p className="text-sm text-[#57534E] mt-1">
+                Transparent per-plate pricing, real setup photography, ₹0 decoration fee, and an optional note field for special requests.
+              </p>
+            </div>
+            <div className="text-xs font-semibold text-[#1E462A] bg-[#ECF4EE] border border-[#BBD6C3] px-3 py-2 rounded-lg shrink-0">
+              Total = Price Per Plate × Plates · Decoration ₹0
+            </div>
+          </div>
+
+          {/* Occasion Filter Buttons */}
+          <div className="flex flex-wrap gap-2">
+            {READY_OCCASION_FILTERS.map((cat) => (
               <button
-                key={evt.id}
+                key={cat}
                 type="button"
-                onClick={() => {
-                  setOccasionFilter(evt.category);
-                  const el = document.getElementById('ready-made-packages');
-                  el?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="text-left border border-[#E5E0D8] rounded-lg overflow-hidden bg-white flex flex-col hover:border-[#6E1E2E] transition-colors"
+                onClick={() => setOccasionFilter(cat)}
+                className={`px-3.5 py-2 text-xs font-semibold rounded-lg border transition-colors ${
+                  occasionFilter === cat
+                    ? 'bg-[#6E1E2E] text-white border-[#6E1E2E]'
+                    : 'bg-white text-[#1C1917] border-[#E5E0D8] hover:bg-[#F3F1ED]'
+                }`}
               >
-                <div className="aspect-[4/3] w-full overflow-hidden">
-                  <SafeImage
-                    src={evt.image}
-                    alt={evt.title}
-                    className="w-full h-full object-cover"
-                    fallbackTitle={evt.title}
-                  />
-                </div>
-                <div className="p-5 flex-1 flex flex-col">
-                  <p className="text-xs text-[#57534E] tabular-nums">
-                    {evt.idealGroupSize} · {evt.startingBudget}
-                  </p>
-                  <h3 className="font-display text-2xl font-semibold text-[#1C1917] mt-1">
-                    {evt.title}
-                  </h3>
-                  <p className="text-sm text-[#57534E] mt-1.5 leading-relaxed flex-1">
-                    {evt.description}
-                  </p>
-                  <p className="text-xs font-semibold text-[#1E462A] mt-3">
-                    Decoration Included – No Additional Charges (₹0)
-                  </p>
-                </div>
+                {cat === 'All' ? 'All Occasions' : cat}
               </button>
             ))}
           </div>
-        )}
 
-        {/* OPTION A: READY-MADE CELEBRATION PACKAGES (DIRECT BOOKING WITHOUT QUOTATION) */}
-        {(activeOptionView === 'both' || activeOptionView === 'ready') && (
-          <section id="ready-made-packages" className="space-y-6 scroll-mt-20">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold text-[#6E1E2E] tracking-widest uppercase">
-                  Option A · Direct Booking (No Quotation Required)
-                </p>
-                <h2 className="font-display text-3xl sm:text-4xl font-semibold text-[#1C1917] mt-1">
-                  Choose Your Perfect Celebration
-                </h2>
-                <p className="text-sm text-[#57534E] mt-1">
-                  Explore beautiful celebration packages designed by our restaurant partners. Decoration is always ₹0.
-                </p>
-              </div>
-              <div className="text-xs font-semibold text-[#1E462A] bg-[#ECF4EE] border border-[#BBD6C3] px-3 py-2 rounded-lg shrink-0">
-                Total = Price Per Plate × Plates · Decoration ₹0
-              </div>
-            </div>
-
-            {/* Occasion Filter Buttons */}
-            <div className="flex flex-wrap gap-2">
-              {READY_OCCASION_FILTERS.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setOccasionFilter(cat)}
-                  className={`px-3.5 py-2 text-xs font-semibold rounded-lg border transition-colors ${
-                    occasionFilter === cat
-                      ? 'bg-[#6E1E2E] text-white border-[#6E1E2E]'
-                      : 'bg-white text-[#1C1917] border-[#E5E0D8] hover:bg-[#F3F1ED]'
-                  }`}
-                >
-                  {cat === 'All' ? 'All Occasions' : cat}
-                </button>
-              ))}
-            </div>
-
-            {filteredPackages.length === 0 ? (
-              <div className="bg-white border border-[#E5E0D8] rounded-lg p-8 text-center space-y-3">
-                <p className="text-sm text-[#57534E]">
-                  No ready-made packages matched <strong>{occasionFilter}</strong>. Switch filter or submit a Custom Celebration Request below.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setOccasionFilter('All')}
-                  className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg"
-                >
-                  View All Packages
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredPackages.map((pkg) => {
-                  const rest = restaurants.find((r) => r.id === pkg.restaurantId);
-                  return (
-                    <div key={pkg.id} className="flex flex-col space-y-2">
-                      <CelebrationPackageCard
-                        pkg={pkg}
-                        actionLabel="Book Now (Direct Booking)"
-                        onSelect={openDirectBooking}
-                      />
-                      {rest && (
-                        <button
-                          type="button"
-                          onClick={() => openRestaurantModal(rest, 'overview')}
-                          className="text-xs font-medium text-[#57534E] hover:text-[#6E1E2E] inline-flex items-center justify-center gap-1.5 py-1"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>Inspect {rest.name} Profile &amp; Photo Menu</span>
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* OPTION B: CUSTOM CELEBRATION REQUEST FORM (QUOTATION COMPULSORY) */}
-        {(activeOptionView === 'both' || activeOptionView === 'custom') && (
-          <section
-            id="custom-celebration-form"
-            className="bg-[#F3F1ED] border border-[#E5E0D8] rounded-lg p-6 sm:p-8 scroll-mt-20"
-          >
-            <div className="max-w-4xl">
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                <div className="flex items-center gap-2 text-xs font-semibold text-[#6E1E2E] tracking-widest uppercase">
-                  <Sparkles className="w-4 h-4" />
-                  <span>Option B · Custom Celebration Request (Quotation Compulsory)</span>
-                </div>
-                <span className="px-2.5 py-1 rounded bg-white border border-[#D6CFC5] text-[11px] font-semibold text-[#1C1917] inline-flex items-center gap-1">
-                  <Lock className="w-3 h-3 text-[#6E1E2E]" /> Advance Locked Until Quote Accepted
-                </span>
-              </div>
-
-              <h2 className="font-display text-2xl sm:text-3xl font-semibold text-[#1C1917]">
-                Create Your Own Celebration
-              </h2>
-              <p className="text-sm text-[#57534E] mt-1 mb-6">
-                Have something special in mind? Tell us your requirements and let the restaurant create a personalised celebration experience. Decoration is always ₹0; advance payment unlocks only after you review and accept the restaurant&apos;s quotation.
+          {filteredPackages.length === 0 ? (
+            <div className="bg-white border border-[#E5E0D8] rounded-lg p-8 text-center space-y-3">
+              <p className="text-sm text-[#57534E]">
+                No ready-made packages matched <strong>{occasionFilter}</strong>. Reset the occasion filter to inspect all celebration packages.
               </p>
-
-              {customSubmittedRef ? (
-                <div className="bg-white border border-[#BBD6C3] rounded-lg p-6 space-y-4">
-                  <div className="flex items-center gap-2 text-[#1E462A] font-semibold text-base">
-                    <CheckCircle2 className="w-5 h-5" />
-                    <span>Custom Celebration Request Submitted ({customSubmittedRef})</span>
-                  </div>
-                  <p className="text-sm text-[#57534E]">
-                    Status: <strong>Request Received</strong>. The restaurant partner has been notified and will send an itemized custom quotation (Decoration Charge: ₹0). Advance payment remains locked until you accept the quotation in your Customer Dashboard.
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    <Link
-                      to={role === 'customer' ? '/customer/custom-requests' : '/customer/login'}
-                      className="px-4 py-2 text-xs font-semibold bg-[#6E1E2E] text-white rounded-lg hover:bg-[#541522]"
-                    >
-                      {role === 'customer' ? 'Track Request & Quotations' : 'Open Customer Portal to Track'}
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => setCustomSubmittedRef(null)}
-                      className="px-4 py-2 text-xs font-semibold border border-[#E5E0D8] bg-white text-[#1C1917] rounded-lg hover:bg-[#FAF9F6]"
-                    >
-                      Submit Another Custom Request
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <form onSubmit={handleCustomRequestSubmit} className="space-y-5">
-                  {customError && (
-                    <div className="px-4 py-2.5 rounded-lg bg-[#FDF2F4] border border-[#EAC4CC] text-xs font-medium text-[#8B1E35]">
-                      {customError}
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">
-                        1. Select Varanasi Restaurant *
-                      </label>
-                      <select
-                        value={customRestaurantId}
-                        onChange={(e) => setCustomRestaurantId(e.target.value)}
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
+              <button
+                type="button"
+                onClick={() => setOccasionFilter('All')}
+                className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg"
+              >
+                View All Packages
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredPackages.map((pkg) => {
+                const rest = restaurants.find((r) => r.id === pkg.restaurantId);
+                return (
+                  <div key={pkg.id} className="flex flex-col space-y-2">
+                    <CelebrationPackageCard
+                      pkg={pkg}
+                      actionLabel="Book Now"
+                      onSelect={openDirectBooking}
+                    />
+                    {rest && (
+                      <button
+                        type="button"
+                        onClick={() => openRestaurantModal(rest, 'overview')}
+                        className="text-xs font-medium text-[#57534E] hover:text-[#6E1E2E] inline-flex items-center justify-center gap-1.5 py-1"
                       >
-                        {approvedRestaurants.map((r) => (
-                          <option key={r.id} value={r.id}>
-                            {r.name} — {r.area}, Varanasi
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">
-                        2. Occasion Type *
-                      </label>
-                      <select
-                        value={customOccasion}
-                        onChange={(e) => setCustomOccasion(e.target.value as CelebrationCategory)}
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
-                      >
-                        {CELEBRATION_CATEGORIES.map((cat) => (
-                          <option key={cat} value={cat}>
-                            {cat}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">
-                        3. Event Date *
-                      </label>
-                      <input
-                        type="date"
-                        value={customDate}
-                        min={getTodayISO()}
-                        onChange={(e) => setCustomDate(e.target.value)}
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">
-                        4. Preferred Time *
-                      </label>
-                      <select
-                        value={customTime}
-                        onChange={(e) => setCustomTime(e.target.value)}
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
-                      >
-                        <option>01:00 PM</option>
-                        <option>06:30 PM</option>
-                        <option>07:30 PM</option>
-                        <option>08:30 PM</option>
-                        <option>09:30 PM</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">
-                        5. Number of Guests *
-                      </label>
-                      <input
-                        type="number"
-                        min={2}
-                        max={200}
-                        value={customGuests}
-                        onChange={(e) => setCustomGuests(Number(e.target.value))}
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg tabular-nums"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">
-                        6. Approximate Budget (₹) *
-                      </label>
-                      <input
-                        type="number"
-                        min={1000}
-                        step={500}
-                        value={customBudget}
-                        onChange={(e) => setCustomBudget(Number(e.target.value))}
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg tabular-nums"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">
-                        7. Decoration Theme (Included ₹0) *
-                      </label>
-                      <input
-                        type="text"
-                        value={customTheme}
-                        onChange={(e) => setCustomTheme(e.target.value)}
-                        placeholder="e.g., Marigold & Candlelight Courtyard"
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">
-                        8. Preferred Colours *
-                      </label>
-                      <input
-                        type="text"
-                        value={customColors}
-                        onChange={(e) => setCustomColors(e.target.value)}
-                        placeholder="e.g., Deep Burgundy, Warm Ivory & Gold"
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">
-                        9. Veg / Non-Veg Preference *
-                      </label>
-                      <select
-                        value={customVegPref}
-                        onChange={(e) => setCustomVegPref(e.target.value as VegNonVegPreference)}
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
-                      >
-                        {VEG_OPTIONS.map((opt) => (
-                          <option key={opt} value={opt}>
-                            {opt}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">
-                        10. Cake Requirements
-                      </label>
-                      <input
-                        type="text"
-                        value={customCake}
-                        onChange={(e) => setCustomCake(e.target.value)}
-                        placeholder="Weight, eggless/regular, flavor & message"
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">
-                        11. Food Preferences *
-                      </label>
-                      <input
-                        type="text"
-                        value={customFoodPref}
-                        onChange={(e) => setCustomFoodPref(e.target.value)}
-                        placeholder="Course spread, spice level, live counters..."
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">
-                        12. Decoration Requirements (₹0 Fee)
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={customDecorReqs}
-                        onChange={(e) => setCustomDecorReqs(e.target.value)}
-                        placeholder="Table runner, candles, backdrop lettering, rose petals..."
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">
-                        13. Special Instructions
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={customInstructions}
-                        onChange={(e) => setCustomInstructions(e.target.value)}
-                        placeholder="Surprise entry cues, elder seating, music timing..."
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
-                      />
-                    </div>
-                  </div>
-
-                  {/* 14. Reference Images Upload */}
-                  <div className="bg-white border border-[#E5E0D8] rounded-lg p-4 space-y-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <p className="text-xs font-semibold text-[#1C1917]">
-                          14. Reference Images Upload (Optional — {customRefImages.length} attached)
-                        </p>
-                        <p className="text-[11px] text-[#57534E]">
-                          Upload setup inspiration photos or cake design references for the restaurant team.
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <label className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg cursor-pointer hover:bg-[#541522]">
-                          <Upload className="w-3.5 h-3.5" />
-                          <span>Upload Reference Photos</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            className="hidden"
-                            onChange={(e) =>
-                              readFilesAsDataUrls(e.target.files, (urls) =>
-                                setCustomRefImages((prev) => [...prev, ...urls])
-                              )
-                            }
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setCustomRefImages((prev) =>
-                              prev.includes(IMAGES.decorProposal)
-                                ? prev
-                                : [...prev, IMAGES.decorProposal]
-                            )
-                          }
-                          className="px-3 py-2 text-xs font-semibold border border-[#E5E0D8] bg-[#FAF9F6] rounded-lg text-[#1C1917]"
-                        >
-                          + Add Sample Inspiration
-                        </button>
-                      </div>
-                    </div>
-                    {customRefImages.length > 0 && (
-                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
-                        {customRefImages.map((url, idx) => (
-                          <div
-                            key={`cref-${idx}`}
-                            className="relative aspect-[4/3] rounded overflow-hidden border border-[#E5E0D8]"
-                          >
-                            <SafeImage
-                              src={url}
-                              alt={`Reference ${idx + 1}`}
-                              className="w-full h-full object-cover"
-                            />
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setCustomRefImages((prev) => prev.filter((_, i) => i !== idx))
-                              }
-                              className="absolute top-1 right-1 p-1 rounded-full bg-white/90 text-[#8B1E35]"
-                              aria-label="Remove reference image"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Inspect {rest.name} Profile &amp; Photo Menu</span>
+                      </button>
                     )}
                   </div>
-
-                  {/* Contact confirmation */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">
-                        Your Name *
-                      </label>
-                      <input
-                        type="text"
-                        value={customContactName}
-                        onChange={(e) => setCustomContactName(e.target.value)}
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">
-                        Email Address *
-                      </label>
-                      <input
-                        type="email"
-                        value={customContactEmail}
-                        onChange={(e) => setCustomContactEmail(e.target.value)}
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">
-                        Mobile Number *
-                      </label>
-                      <input
-                        type="tel"
-                        value={customContactPhone}
-                        onChange={(e) => setCustomContactPhone(e.target.value)}
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="bg-white border border-[#E5E0D8] rounded-lg p-3.5 text-xs text-[#57534E] flex flex-wrap items-center justify-between gap-2">
-                    <span>
-                      <strong className="text-[#1C1917]">Quotation Compulsory Protection:</strong> Your budget estimate ({formatINR(customBudget)}) is never charged automatically. You only pay advance after accepting the restaurant&apos;s itemized quotation.
-                    </span>
-                    <span className="font-semibold text-[#1E462A]">Decoration Charge: ₹0</span>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="px-6 py-3 text-sm font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522] transition-colors"
-                  >
-                    Submit Custom Celebration Request (Demo)
-                  </button>
-                </form>
-              )}
+                );
+              })}
             </div>
-          </section>
-        )}
+          )}
+        </section>
       </div>
 
-      {/* Direct Ready-Made Package Booking Modal (NO Quotation Step) */}
+      {/* Direct Ready-Made Package Booking Modal (With Optional "Add a Note") */}
       {bookingPkg && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-[#1C1917]/65 p-3 sm:p-4 overflow-y-auto"
@@ -917,7 +375,7 @@ export function EventsPage() {
             <div className="px-5 py-4 bg-[#1C1917] text-[#FAF9F6] flex items-center justify-between gap-3 shrink-0">
               <div>
                 <p className="text-[11px] font-mono uppercase tracking-wider text-[#E5D3B3]">
-                  Ready-Made Celebration Package · Direct Booking Without Quotation
+                  Celebration Package Booking · Decoration Included (₹0)
                 </p>
                 <h2 id="direct-cel-booking-title" className="font-display text-2xl font-semibold">
                   {bookingPkg.name}
@@ -946,8 +404,8 @@ export function EventsPage() {
                       </h3>
                       <p className="text-sm text-[#57534E]">
                         {confirmedBooking.paid
-                          ? 'Your ready-made celebration package is confirmed directly with no quotation required.'
-                          : 'Saved as Advance Pending. Pay your advance anytime inside Customer Portal → Celebration Bookings.'}
+                          ? 'Your celebration reservation is confirmed with no additional decoration charges.'
+                          : 'Saved as Advance Pending. Pay your advance anytime inside Customer Portal → My Celebrations.'}
                       </p>
                     </div>
                   </div>
@@ -978,13 +436,25 @@ export function EventsPage() {
                     <div className="flex justify-between">
                       <span className="text-[#57534E]">Advance ({advPercent}%)</span>
                       <span className="font-mono font-semibold text-[#6E1E2E] tabular-nums">
-                        {formatINR(confirmedBooking.advance)} {confirmedBooking.paid ? `(DEMO PAID · ${confirmedBooking.txnId})` : '(Pending)'}
+                        {formatINR(confirmedBooking.advance)}{' '}
+                        {confirmedBooking.paid ? `(DEMO PAID · ${confirmedBooking.txnId})` : '(Pending)'}
                       </span>
                     </div>
                     <div className="flex justify-between pt-2 border-t border-[#E5E0D8]">
                       <span className="text-[#57534E]">Remaining Balance at Venue</span>
                       <span className="font-mono font-semibold tabular-nums">{formatINR(confirmedBooking.remaining)}</span>
                     </div>
+                    {confirmedBooking.note && (
+                      <div className="pt-2.5 mt-2 border-t border-[#E5E0D8] space-y-1">
+                        <p className="font-semibold text-[#1C1917]">Special Instructions (Your Note)</p>
+                        <p className="text-[#57534E] bg-white border border-[#E5E0D8] rounded p-2.5 leading-relaxed">
+                          {confirmedBooking.note}
+                        </p>
+                        <p className="text-[11px] text-[#57534E]">
+                          Your note has been shared with the restaurant. The restaurant will confirm whether it can accommodate your request.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap justify-end gap-3">
@@ -993,7 +463,7 @@ export function EventsPage() {
                       onClick={() => setBookingPkg(null)}
                       className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
                     >
-                      {role === 'customer' ? 'View in Celebration Bookings' : 'Open Customer Portal'}
+                      {role === 'customer' ? 'View in My Celebrations' : 'Open Customer Portal'}
                     </Link>
                     <button
                       type="button"
@@ -1007,7 +477,7 @@ export function EventsPage() {
               ) : (
                 <>
                   {/* Step Ribbon */}
-                  <div className="grid grid-cols-4 gap-2 text-[11px] font-medium">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-medium">
                     {[
                       '1. Package Selected',
                       '2. Booking Details',
@@ -1066,7 +536,7 @@ export function EventsPage() {
                   {/* Booking Form Fields */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold mb-1">
+                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">
                         <span className="inline-flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5 text-[#6E1E2E]" /> Event Date *
                         </span>
@@ -1076,15 +546,15 @@ export function EventsPage() {
                         value={eventDate}
                         min={getTodayISO()}
                         onChange={(e) => setEventDate(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
+                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold mb-1">Time Slot *</label>
+                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">Time Slot *</label>
                       <select
                         value={eventTime}
                         onChange={(e) => setEventTime(e.target.value)}
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
+                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
                       >
                         <option>12:30 PM</option>
                         <option>01:30 PM</option>
@@ -1095,7 +565,7 @@ export function EventsPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold mb-1">
+                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">
                         Number of Plates ({bookingPkg.minPlates}–{bookingPkg.maxPlates}) *
                       </label>
                       <input
@@ -1104,65 +574,81 @@ export function EventsPage() {
                         max={bookingPkg.maxPlates}
                         value={platesCount}
                         onChange={(e) => setPlatesCount(Number(e.target.value))}
-                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg tabular-nums font-semibold"
+                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg tabular-nums font-semibold focus:outline-none focus:border-[#6E1E2E]"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold mb-1">Full Name *</label>
+                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">Full Name *</label>
                       <input
                         type="text"
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
+                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold mb-1">Email Address *</label>
+                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">Email Address *</label>
                       <input
                         type="email"
                         value={customerEmail}
                         onChange={(e) => setCustomerEmail(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
+                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold mb-1">Mobile Number *</label>
+                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">Mobile Number *</label>
                       <input
                         type="tel"
                         value={customerPhone}
                         onChange={(e) => setCustomerPhone(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
+                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold mb-1">Food Preferences</label>
-                      <input
-                        type="text"
-                        value={foodPreference}
-                        onChange={(e) => setFoodPreference(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
-                      />
+                  <div>
+                    <label className="block text-xs font-semibold text-[#1C1917] mb-1">Food Preferences</label>
+                    <input
+                      type="text"
+                      value={foodPreference}
+                      onChange={(e) => setFoodPreference(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
+                    />
+                  </div>
+
+                  {/* Add a Note — Optional Special Instructions */}
+                  <div className="bg-[#FAF9F6] border border-[#E5E0D8] rounded-lg p-4 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <label
+                        htmlFor="events-special-instructions-note"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1C1917]"
+                      >
+                        <MessageSquarePlus className="w-3.5 h-3.5 text-[#6E1E2E]" aria-hidden="true" />
+                        <span>Special Instructions (Optional)</span>
+                      </label>
+                      <span className="text-[11px] font-mono tabular-nums text-[#57534E]">
+                        {customerNote.length} / {MAX_CELEBRATION_NOTE_LENGTH}
+                      </span>
                     </div>
-                    <div>
-                      <label className="block text-xs font-semibold mb-1">Special Requests</label>
-                      <input
-                        type="text"
-                        value={specialRequests}
-                        onChange={(e) => setSpecialRequests(e.target.value)}
-                        placeholder="Cake timing, preferred seating zone..."
-                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
-                      />
-                    </div>
+                    <textarea
+                      id="events-special-instructions-note"
+                      rows={3}
+                      maxLength={MAX_CELEBRATION_NOTE_LENGTH}
+                      value={customerNote}
+                      onChange={(e) => setCustomerNote(e.target.value.slice(0, MAX_CELEBRATION_NOTE_LENGTH))}
+                      placeholder="Tell the restaurant about any special requests, preferences, or arrangements..."
+                      className="w-full px-3 py-2.5 text-sm bg-white border border-[#E5E0D8] rounded-lg text-[#1C1917] placeholder:text-[#57534E]/75 focus:outline-none focus:border-[#6E1E2E] resize-y min-h-[84px]"
+                    />
+                    <p className="text-[11px] text-[#57534E] leading-relaxed">
+                      Your note will be shared with the restaurant. The restaurant will confirm whether it can accommodate your request.
+                    </p>
                   </div>
 
                   <PaymentBreakdownCard
-                    title="Automatic Celebration Package Summary (No Quotation Required)"
+                    title="Celebration Package Summary"
                     rows={[
                       {
                         label: 'Package Cost Calculation',
@@ -1177,7 +663,7 @@ export function EventsPage() {
                     ]}
                     totalLabel={`Advance Payable Now (${advPercent}%)`}
                     totalValue={formatINR(advAmount)}
-                    footnote="Ready-made packages are booked directly at published price-per-plate rates without waiting for a quotation."
+                    footnote="Ready-made packages use published price-per-plate rates. Any special note is subject to restaurant confirmation."
                   />
 
                   <div className="flex flex-wrap justify-end gap-3 pt-1">
