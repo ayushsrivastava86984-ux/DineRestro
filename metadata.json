@@ -1,0 +1,8 @@
+{
+  "name": "DineRestro — Discover. Reserve. Celebrate.",
+  "description": "Premium restaurant discovery, curated dining offers, special event dining, and table reservation platform launching in Varanasi, Uttar Pradesh.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

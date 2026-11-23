@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --color-maroon: #702C3A;
+  --color-maroon-dark: #58202C;
+  --color-cream: #FFF6E9;
+  --color-soft-pink: #F4A6B8;
+  --color-light-green: #E7EFD9;
+  --color-ink: #292321;
+  --color-muted: #6B5F5C;
+  --color-hairline: #E8DDD1;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    color: #292321;
+    background-color: #FFFFFF;
+    scroll-behavior: smooth;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: var(--font-serif);
+    text-wrap: balance;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
