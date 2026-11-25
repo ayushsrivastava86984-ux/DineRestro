@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   CheckCircle2,
   ChevronLeft,
@@ -6,6 +7,7 @@ import {
   Clock,
   Heart,
   Image as ImageIcon,
+  Lock,
   MapPin,
   MessageSquarePlus,
   PartyPopper,
@@ -37,10 +39,16 @@ const TIME_SLOTS = [
 ];
 
 export function RestaurantModal() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const {
+    role,
     selectedRestaurantForModal,
     modalInitialTab,
     closeRestaurantModal,
+    requireCustomerAuth,
+    restoredBookingDraft,
+    consumeRestoredBookingDraft,
     favoriteIds,
     toggleFavorite,
     customerUser,
@@ -115,24 +123,48 @@ export function RestaurantModal() {
 
   useEffect(() => {
     if (restaurant) {
+      const matchingDraft =
+        restoredBookingDraft &&
+        restoredBookingDraft.kind === 'restaurant_modal' &&
+        restoredBookingDraft.restaurantId === restaurant.id
+          ? restoredBookingDraft.draft
+          : undefined;
+
       setActiveTab(modalInitialTab || 'overview');
-      setTableStep(1);
-      setTableTier(restaurant.tier || 'Basic');
+      setTableStep(matchingDraft?.tableGuests ? 3 : 1);
+      setTableTier(matchingDraft?.tableTier || restaurant.tier || 'Basic');
       setFormError('');
       setTableConfirmedRef(null);
       setPreOrderConfirmedRef(null);
       setCelConfirmedInfo(null);
-      setCelCustomerNote('');
       setGuestName(customerUser.fullName);
       setGuestPhone(customerUser.mobile);
       setCelEmail(customerUser.email);
-      setSelectedOfferId('');
+
+      if (matchingDraft?.tableDate) setTableDate(matchingDraft.tableDate);
+      if (matchingDraft?.tableTime) setTableTime(matchingDraft.tableTime);
+      if (matchingDraft?.tableGuests) setTableGuests(matchingDraft.tableGuests);
+      setSelectedOfferId(matchingDraft?.selectedOfferId || '');
+      setTableNotes(matchingDraft?.tableNotes || '');
+
       const firstPre = restPrePackages[0];
-      setSelectedPrePkgId(firstPre?.id || '');
-      setPlateCount(firstPre?.minPlates || 2);
+      setSelectedPrePkgId(matchingDraft?.selectedPrePkgId || firstPre?.id || '');
+      setPlateCount(matchingDraft?.plateCount || firstPre?.minPlates || 2);
+      if (matchingDraft?.preOrderDate) setPreOrderDate(matchingDraft.preOrderDate);
+      if (matchingDraft?.preOrderTime) setPreOrderTime(matchingDraft.preOrderTime);
+      if (matchingDraft?.foodPreference) setFoodPreference(matchingDraft.foodPreference);
+
       const firstCel = restCelPackages[0];
-      setSelectedCelPkgId(firstCel?.id || '');
-      setCelPlates(firstCel?.minPlates || 6);
+      setSelectedCelPkgId(matchingDraft?.selectedCelPkgId || firstCel?.id || '');
+      setCelPlates(matchingDraft?.celPlates || firstCel?.minPlates || 6);
+      if (matchingDraft?.celDate) setCelDate(matchingDraft.celDate);
+      if (matchingDraft?.celTime) setCelTime(matchingDraft.celTime);
+      if (matchingDraft?.celFoodPref) setCelFoodPref(matchingDraft.celFoodPref);
+      setCelCustomerNote(matchingDraft?.celCustomerNote || '');
+
+      if (matchingDraft) {
+        consumeRestoredBookingDraft();
+      }
     }
   }, [restaurant?.id, modalInitialTab]);
 
@@ -166,9 +198,44 @@ export function RestaurantModal() {
   const celAdvAmt = Math.round((celTotalAmt * celAdvPercent) / 100);
   const celRemainingAmt = celTotalAmt - celAdvAmt;
 
+  const redirectToCustomerLoginWithDraft = (
+    tab: 'book' | 'preorder' | 'celebrate'
+  ) => {
+    requireCustomerAuth({
+      kind: 'restaurant_modal',
+      restaurantId: restaurant.id,
+      tab,
+      returnPath: `${location.pathname}${location.search}`,
+      draft: {
+        tableDate,
+        tableTime,
+        tableGuests,
+        tableTier,
+        selectedOfferId,
+        tableNotes,
+        preOrderDate,
+        preOrderTime,
+        plateCount,
+        selectedPrePkgId: chosenPrePkg?.id,
+        foodPreference,
+        celDate,
+        celTime,
+        celPlates,
+        selectedCelPkgId: chosenCelPkg?.id,
+        celFoodPref,
+        celCustomerNote,
+      },
+    });
+    navigate('/customer/login');
+  };
+
   const handleBookTableSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
+    if (role !== 'customer') {
+      redirectToCustomerLoginWithDraft('book');
+      return;
+    }
     if (!guestName.trim() || !validateIndianMobile(guestPhone)) {
       setFormError('Please enter a valid guest name and 10-digit mobile number.');
       return;
@@ -224,6 +291,10 @@ export function RestaurantModal() {
       setTableStep(1);
       return;
     }
+    if (role !== 'customer') {
+      redirectToCustomerLoginWithDraft('preorder');
+      return;
+    }
     if (!chosenPrePkg) {
       setFormError('No pre-order plate package is available for this restaurant.');
       return;
@@ -276,6 +347,10 @@ export function RestaurantModal() {
 
   const handleCelebrationSubmit = (payAdvanceNow: boolean) => {
     setFormError('');
+    if (role !== 'customer') {
+      redirectToCustomerLoginWithDraft('celebrate');
+      return;
+    }
     if (!chosenCelPkg) {
       setFormError('No approved celebration package selected.');
       return;
@@ -397,9 +472,17 @@ export function RestaurantModal() {
               />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs text-[#FAF9F6] truncate">
-                {restaurant.tier} Dining · {restaurant.cuisines.join(' · ')} · {restaurant.area}, {restaurant.city}
-              </p>
+              <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                <p className="text-xs text-[#FAF9F6] truncate">
+                  {restaurant.tier} Dining · {restaurant.category ? `${restaurant.category} · ` : ''}
+                  {restaurant.cuisines.join(' · ')} · {restaurant.area}, {restaurant.city}
+                </p>
+                {restaurant.isDemo && (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#FAF9F6] text-[#6E1E2E] shrink-0">
+                    Demo Listing
+                  </span>
+                )}
+              </div>
               <h2
                 id="restaurant-modal-title"
                 className="font-display text-2xl sm:text-3xl font-semibold truncate"
@@ -407,7 +490,7 @@ export function RestaurantModal() {
                 {restaurant.name}
               </h2>
             </div>
-            {restaurant.reviewCount > 0 && (
+            {!restaurant.isDemo && restaurant.reviewCount > 0 && (
               <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded bg-white/95 text-[#1C1917] text-xs font-semibold tabular-nums shrink-0">
                 <Star className="w-3.5 h-3.5 fill-[#B8863B] text-[#B8863B]" />
                 <span>{restaurant.rating.toFixed(1)}</span>
@@ -444,6 +527,14 @@ export function RestaurantModal() {
         </div>
 
         <div className="p-5 sm:p-6 overflow-y-auto space-y-6">
+          {role !== 'customer' && activeTab !== 'overview' && (
+            <div className="px-4 py-2.5 rounded-lg bg-[#FAF9F6] border border-[#6E1E2E]/30 text-xs text-[#6E1E2E] flex items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-1.5 font-medium">
+                <Lock className="w-3.5 h-3.5 shrink-0" />
+                <span>Customer login is required to complete any booking. Your selections will be preserved.</span>
+              </span>
+            </div>
+          )}
           {formError && (
             <div className="px-4 py-2.5 rounded-lg bg-[#FDF2F4] border border-[#EAC4CC] text-xs font-medium text-[#8B1E35]">
               {formError}

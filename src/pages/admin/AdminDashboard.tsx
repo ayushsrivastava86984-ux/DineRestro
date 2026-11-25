@@ -14,7 +14,6 @@ import {
   IndianRupee,
   CalendarCheck,
   Utensils,
-  MessageSquareQuote,
   Receipt,
   MessageSquare,
   LifeBuoy,
@@ -24,7 +23,10 @@ import {
   Trash2,
   Plus,
   X,
-  Wand2,
+  MapPin,
+  Pencil,
+  Power,
+  RotateCcw,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { DashboardLayout, type DashboardNavItem } from '../../components/layout/DashboardLayout';
@@ -35,12 +37,14 @@ import { SafeImage } from '../../components/common/SafeImage';
 import {
   ALL_AMENITIES,
   DEMO_ANALYTICS_WEEKLY,
+  RESTAURANT_CATEGORIES,
 } from '../../data/mockData';
-import type { AmenityType, DiningOffer, Restaurant } from '../../types';
+import type { AmenityType, DiningOffer, Restaurant, RestaurantCategory } from '../../types';
 import { formatDisplayDate, formatINR } from '../../utils/formatters';
 
 const ADMIN_NAV: DashboardNavItem[] = [
   { label: 'Overview', to: '/admin/dashboard', icon: LayoutDashboard },
+  { label: 'Cities & Launch Areas', to: '/admin/cities', icon: MapPin },
   { label: 'Customer Accounts', to: '/admin/customers', icon: Users },
   { label: 'Restaurant Accounts', to: '/admin/restaurants', icon: Store },
   { label: 'Restaurant Approvals', to: '/admin/approvals', icon: ClipboardCheck },
@@ -53,8 +57,7 @@ const ADMIN_NAV: DashboardNavItem[] = [
   { label: 'Booking Fee Settings', to: '/admin/fees', icon: IndianRupee },
   { label: 'Reservations', to: '/admin/reservations', icon: CalendarCheck },
   { label: 'Pre-orders', to: '/admin/preorders', icon: Utensils },
-  { label: 'Celebration Bookings', to: '/admin/quotations', icon: MessageSquareQuote },
-  { label: 'Custom Requests & Quotes', to: '/admin/custom-requests', icon: Wand2 },
+  { label: 'Celebration Bookings', to: '/admin/celebrations', icon: PartyPopper },
   { label: 'Payment Records', to: '/admin/payments', icon: Receipt },
   { label: 'Reviews', to: '/admin/reviews', icon: MessageSquare },
   { label: 'Support Tickets', to: '/admin/support', icon: LifeBuoy },
@@ -65,10 +68,20 @@ const ADMIN_NAV: DashboardNavItem[] = [
 export function AdminDashboard() {
   const location = useLocation();
   const {
+    cities,
+    activeCityConfig,
+    addCity,
+    toggleCityActive,
+    setDefaultLaunchCity,
+    addCityNeighbourhood,
     customers,
     updateCustomerStatus,
     restaurants,
     updateRestaurantApproval,
+    toggleRestaurantActive,
+    deleteRestaurant,
+    editRestaurantListing,
+    seedLucknowDemoRestaurants,
     setRestaurantCover,
     deleteRestaurantPhoto,
     updateRestaurantAmenities,
@@ -78,7 +91,6 @@ export function AdminDashboard() {
     reservations,
     preOrders,
     celebrationBookings,
-    customRequests,
     offers,
     addOffer,
     toggleOfferActive,
@@ -97,9 +109,20 @@ export function AdminDashboard() {
   const [resStatusFilter, setResStatusFilter] = useState<string>('All');
   const [paymentTypeFilter, setPaymentTypeFilter] = useState<string>('All');
   const [selectedRestId, setSelectedRestId] = useState<string>(
-    restaurants[0]?.id || 'rest-kashi-terrace'
+    restaurants[0]?.id || 'rest-lko-awadh-mahal'
   );
   const [inspectRest, setInspectRest] = useState<Restaurant | null>(null);
+  const [restListingFilter, setRestListingFilter] = useState<'All' | 'Demo' | 'Verified'>('All');
+  const [confirmDeleteRestId, setConfirmDeleteRestId] = useState<string | null>(null);
+  const [editingRest, setEditingRest] = useState<Restaurant | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editArea, setEditArea] = useState('');
+  const [editCategory, setEditCategory] = useState<RestaurantCategory>('Fine Dining');
+  const [editPriceForTwo, setEditPriceForTwo] = useState('1200');
+  const [editPriceRange, setEditPriceRange] = useState<Restaurant['priceRange']>('₹₹');
+  const [editOfferText, setEditOfferText] = useState('');
+  const [editTier, setEditTier] = useState<Restaurant['tier']>('Basic');
+  const [editDesc, setEditDesc] = useState('');
 
   // Configurable platform fees state
   const [basicFee, setBasicFee] = useState(String(platformSettings.basicOfferFeePerGuest));
@@ -112,7 +135,7 @@ export function AdminDashboard() {
   );
 
   // New Offer form state
-  const [offerRestId, setOfferRestId] = useState(restaurants[0]?.id || 'rest-kashi-terrace');
+  const [offerRestId, setOfferRestId] = useState(restaurants[0]?.id || 'rest-lko-awadh-mahal');
   const [offerTitle, setOfferTitle] = useState('');
   const [offerCode, setOfferCode] = useState('');
   const [offerDiscount, setOfferDiscount] = useState('');
@@ -121,10 +144,46 @@ export function AdminDashboard() {
     useState<DiningOffer['category']>('Flat Discount');
   const [offerTerms, setOfferTerms] = useState('');
 
+  // City & launch area management state
+  const [newCityName, setNewCityName] = useState('');
+  const [newCityState, setNewCityState] = useState('Uttar Pradesh');
+  const [newCityAreas, setNewCityAreas] = useState('');
+  const [areaInputs, setAreaInputs] = useState<Record<string, string>>({});
+
+  const openEditRestModal = (r: Restaurant) => {
+    setEditingRest(r);
+    setEditName(r.name);
+    setEditArea(r.area);
+    setEditCategory(r.category || 'Fine Dining');
+    setEditPriceForTwo(String(r.priceForTwo));
+    setEditPriceRange(r.priceRange);
+    setEditOfferText(r.offerText);
+    setEditTier(r.tier);
+    setEditDesc(r.description);
+  };
+
+  const handleSaveRestEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRest) return;
+    editRestaurantListing(editingRest.id, {
+      name: editName.trim() || editingRest.name,
+      area: editArea.trim() || editingRest.area,
+      category: editCategory,
+      priceForTwo: Math.max(200, Number(editPriceForTwo) || editingRest.priceForTwo),
+      priceRange: editPriceRange,
+      offerText: editOfferText.trim() || editingRest.offerText,
+      tier: editTier,
+      description: editDesc.trim() || editingRest.description,
+    });
+    setEditingRest(null);
+  };
+
   const path = location.pathname;
   const activeSection =
-    path.includes('/admin/customers')
-      ? 'customers'
+    path.includes('/admin/cities')
+      ? 'cities'
+      : path.includes('/admin/customers')
+        ? 'customers'
       : path.includes('/admin/restaurants')
         ? 'restaurants'
         : path.includes('/admin/approvals')
@@ -147,11 +206,9 @@ export function AdminDashboard() {
                           ? 'reservations'
                           : path.includes('/admin/preorders')
                             ? 'preorders'
-                            : path.includes('/admin/custom-requests')
-                              ? 'custom-requests'
-                              : path.includes('/admin/quotations')
-                                ? 'quotations'
-                                : path.includes('/admin/payments')
+                            : path.includes('/admin/celebrations')
+                              ? 'celebrations'
+                              : path.includes('/admin/payments')
                                   ? 'payments'
                                   : path.includes('/admin/reviews')
                                     ? 'reviews'
@@ -246,7 +303,7 @@ export function AdminDashboard() {
       validUntil: '2026-12-31',
       terms:
         offerTerms.trim() ||
-        'Valid on DineRestro offer table bookings in Varanasi. Simulated Phase 1 offer.',
+        `Valid on DineRestro offer table bookings in ${targetRest.city}. Simulated Phase 1 offer.`,
       active: true,
       category: offerCategory,
     });
@@ -260,7 +317,7 @@ export function AdminDashboard() {
     <DashboardLayout
       portalRole="admin"
       portalLabel="Internal Admin Portal"
-      userTitle="Varanasi Operations Desk"
+      userTitle={`${activeCityConfig.name} Operations Desk`}
       userSubtitle="DEMO DATA · Internal Preview"
       navItems={ADMIN_NAV}
     >
@@ -278,7 +335,7 @@ export function AdminDashboard() {
                 DineRestro Operations Overview
               </h1>
               <p className="text-sm text-[#57534E] mt-1">
-                Varanasi launch city metrics, onboarding approvals, celebration package audits, and simulated payment totals (DEMO DATA).
+                {activeCityConfig.name} launch city metrics, onboarding approvals, celebration package audits, and simulated payment totals (DEMO DATA).
               </p>
             </div>
 
@@ -312,7 +369,7 @@ export function AdminDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <SimpleBarChart
                 title="Platform Demo Bookings (7 Days)"
-                subtitle="Simulated daily reservation volume across Varanasi"
+                subtitle={`Simulated daily reservation volume across ${activeCityConfig.name}`}
                 data={DEMO_ANALYTICS_WEEKLY.map((d) => ({ label: d.label, value: d.bookings }))}
               />
               <SimpleBarChart
@@ -417,6 +474,180 @@ export function AdminDashboard() {
           </div>
         )}
 
+        {/* CITIES & LAUNCH AREAS */}
+        {activeSection === 'cities' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="font-display text-3xl sm:text-4xl font-semibold text-[#1C1917]">
+                Cities &amp; Launch Neighbourhoods
+              </h1>
+              <p className="text-sm text-[#57534E] mt-1">
+                Lucknow is DineRestro&apos;s first official launch city. Add expansion cities, manage active availability, and configure neighbourhood discovery filters.
+              </p>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!newCityName.trim()) return;
+                const parsedAreas = newCityAreas
+                  .split(',')
+                  .map((s) => s.trim())
+                  .filter(Boolean);
+                addCity({
+                  name: newCityName.trim(),
+                  state: newCityState.trim() || 'Uttar Pradesh',
+                  neighbourhoods: parsedAreas.length > 0 ? parsedAreas : ['Central'],
+                });
+                setNewCityName('');
+                setNewCityAreas('');
+              }}
+              className="bg-white border border-[#E5E0D8] rounded-lg p-5 space-y-4"
+            >
+              <h2 className="text-base font-semibold text-[#1C1917] flex items-center gap-2">
+                <Plus className="w-4 h-4 text-[#6E1E2E]" />
+                Add Expansion City
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <input
+                  type="text"
+                  value={newCityName}
+                  onChange={(e) => setNewCityName(e.target.value)}
+                  placeholder="City name (e.g., Kanpur)"
+                  className="px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
+                  required
+                />
+                <input
+                  type="text"
+                  value={newCityState}
+                  onChange={(e) => setNewCityState(e.target.value)}
+                  placeholder="State (e.g., Uttar Pradesh)"
+                  className="px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
+                  required
+                />
+                <input
+                  type="text"
+                  value={newCityAreas}
+                  onChange={(e) => setNewCityAreas(e.target.value)}
+                  placeholder="Neighbourhoods (comma-separated)"
+                  className="px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
+                />
+              </div>
+              <button
+                type="submit"
+                className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
+              >
+                Add City to Platform
+              </button>
+            </form>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {cities.map((c) => {
+                const areaDraft = areaInputs[c.id] || '';
+                const restCount = restaurants.filter(
+                  (r) =>
+                    r.city.toLowerCase() === c.name.toLowerCase() &&
+                    r.approvalStatus === 'Approved'
+                ).length;
+                return (
+                  <div
+                    key={c.id}
+                    className="bg-white border border-[#E5E0D8] rounded-lg p-5 space-y-4"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-display text-2xl font-semibold text-[#1C1917]">
+                            {c.name}
+                          </h3>
+                          {c.isDefaultLaunchCity && (
+                            <span className="px-2 py-0.5 text-[11px] font-semibold bg-[#6E1E2E] text-white rounded">
+                              Default Launch City
+                            </span>
+                          )}
+                          <span
+                            className={`px-2 py-0.5 text-[11px] font-semibold rounded ${
+                              c.isActive
+                                ? 'bg-[#ECF4EE] text-[#1E462A]'
+                                : 'bg-[#FAF9F6] text-[#57534E] border border-[#E5E0D8]'
+                            }`}
+                          >
+                            {c.isActive ? 'Active' : 'Paused'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-[#57534E] mt-0.5">
+                          {c.state}, {c.country} · {restCount} approved restaurant{restCount === 1 ? '' : 's'}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {!c.isDefaultLaunchCity && (
+                          <button
+                            type="button"
+                            onClick={() => setDefaultLaunchCity(c.id)}
+                            className="px-3 py-1.5 text-xs font-semibold text-[#6E1E2E] border border-[#6E1E2E] rounded-lg hover:bg-[#FAF9F6]"
+                          >
+                            Set Default Launch
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          disabled={c.isDefaultLaunchCity}
+                          onClick={() => toggleCityActive(c.id)}
+                          className="px-3 py-1.5 text-xs font-semibold border border-[#E5E0D8] rounded-lg text-[#1C1917] hover:bg-[#FAF9F6] disabled:opacity-50"
+                        >
+                          {c.isActive ? 'Pause City' : 'Activate City'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-[#1C1917]">
+                        Neighbourhoods ({c.neighbourhoods.length})
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {c.neighbourhoods.map((nb) => (
+                          <span
+                            key={nb}
+                            className="px-2.5 py-1 text-xs bg-[#FAF9F6] border border-[#E5E0D8] rounded text-[#1C1917]"
+                          >
+                            {nb}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (!areaDraft.trim()) return;
+                        addCityNeighbourhood(c.id, areaDraft.trim());
+                        setAreaInputs((prev) => ({ ...prev, [c.id]: '' }));
+                      }}
+                      className="flex gap-2 pt-2 border-t border-[#E5E0D8]"
+                    >
+                      <input
+                        type="text"
+                        value={areaDraft}
+                        onChange={(e) =>
+                          setAreaInputs((prev) => ({ ...prev, [c.id]: e.target.value }))
+                        }
+                        placeholder={`Add neighbourhood in ${c.name}...`}
+                        className="flex-1 px-3 py-1.5 text-xs border border-[#E5E0D8] rounded-lg"
+                      />
+                      <button
+                        type="submit"
+                        className="px-3 py-1.5 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
+                      >
+                        Add Area
+                      </button>
+                    </form>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* CUSTOMER ACCOUNTS */}
         {activeSection === 'customers' && (
           <div className="space-y-5">
@@ -497,58 +728,177 @@ export function AdminDashboard() {
         {/* RESTAURANT ACCOUNTS */}
         {activeSection === 'restaurants' && (
           <div className="space-y-5">
-            <h1 className="font-display text-3xl font-semibold text-[#1C1917]">
-              Registered Restaurant Accounts
-            </h1>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h1 className="font-display text-3xl font-semibold text-[#1C1917]">
+                  Registered Restaurant &amp; Demo Listings
+                </h1>
+                <p className="text-sm text-[#57534E] mt-0.5">
+                  Manage verified partner venues and Lucknow fictional demo listings. Edit details, pause/activate visibility, delete, or restore demo seeds.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={seedLucknowDemoRestaurants}
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Seed / Restore 12 Lucknow Demo Listings
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {(['All', 'Demo', 'Verified'] as const).map((tab) => {
+                const count =
+                  tab === 'All'
+                    ? restaurants.length
+                    : tab === 'Demo'
+                      ? restaurants.filter((r) => Boolean(r.isDemo)).length
+                      : restaurants.filter((r) => !r.isDemo).length;
+                return (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setRestListingFilter(tab)}
+                    className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
+                      restListingFilter === tab
+                        ? 'bg-[#1C1917] text-white border-[#1C1917]'
+                        : 'bg-white text-[#57534E] border-[#E5E0D8] hover:border-[#6E1E2E]/40'
+                    }`}
+                  >
+                    {tab === 'All'
+                      ? `All Listings (${count})`
+                      : tab === 'Demo'
+                        ? `Demo Listings (${count})`
+                        : `Verified Partners (${count})`}
+                  </button>
+                );
+              })}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {restaurants.map((r) => (
-                <div
-                  key={r.id}
-                  className="bg-white border border-[#E5E0D8] rounded-lg p-5 space-y-3"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <SafeImage
-                        src={r.logoUrl}
-                        alt={r.name}
-                        className="w-12 h-12 rounded-lg object-cover border border-[#E5E0D8]"
-                        fallbackTitle={r.name}
-                      />
+              {restaurants
+                .filter((r) =>
+                  restListingFilter === 'All'
+                    ? true
+                    : restListingFilter === 'Demo'
+                      ? Boolean(r.isDemo)
+                      : !r.isDemo
+                )
+                .map((r) => (
+                  <div
+                    key={r.id}
+                    className="bg-white border border-[#E5E0D8] rounded-lg p-5 space-y-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <SafeImage
+                          src={r.logoUrl}
+                          alt={r.name}
+                          className="w-12 h-12 rounded-lg object-cover border border-[#E5E0D8]"
+                          fallbackTitle={r.name}
+                        />
+                        <div>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <h3 className="text-lg font-semibold text-[#1C1917]">{r.name}</h3>
+                            {r.isDemo ? (
+                              <span className="px-2 py-0.5 rounded bg-[#FAF9F6] border border-[#B8863B]/45 text-[10px] font-semibold text-[#8A5F17]">
+                                Demo Listing
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded bg-[#ECF4EE] border border-[#BBD6C3] text-[10px] font-semibold text-[#1E462A]">
+                                Verified Partner
+                              </span>
+                            )}
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                                r.isActive === false
+                                  ? 'bg-[#FDF2F4] text-[#8B1E35] border border-[#EAC4CC]'
+                                  : 'bg-[#F3F1ED] text-[#1C1917] border border-[#E5E0D8]'
+                              }`}
+                            >
+                              {r.isActive === false ? 'Paused' : 'Active'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-[#57534E]">
+                            {r.area}, {r.city} · {r.category || r.primaryCuisine} · {formatINR(r.priceForTwo)} for two
+                          </p>
+                        </div>
+                      </div>
+                      <StatusBadge status={r.approvalStatus} />
+                    </div>
+                    <p className="text-xs text-[#57534E]">{r.address}</p>
+                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#E5E0D8] text-xs">
                       <div>
-                        <h3 className="text-lg font-semibold text-[#1C1917]">{r.name}</h3>
-                        <p className="text-xs text-[#57534E]">
-                          {r.area}, {r.city} · Owner: {r.ownerName}
-                        </p>
+                        <span className="text-[#57534E]">Gallery:</span>{' '}
+                        <span className="font-semibold tabular-nums">{r.photos.length}</span>
+                      </div>
+                      <div>
+                        <span className="text-[#57534E]">Menu Pages:</span>{' '}
+                        <span className="font-semibold tabular-nums">{r.menuPhotos.length}</span>
+                      </div>
+                      <div>
+                        <span className="text-[#57534E]">Amenities:</span>{' '}
+                        <span className="font-semibold tabular-nums">{r.amenities.length}</span>
                       </div>
                     </div>
-                    <StatusBadge status={r.approvalStatus} />
-                  </div>
-                  <p className="text-xs text-[#57534E]">{r.address}</p>
-                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#E5E0D8] text-xs">
-                    <div>
-                      <span className="text-[#57534E]">Gallery:</span>{' '}
-                      <span className="font-semibold tabular-nums">{r.photos.length}</span>
+                    <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => toggleRestaurantActive(r.id)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium border border-[#E5E0D8] rounded hover:bg-[#FAF9F6]"
+                      >
+                        <Power className="w-3.5 h-3.5" />
+                        {r.isActive === false ? 'Activate' : 'Pause'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openEditRestModal(r)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium border border-[#E5E0D8] rounded hover:bg-[#FAF9F6]"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setInspectRest(r)}
+                        className="px-3 py-1.5 text-xs font-semibold border border-[#E5E0D8] rounded hover:bg-[#FAF9F6]"
+                      >
+                        Inspect Full Venue
+                      </button>
+                      {confirmDeleteRestId === r.id ? (
+                        <div className="inline-flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              deleteRestaurant(r.id);
+                              setConfirmDeleteRestId(null);
+                            }}
+                            className="px-2.5 py-1.5 text-xs font-semibold text-white bg-[#8B1E35] rounded"
+                          >
+                            Confirm Delete
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteRestId(null)}
+                            className="px-2 py-1.5 text-xs border border-[#E5E0D8] rounded"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteRestId(r.id)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-[#8B1E35] border border-[#EAC4CC] bg-[#FDF2F4] rounded hover:opacity-90"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Delete
+                        </button>
+                      )}
                     </div>
-                    <div>
-                      <span className="text-[#57534E]">Menu Pages:</span>{' '}
-                      <span className="font-semibold tabular-nums">{r.menuPhotos.length}</span>
-                    </div>
-                    <div>
-                      <span className="text-[#57534E]">Amenities:</span>{' '}
-                      <span className="font-semibold tabular-nums">{r.amenities.length}</span>
-                    </div>
                   </div>
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => setInspectRest(r)}
-                      className="px-3 py-1.5 text-xs font-semibold border border-[#E5E0D8] rounded hover:bg-[#FAF9F6]"
-                    >
-                      Inspect Full Venue
-                    </button>
-                  </div>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
         )}
@@ -661,7 +1011,7 @@ export function AdminDashboard() {
                   />
                   <div className="text-xs text-[#57534E]">
                     <p className="font-semibold text-[#1C1917]">{selectedRestaurant.name}</p>
-                    <p>{selectedRestaurant.area}, Varanasi</p>
+                    <p>{selectedRestaurant.area}, {selectedRestaurant.city}</p>
                   </div>
                 </div>
               </div>
@@ -942,7 +1292,7 @@ export function AdminDashboard() {
                 Celebration Decoration Photo Audit
               </h1>
               <p className="text-sm text-[#57534E]">
-                All decoration photographs uploaded by partner restaurants across Varanasi. Every decoration setup is ₹0 complimentary with its celebration package.
+                All decoration photographs uploaded by partner restaurants across {activeCityConfig.name} and expansion cities. Every decoration setup is ₹0 complimentary with its celebration package.
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -1021,7 +1371,7 @@ export function AdminDashboard() {
                   type="text"
                   value={offerCode}
                   onChange={(e) => setOfferCode(e.target.value)}
-                  placeholder="Promo Code (e.g., KASHI20)"
+                  placeholder="Promo Code (e.g., LUCKNOW20)"
                   className="px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg font-mono uppercase"
                 />
                 <input
@@ -1196,7 +1546,7 @@ export function AdminDashboard() {
                   • <strong>Food Pre-Orders:</strong> Advance payment percentage is configurable per restaurant (e.g., 20%, 50%, 100%; platform default {platformSettings.defaultPreOrderAdvancePercent}%).
                 </p>
                 <p>
-                  • <strong>Celebration Bookings &amp; Custom Requests:</strong> Decoration charge is always ₹0 (`Decoration Included – No Additional Charges`). Custom requests require restaurant quotation review and customer acceptance before advance payment unlocks.
+                  • <strong>Celebration Bookings:</strong> Direct booking through curated Ready-Made Celebration Packages only. Decoration charge is always ₹0 (`Decoration Included – No Additional Charges`), and optional guest notes are passed to the restaurant for confirmation.
                 </p>
               </div>
 
@@ -1330,7 +1680,7 @@ export function AdminDashboard() {
         )}
 
         {/* READY-MADE CELEBRATION BOOKINGS */}
-        {activeSection === 'quotations' && (
+        {activeSection === 'celebrations' && (
           <div className="space-y-5">
             <div>
               <h1 className="font-display text-3xl font-semibold text-[#1C1917]">
@@ -1386,71 +1736,6 @@ export function AdminDashboard() {
           </div>
         )}
 
-        {/* CUSTOM CELEBRATION REQUESTS & QUOTATIONS AUDIT (READ-ONLY OVERSIGHT) */}
-        {activeSection === 'custom-requests' && (
-          <div className="space-y-5">
-            <div>
-              <h1 className="font-display text-3xl font-semibold text-[#1C1917]">
-                Custom Celebration Requests &amp; Quotations Audit (Read-Only)
-              </h1>
-              <p className="text-sm text-[#57534E]">
-                Platform oversight of customer custom requests, restaurant-issued itemized quotations, lock status after customer acceptance, and ₹0 decoration compliance. Admin does not create quotations for partner venues.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {customRequests.map((req) => (
-                <div key={req.id} className="bg-white border border-[#E5E0D8] rounded-lg p-5 space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-mono font-semibold text-[#6E1E2E]">
-                      {req.id} {req.quotation ? `· ${req.quotation.id}` : ''}
-                    </span>
-                    <StatusBadge status={req.status} />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-[#1C1917]">
-                      {req.occasionType} — {req.restaurantName}
-                    </h3>
-                    <p className="text-xs text-[#57534E]">
-                      {req.customerName} · {req.guestsCount} guests · {formatDisplayDate(req.preferredDate)} at {req.preferredTime} · {req.vegNonVegPreference}
-                    </p>
-                  </div>
-                  <div className="bg-[#FAF9F6] border border-[#E5E0D8] rounded p-3 text-xs space-y-1">
-                    <div className="flex justify-between">
-                      <span>Requested Budget</span>
-                      <span className="font-semibold tabular-nums">{formatINR(req.estimatedBudget)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Theme &amp; Reference Photos</span>
-                      <span className="font-medium text-right">
-                        {req.decorationTheme} ({req.referenceImages.length} images)
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-[#1E462A]">
-                      <span>Decoration Charge</span>
-                      <span className="font-mono font-semibold">₹0 (FREE)</span>
-                    </div>
-                    <div className="flex justify-between pt-1 border-t border-[#E5E0D8] font-semibold">
-                      <span>Quotation Total / Lock State</span>
-                      <span className="tabular-nums">
-                        {req.quotedAmount ? formatINR(req.quotedAmount) : 'Pending Quote'} ·{' '}
-                        {req.quotation?.locked ? 'Locked (Accepted)' : 'Unlocked'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-[#57534E]">
-                      <span>Advance Payment Status</span>
-                      <span>
-                        {req.advancePaid
-                          ? `DEMO PAID (${formatINR(req.advanceAmount || 0)} · ${req.transactionId})`
-                          : 'Awaiting Quote Acceptance / Payment'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* PAYMENT RECORDS */}
         {activeSection === 'payments' && (
           <div className="space-y-5">
@@ -1472,7 +1757,7 @@ export function AdminDashboard() {
                 <option value="Platform Booking Fee">Platform Booking Fee</option>
                 <option value="Food Pre-Order Advance">Food Pre-Order Advance</option>
                 <option value="Celebration Advance">Celebration Advance</option>
-                <option value="Custom Celebration Advance">Custom Celebration Advance</option>
+                <option value="Custom Celebration Advance">Legacy Celebration Advance (Historical)</option>
               </select>
             </div>
 
@@ -1635,16 +1920,22 @@ export function AdminDashboard() {
                 </p>
               </div>
               <div className="bg-white border border-[#E5E0D8] rounded-lg p-4">
-                <p className="text-xs text-[#57534E]">Custom Celebration Requests</p>
+                <p className="text-xs text-[#57534E]">Active {activeCityConfig.name} Venues</p>
                 <p className="text-2xl font-semibold font-mono tabular-nums text-[#6E1E2E] mt-1">
-                  {customRequests.length}
+                  {
+                    restaurants.filter(
+                      (r) =>
+                        r.city.toLowerCase() === activeCityConfig.name.toLowerCase() &&
+                        r.isActive !== false
+                    ).length
+                  }
                 </p>
               </div>
               <div className="bg-white border border-[#E5E0D8] rounded-lg p-4">
-                <p className="text-xs text-[#57534E]">Quotes Sent / Accepted</p>
+                <p className="text-xs text-[#57534E]">Demo Listings / Verified</p>
                 <p className="text-2xl font-semibold font-mono tabular-nums text-[#1C1917] mt-1">
-                  {customRequests.filter((r) => Boolean(r.quotation)).length} /{' '}
-                  {customRequests.filter((r) => Boolean(r.quotation?.locked)).length}
+                  {restaurants.filter((r) => Boolean(r.isDemo)).length} /{' '}
+                  {restaurants.filter((r) => !r.isDemo).length}
                 </p>
               </div>
               <div className="bg-white border border-[#E5E0D8] rounded-lg p-4">
@@ -1658,7 +1949,7 @@ export function AdminDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <SimpleBarChart
                 title="Weekly Reservation Demand"
-                subtitle="Simulated bookings across Varanasi localities"
+                subtitle={`Simulated bookings across ${activeCityConfig.name} localities`}
                 data={DEMO_ANALYTICS_WEEKLY.map((d) => ({ label: d.label, value: d.bookings }))}
               />
               <SimpleBarChart
@@ -1684,7 +1975,7 @@ export function AdminDashboard() {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between py-2 border-b border-[#E5E0D8]">
                 <span className="text-[#57534E]">Active Launch City</span>
-                <span className="font-semibold">Varanasi, Uttar Pradesh</span>
+                <span className="font-semibold">{activeCityConfig.name}, {activeCityConfig.state}</span>
               </div>
               <div className="flex justify-between py-2 border-b border-[#E5E0D8]">
                 <span className="text-[#57534E]">Backend Mode</span>
@@ -1791,6 +2082,136 @@ export function AdminDashboard() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+      {/* Edit Restaurant Listing Modal */}
+      {editingRest && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#1C1917]/60 p-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <form
+            onSubmit={handleSaveRestEdit}
+            className="bg-white border border-[#E5E0D8] rounded-lg max-w-xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-semibold text-[#1C1917]">Edit Restaurant Listing</h3>
+                <p className="text-xs text-[#57534E]">
+                  {editingRest.isDemo ? 'Demo Listing' : 'Verified Partner'} · {editingRest.city}
+                </p>
+              </div>
+              <button type="button" onClick={() => setEditingRest(null)} aria-label="Close">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div>
+                <label className="block font-semibold text-[#57534E] mb-1">Restaurant Name</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#E5E0D8] rounded-lg"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-[#57534E] mb-1">Neighbourhood / Area</label>
+                <input
+                  type="text"
+                  value={editArea}
+                  onChange={(e) => setEditArea(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#E5E0D8] rounded-lg"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-[#57534E] mb-1">Category</label>
+                <select
+                  value={editCategory}
+                  onChange={(e) => setEditCategory(e.target.value as RestaurantCategory)}
+                  className="w-full px-3 py-2 bg-white border border-[#E5E0D8] rounded-lg"
+                >
+                  {RESTAURANT_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block font-semibold text-[#57534E] mb-1">Price for Two (₹)</label>
+                <input
+                  type="number"
+                  min={200}
+                  value={editPriceForTwo}
+                  onChange={(e) => setEditPriceForTwo(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#E5E0D8] rounded-lg tabular-nums"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-[#57534E] mb-1">Price Range</label>
+                <select
+                  value={editPriceRange}
+                  onChange={(e) => setEditPriceRange(e.target.value as Restaurant['priceRange'])}
+                  className="w-full px-3 py-2 bg-white border border-[#E5E0D8] rounded-lg"
+                >
+                  <option value="₹">₹</option>
+                  <option value="₹₹">₹₹</option>
+                  <option value="₹₹₹">₹₹₹</option>
+                </select>
+              </div>
+              <div>
+                <label className="block font-semibold text-[#57534E] mb-1">Offer Tier</label>
+                <select
+                  value={editTier}
+                  onChange={(e) => setEditTier(e.target.value as Restaurant['tier'])}
+                  className="w-full px-3 py-2 bg-white border border-[#E5E0D8] rounded-lg"
+                >
+                  <option value="Basic">Basic</option>
+                  <option value="Premium">Premium</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="text-xs">
+              <label className="block font-semibold text-[#57534E] mb-1">Promotional Offer Headline</label>
+              <input
+                type="text"
+                value={editOfferText}
+                onChange={(e) => setEditOfferText(e.target.value)}
+                className="w-full px-3 py-2 border border-[#E5E0D8] rounded-lg"
+              />
+            </div>
+
+            <div className="text-xs">
+              <label className="block font-semibold text-[#57534E] mb-1">Description</label>
+              <textarea
+                rows={3}
+                value={editDesc}
+                onChange={(e) => setEditDesc(e.target.value)}
+                className="w-full px-3 py-2 border border-[#E5E0D8] rounded-lg"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#E5E0D8]">
+              <button
+                type="button"
+                onClick={() => setEditingRest(null)}
+                className="px-4 py-2 text-xs font-medium border border-[#E5E0D8] rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
+              >
+                Save Listing Changes
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </DashboardLayout>

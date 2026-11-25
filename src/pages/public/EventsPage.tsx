@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Calendar, Eye, MessageSquarePlus, PartyPopper, Sparkles, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { SPECIAL_EVENTS } from '../../data/mockData';
@@ -29,22 +29,34 @@ const READY_OCCASION_FILTERS: ('All' | CelebrationCategory)[] = [
 ];
 
 export function EventsPage() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialOccasion = searchParams.get('occasion') || '';
   const {
     restaurants,
     celebrationPackages,
+    selectedCity,
+    activeCityConfig,
     createCelebrationBooking,
     openDemoPayment,
     openRestaurantModal,
+    requireCustomerAuth,
+    restoredBookingDraft,
+    consumeRestoredBookingDraft,
     platformSettings,
     customerUser,
     role,
   } = useApp();
 
-  const approvedPackages = celebrationPackages.filter(
-    (p) => p.approvalStatus === 'Approved' && p.available
-  );
+  const approvedPackages = celebrationPackages.filter((p) => {
+    if (p.approvalStatus !== 'Approved' || !p.available) return false;
+    const rest = restaurants.find((r) => r.id === p.restaurantId);
+    return (
+      rest?.approvalStatus === 'Approved' &&
+      rest.isActive !== false &&
+      rest.city.toLowerCase() === selectedCity.toLowerCase()
+    );
+  });
 
   // Filter state for Ready-Made Packages
   const initialFilter: 'All' | CelebrationCategory =
@@ -84,7 +96,65 @@ export function EventsPage() {
     note?: string;
   } | null>(null);
 
+  useEffect(() => {
+    if (
+      role === 'customer' &&
+      restoredBookingDraft?.kind === 'events_package' &&
+      restoredBookingDraft.celebrationPackageId
+    ) {
+      const targetPkg = celebrationPackages.find(
+        (p) => p.id === restoredBookingDraft.celebrationPackageId
+      );
+      if (targetPkg) {
+        setBookingPkg(targetPkg);
+        setPlatesCount(restoredBookingDraft.draft?.celPlates || targetPkg.minPlates);
+        if (restoredBookingDraft.draft?.celDate) setEventDate(restoredBookingDraft.draft.celDate);
+        if (restoredBookingDraft.draft?.celTime) setEventTime(restoredBookingDraft.draft.celTime);
+        if (restoredBookingDraft.draft?.celFoodPref) {
+          setFoodPreference(restoredBookingDraft.draft.celFoodPref);
+        } else {
+          setFoodPreference(
+            targetPkg.dietaryType === 'Veg'
+              ? 'Pure Veg · Standard Spice'
+              : targetPkg.dietaryType === 'Non-Veg'
+                ? 'Non-Veg · Standard Spice'
+                : 'Veg & Non-Veg Mixed'
+          );
+        }
+        setCustomerNote(restoredBookingDraft.draft?.celCustomerNote || '');
+        setCustomerName(customerUser.fullName);
+        setCustomerEmail(customerUser.email);
+        setCustomerPhone(customerUser.mobile);
+        setBookingError('');
+        setConfirmedBooking(null);
+      }
+      consumeRestoredBookingDraft();
+    }
+  }, [
+    celebrationPackages,
+    consumeRestoredBookingDraft,
+    customerUser.email,
+    customerUser.fullName,
+    customerUser.mobile,
+    restoredBookingDraft,
+    role,
+  ]);
+
   const openDirectBooking = (pkg: CelebrationPackage) => {
+    if (role !== 'customer') {
+      requireCustomerAuth({
+        kind: 'events_package',
+        celebrationPackageId: pkg.id,
+        returnPath: '/events',
+        draft: {
+          celPlates: pkg.minPlates,
+          celDate: eventDate,
+          celTime: eventTime,
+        },
+      });
+      navigate('/customer/login');
+      return;
+    }
     setBookingPkg(pkg);
     setPlatesCount(pkg.minPlates);
     setFoodPreference(
@@ -110,6 +180,24 @@ export function EventsPage() {
 
   const handleDirectBooking = (payAdvanceNow: boolean) => {
     setBookingError('');
+    if (role !== 'customer') {
+      if (bookingPkg) {
+        requireCustomerAuth({
+          kind: 'events_package',
+          celebrationPackageId: bookingPkg.id,
+          returnPath: '/events',
+          draft: {
+            celDate: eventDate,
+            celTime: eventTime,
+            celPlates: platesCount,
+            celFoodPref: foodPreference,
+            celCustomerNote: customerNote,
+          },
+        });
+      }
+      navigate('/customer/login');
+      return;
+    }
     if (!bookingPkg || !bookingRest) {
       setBookingError('Please choose an approved celebration package.');
       return;
@@ -221,7 +309,7 @@ export function EventsPage() {
             <div className="space-y-3 max-w-3xl">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-[#F3F1ED] border border-[#D6CFC5] text-xs font-semibold text-[#6E1E2E] tracking-wider uppercase">
                 <Sparkles className="w-3.5 h-3.5 text-[#B8863B]" aria-hidden="true" />
-                <span>Celebrate With DineRestro · Varanasi</span>
+                <span>Celebrate With DineRestro · {selectedCity}</span>
               </div>
               <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold text-[#1C1917]">
                 Choose Your Perfect Celebration
@@ -323,16 +411,32 @@ export function EventsPage() {
 
           {filteredPackages.length === 0 ? (
             <div className="bg-white border border-[#E5E0D8] rounded-lg p-8 text-center space-y-3">
-              <p className="text-sm text-[#57534E]">
-                No ready-made packages matched <strong>{occasionFilter}</strong>. Reset the occasion filter to inspect all celebration packages.
-              </p>
-              <button
-                type="button"
-                onClick={() => setOccasionFilter('All')}
-                className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg"
-              >
-                View All Packages
-              </button>
+              {approvedPackages.length === 0 ? (
+                <>
+                  <p className="text-sm text-[#57534E]">
+                    Ready-made celebration packages from verified <strong>{selectedCity}</strong> partner restaurants across {activeCityConfig.neighbourhoods.join(', ')} will appear here once published.
+                  </p>
+                  <Link
+                    to="/restaurant/signup"
+                    className="inline-block px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
+                  >
+                    Register a {selectedCity} Restaurant
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-[#57534E]">
+                    No ready-made packages matched <strong>{occasionFilter}</strong>. Reset the occasion filter to inspect all celebration packages.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setOccasionFilter('All')}
+                    className="px-4 py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg"
+                  >
+                    View All Packages
+                  </button>
+                </>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

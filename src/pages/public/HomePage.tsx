@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   CalendarCheck,
   Check,
   Copy,
   Headphones,
+  MapPin,
   ShieldCheck,
   Sparkles,
 } from 'lucide-react';
@@ -18,16 +19,41 @@ import { EmptyStateCard } from '../../components/common/EmptyStateCard';
 import { formatDisplayDate } from '../../utils/formatters';
 
 export function HomePage() {
-  const { restaurants, offers, openRestaurantModal, addToast } = useApp();
+  const navigate = useNavigate();
+  const {
+    role,
+    restaurants,
+    offers,
+    selectedCity,
+    activeCityConfig,
+    openRestaurantModal,
+    requireCustomerAuth,
+    addToast,
+  } = useApp();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
-  const approvedRestaurants = restaurants.filter((r) => r.approvalStatus === 'Approved');
-  const featuredRestaurants = approvedRestaurants
+  const cityRestaurants = restaurants.filter(
+    (r) =>
+      r.approvalStatus === 'Approved' &&
+      r.isActive !== false &&
+      r.city.toLowerCase() === selectedCity.toLowerCase()
+  );
+  const featuredRestaurants = cityRestaurants
     .filter((r) => r.featured)
-    .concat(approvedRestaurants.filter((r) => !r.featured))
-    .slice(0, 4);
+    .concat(cityRestaurants.filter((r) => !r.featured))
+    .slice(0, 6);
 
-  const activeOffers = offers.filter((o) => o.active).slice(0, 4);
+  const activeOffers = offers
+    .filter((o) => {
+      if (!o.active) return false;
+      const rest = restaurants.find((r) => r.id === o.restaurantId);
+      return (
+        rest?.approvalStatus === 'Approved' &&
+        rest.isActive !== false &&
+        rest.city.toLowerCase() === selectedCity.toLowerCase()
+      );
+    })
+    .slice(0, 4);
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard?.writeText(code).catch(() => {});
@@ -45,10 +71,10 @@ export function HomePage() {
       {/* 1. Cinematic Full-Width Luxury Editorial Hero */}
       <section className="relative min-h-[580px] lg:min-h-[630px] flex items-center bg-[#1C1917] overflow-hidden">
         <SafeImage
-          src={IMAGES.heroVaranasi}
-          alt="Candlelit rooftop dining overlooking the Varanasi riverfront ghats"
+          src={IMAGES.heroLucknow}
+          alt={`Candlelit heritage courtyard and rooftop dining in ${selectedCity}`}
           className="absolute inset-0 w-full h-full object-cover"
-          fallbackTitle="Varanasi Rooftop Dining"
+          fallbackTitle={`${selectedCity} Fine Dining`}
         />
         <div
           className="absolute inset-0 bg-gradient-to-t from-[#1C1917]/95 via-[#1C1917]/68 to-[#1C1917]/40"
@@ -58,26 +84,26 @@ export function HomePage() {
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 lg:py-20 w-full">
           <div className="max-w-2xl text-white space-y-4">
             <p className="text-xs sm:text-sm font-semibold text-[#E5D3B3] tracking-[0.18em] uppercase">
-              DineRestro · Varanasi, Uttar Pradesh
+              DineRestro · Official Launch City: {activeCityConfig.name}, {activeCityConfig.state}
             </p>
-            <h1 className="font-display text-4xl sm:text-5xl lg:text-[60px] font-semibold leading-[1.06] tracking-tight text-white">
-              Discover. Reserve. Celebrate.
+            <h1 className="font-display text-4xl sm:text-5xl lg:text-[56px] font-semibold leading-[1.08] tracking-tight text-white">
+              Discover {selectedCity}. Reserve Your Table. Celebrate Every Moment.
             </h1>
             <p className="text-base sm:text-lg text-[#FAF9F6]/90 leading-relaxed max-w-xl">
-              Find the perfect restaurant, book your table, pre-order delicious food or celebrate life&apos;s special moments.
+              Explore restaurants across {selectedCity}, reserve your favourite table, pre-order food and plan unforgettable celebrations with DineRestro.
             </p>
 
             {/* 3 Prominent Service Action Buttons */}
             <div className="pt-2 flex flex-wrap items-center gap-3">
               <Link
-                to="/explore?action=book"
+                to={`/explore?city=${encodeURIComponent(selectedCity)}&action=book`}
                 className="inline-flex items-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-semibold bg-[#6E1E2E] text-white rounded-lg hover:bg-[#541522] transition-colors whitespace-nowrap"
               >
                 <span>Book a Table</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
-                to="/explore?action=preorder"
+                to={`/explore?city=${encodeURIComponent(selectedCity)}&action=preorder`}
                 className="inline-flex items-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-semibold bg-[#FAF9F6] text-[#1C1917] border border-[#E5E0D8] rounded-lg hover:bg-[#F3F1ED] transition-colors whitespace-nowrap"
               >
                 <span>Pre-Order Food</span>
@@ -105,7 +131,7 @@ export function HomePage() {
               {
                 Icon: Sparkles,
                 title: 'No Extra Decoration Charges',
-                desc: '₹0 decoration fees on all approved celebration packages & custom requests.',
+                desc: '₹0 decoration fees on all approved celebration packages.',
               },
               {
                 Icon: ShieldCheck,
@@ -115,12 +141,12 @@ export function HomePage() {
               {
                 Icon: CalendarCheck,
                 title: 'Easy Reservations',
-                desc: 'Instant Varanasi table slots, photo menu previews & effortless confirmations.',
+                desc: `Instant ${selectedCity} table slots, photo menu previews & effortless confirmations.`,
               },
               {
                 Icon: Headphones,
                 title: 'Customer Support',
-                desc: 'Direct coordination between diners and verified Varanasi host desks.',
+                desc: `Direct coordination between diners and verified ${selectedCity} host desks.`,
               },
             ].map((item) => {
               const Icon = item.Icon;
@@ -140,20 +166,62 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* 3. Popular Restaurants in Varanasi (4 Cards) */}
+      {/* 3. Explore Launch Neighbourhoods */}
+      <section className="py-12 bg-white border-b border-[#E5E0D8]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+            <div>
+              <p className="text-xs font-semibold text-[#6E1E2E] tracking-widest uppercase mb-1">
+                {selectedCity} Neighbourhoods
+              </p>
+              <h2 className="font-display text-2xl sm:text-3xl font-semibold text-[#1C1917]">
+                Browse Dining Areas Across {selectedCity}
+              </h2>
+            </div>
+            <Link
+              to={`/explore?city=${encodeURIComponent(selectedCity)}`}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#6E1E2E] hover:text-[#541522] whitespace-nowrap"
+            >
+              <span>Filter All Neighbourhoods</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {activeCityConfig.neighbourhoods.map((hood) => (
+              <Link
+                key={hood}
+                to={`/explore?city=${encodeURIComponent(selectedCity)}&area=${encodeURIComponent(hood)}`}
+                className="group bg-[#FAF9F6] border border-[#E5E0D8] rounded-lg px-3.5 py-3 hover:border-[#6E1E2E] hover:bg-[#F3F1ED] transition-colors flex flex-col justify-between gap-1.5"
+              >
+                <div className="flex items-center justify-between gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-[#6E1E2E] shrink-0" aria-hidden="true" />
+                  <ArrowRight className="w-3.5 h-3.5 text-[#57534E] opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
+                </div>
+                <span className="text-sm font-semibold text-[#1C1917] group-hover:text-[#6E1E2E]">
+                  {hood}
+                </span>
+                <span className="text-[11px] text-[#57534E]">{selectedCity}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 4. Popular Restaurants in Launch City */}
       <section className="py-16 bg-[#FAF9F6]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-9">
             <div>
               <p className="text-xs font-semibold text-[#6E1E2E] tracking-widest uppercase mb-1">
-                Editorial Selection
+                Curated {selectedCity} Venues
               </p>
               <h2 className="font-display text-3xl sm:text-4xl font-semibold text-[#1C1917]">
-                Popular Restaurants in Varanasi
+                Popular Restaurants in {selectedCity}
               </h2>
             </div>
             <Link
-              to="/explore"
+              to={`/explore?city=${encodeURIComponent(selectedCity)}`}
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#6E1E2E] hover:text-[#541522] whitespace-nowrap"
             >
               <span>View All Restaurants</span>
@@ -163,11 +231,13 @@ export function HomePage() {
 
           {featuredRestaurants.length === 0 ? (
             <EmptyStateCard
-              title="No Restaurants Published Yet"
-              description="Approved Varanasi dining destinations will appear here automatically."
+              title={`Now Onboarding Partner Restaurants in ${selectedCity}`}
+              description={`DineRestro is launching across ${activeCityConfig.neighbourhoods.join(', ')}.`}
+              actionLabel="Register Your Restaurant"
+              onAction={() => navigate('/restaurant/signup')}
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {featuredRestaurants.map((restaurant) => (
                 <RestaurantCard key={restaurant.id} restaurant={restaurant} />
               ))}
@@ -176,7 +246,7 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* 4. Obsidian Charcoal Celebration Split Banner */}
+      {/* 5. Obsidian Charcoal Celebration Split Banner */}
       <section className="bg-[#1C1917] text-[#FAF9F6]">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch">
@@ -192,7 +262,7 @@ export function HomePage() {
                 Beautiful decorations. Delicious food. Unforgettable memories.
               </p>
               <p className="text-sm text-[#D6CFC5] leading-relaxed max-w-lg">
-                Reserve curated Birthday, Anniversary, Candlelight, and Marriage Proposal plate packages with authentic setup photos, ₹0 decoration fees, and optional special instructions for the host team.
+                Reserve curated Birthday, Anniversary, Candlelight, and Marriage Proposal plate packages across {selectedCity} with authentic setup photos, ₹0 decoration fees, and optional special instructions for the host team.
               </p>
               <div className="pt-2 flex flex-wrap gap-3">
                 <Link
@@ -207,7 +277,7 @@ export function HomePage() {
             <div className="lg:col-span-6 min-h-[320px] lg:min-h-[460px] overflow-hidden bg-[#292524]">
               <SafeImage
                 src={IMAGES.decorProposal}
-                alt="Candlelit brass lanterns and rose petal celebration setup overlooking Varanasi"
+                alt={`Candlelit brass lanterns and rose petal celebration setup in ${selectedCity}`}
                 className="w-full h-full object-cover"
                 fallbackTitle="Celebrate in Style"
               />
@@ -216,7 +286,7 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* 5. Varanasi Cuisines & Dining Offers */}
+      {/* 6. City Cuisines & Dining Offers */}
       <section className="py-16 bg-white border-b border-[#E5E0D8]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-14">
           <div>
@@ -226,11 +296,11 @@ export function HomePage() {
                   Explore by Flavor
                 </p>
                 <h2 className="font-display text-3xl sm:text-4xl font-semibold text-[#1C1917]">
-                  Varanasi Cuisines
+                  {selectedCity} Cuisines
                 </h2>
               </div>
               <Link
-                to="/explore"
+                to={`/explore?city=${encodeURIComponent(selectedCity)}`}
                 className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#6E1E2E] hover:text-[#541522]"
               >
                 <span>Browse All Cuisines</span>
@@ -242,13 +312,13 @@ export function HomePage() {
               {POPULAR_CUISINES.slice(0, 4).map((item) => (
                 <Link
                   key={item.name}
-                  to={`/explore?cuisine=${encodeURIComponent(item.name)}`}
+                  to={`/explore?city=${encodeURIComponent(selectedCity)}&cuisine=${encodeURIComponent(item.name)}`}
                   className="group bg-[#FAF9F6] border border-[#E5E0D8] rounded-lg overflow-hidden hover:border-[#6E1E2E] transition-colors"
                 >
                   <div className="aspect-[4/3] w-full overflow-hidden">
                     <SafeImage
                       src={item.image}
-                      alt={`${item.name} dining in Varanasi`}
+                      alt={`${item.name} dining in ${selectedCity}`}
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
                       fallbackTitle={item.name}
                     />
@@ -258,9 +328,6 @@ export function HomePage() {
                       <h3 className="text-base font-semibold text-[#1C1917] group-hover:text-[#6E1E2E]">
                         {item.name}
                       </h3>
-                      <span className="text-xs font-mono tabular-nums text-[#57534E]">
-                        {item.spotsCount} spots
-                      </span>
                     </div>
                     <p className="text-xs text-[#57534E] mt-1 line-clamp-1">{item.tagline}</p>
                   </div>
@@ -276,7 +343,7 @@ export function HomePage() {
                   Dining Privileges
                 </p>
                 <h2 className="font-display text-3xl sm:text-4xl font-semibold text-[#1C1917]">
-                  Current Restaurant Offers
+                  Current {selectedCity} Restaurant Offers
                 </h2>
               </div>
               <Link
@@ -288,59 +355,81 @@ export function HomePage() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {activeOffers.map((offer) => {
-                const matchedRest = restaurants.find((r) => r.id === offer.restaurantId);
-                return (
-                  <div
-                    key={offer.id}
-                    className="bg-[#FAF9F6] border border-[#E5E0D8] rounded-lg p-5 flex flex-col justify-between gap-4"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between gap-2 text-xs text-[#57534E] mb-1.5">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded bg-[#F3F1ED] border border-[#E5E0D8] font-semibold text-[#6E1E2E]">
-                          {offer.category} · {offer.discountLabel} · {offer.offerTier}
-                        </span>
-                        <span className="tabular-nums">
-                          Valid until {formatDisplayDate(offer.validUntil)}
-                        </span>
+            {activeOffers.length === 0 ? (
+              <EmptyStateCard
+                title={`No Active ${selectedCity} Dining Deals Published Yet`}
+                description={`Verified ${selectedCity} partner restaurants can publish Basic and Premium dining offers directly from their Partner Dashboard.`}
+                actionLabel="Explore Partner Onboarding"
+                onAction={() => navigate('/restaurant/signup')}
+              />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {activeOffers.map((offer) => {
+                  const matchedRest = restaurants.find((r) => r.id === offer.restaurantId);
+                  return (
+                    <div
+                      key={offer.id}
+                      className="bg-[#FAF9F6] border border-[#E5E0D8] rounded-lg p-5 flex flex-col justify-between gap-4"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-2 text-xs text-[#57534E] mb-1.5">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded bg-[#F3F1ED] border border-[#E5E0D8] font-semibold text-[#6E1E2E]">
+                            {offer.category} · {offer.discountLabel} · {offer.offerTier}
+                          </span>
+                          <span className="tabular-nums">
+                            Valid until {formatDisplayDate(offer.validUntil)}
+                          </span>
+                        </div>
+                        <h3 className="font-display text-2xl font-semibold text-[#1C1917]">
+                          {offer.title}
+                        </h3>
+                        <p className="text-sm font-medium text-[#6E1E2E] mt-0.5">
+                          {offer.restaurantName} · {offer.area}, {matchedRest?.city || selectedCity}
+                        </p>
+                        <p className="text-xs text-[#57534E] mt-2 leading-relaxed">{offer.terms}</p>
                       </div>
-                      <h3 className="font-display text-2xl font-semibold text-[#1C1917]">
-                        {offer.title}
-                      </h3>
-                      <p className="text-sm font-medium text-[#6E1E2E] mt-0.5">
-                        {offer.restaurantName} · {offer.area}
-                      </p>
-                      <p className="text-xs text-[#57534E] mt-2 leading-relaxed">{offer.terms}</p>
-                    </div>
 
-                    <div className="pt-3 border-t border-[#E5E0D8] flex flex-wrap items-center justify-between gap-3">
-                      <button
-                        type="button"
-                        onClick={() => handleCopyCode(offer.code)}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded border border-[#D6CFC5] bg-white text-xs font-mono font-semibold text-[#1C1917] hover:border-[#6E1E2E] transition-colors"
-                      >
-                        <span>{offer.code}</span>
-                        {copiedCode === offer.code ? (
-                          <Check className="w-3.5 h-3.5 text-[#6E1E2E]" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5 text-[#57534E]" />
-                        )}
-                      </button>
-                      {matchedRest && (
+                      <div className="pt-3 border-t border-[#E5E0D8] flex flex-wrap items-center justify-between gap-3">
                         <button
                           type="button"
-                          onClick={() => openRestaurantModal(matchedRest, 'book')}
-                          className="px-4 py-1.5 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522] transition-colors"
+                          onClick={() => handleCopyCode(offer.code)}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded border border-[#D6CFC5] bg-white text-xs font-mono font-semibold text-[#1C1917] hover:border-[#6E1E2E] transition-colors"
                         >
-                          Book With Offer
+                          <span>{offer.code}</span>
+                          {copiedCode === offer.code ? (
+                            <Check className="w-3.5 h-3.5 text-[#6E1E2E]" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5 text-[#57534E]" />
+                          )}
                         </button>
-                      )}
+                        {matchedRest && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (role !== 'customer') {
+                                requireCustomerAuth({
+                                  kind: 'restaurant_modal',
+                                  restaurantId: matchedRest.id,
+                                  tab: 'book',
+                                  returnPath: '/',
+                                  draft: { selectedOfferId: offer.id },
+                                });
+                                navigate('/customer/login');
+                                return;
+                              }
+                              openRestaurantModal(matchedRest, 'book');
+                            }}
+                            className="px-4 py-1.5 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522] transition-colors"
+                          >
+                            Book With Offer
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </section>

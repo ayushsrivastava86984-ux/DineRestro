@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
 import { User, Store, ArrowRight } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
 import { DemoBanner } from '../../components/common/DemoBanner';
 
 export function AuthSelectionPage() {
+  const { selectedCity } = useApp();
   return (
     <div className="bg-[#FAF9F6] py-14 sm:py-20">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
@@ -31,7 +33,7 @@ export function AuthSelectionPage() {
                 Customer
               </h2>
               <p className="text-sm text-[#57534E] leading-relaxed">
-                Discover top Varanasi restaurants, manage table reservation previews, pre-order from menu photos, and plan celebrations.
+                Discover top {selectedCity} restaurants, manage table reservation previews, pre-order from menu photos, and plan celebrations.
               </p>
             </div>
 
@@ -70,7 +72,7 @@ export function AuthSelectionPage() {
                 Restaurant Partner
               </h2>
               <p className="text-sm text-[#57534E] leading-relaxed">
-                Manage reservations, floor tables, uploaded menu photos, celebration packages, and exclusive dining offers for your Varanasi venue.
+                Manage reservations, floor tables, uploaded menu photos, celebration packages, and exclusive dining offers for your {selectedCity} venue.
               </p>
             </div>
 

@@ -2,13 +2,25 @@ export type PortalRole = 'guest' | 'customer' | 'restaurant' | 'admin';
 
 export type CuisineType =
   | 'North Indian'
+  | 'Awadhi'
+  | 'Mughlai'
   | 'South Indian'
   | 'Chinese'
   | 'Italian'
   | 'Continental'
+  | 'Multi-cuisine'
   | 'Cafe'
   | 'Fast Food'
   | 'Desserts';
+
+export type RestaurantCategory =
+  | 'Fine Dining'
+  | 'Family Restaurant'
+  | 'Casual Dining'
+  | 'Cafe'
+  | 'Rooftop Dining'
+  | 'Heritage Dining'
+  | 'Patisserie & Bistro';
 
 export type AmenityType =
   | 'Wi-Fi'
@@ -33,8 +45,7 @@ export type CelebrationCategory =
   | 'Romantic Dinner'
   | 'Marriage Proposal'
   | 'Family Celebration'
-  | 'Private Party'
-  | 'Custom Celebration';
+  | 'Private Party';
 
 export type RestaurantApprovalStatus = 'Pending Approval' | 'Approved' | 'Rejected';
 
@@ -64,18 +75,6 @@ export type CelebrationBookingStatus =
   | 'Completed'
   | 'Cancelled'
   | 'Rejected';
-
-export type CustomRequestStatus =
-  | 'Request Received'
-  | 'Under Review'
-  | 'Quotation Sent'
-  | 'Quotation Accepted'
-  | 'Quotation Rejected'
-  | 'Advance Pending'
-  | 'Advance Paid'
-  | 'Confirmed'
-  | 'Completed'
-  | 'Cancelled';
 
 export type TableStatus = 'Available' | 'Occupied' | 'Reserved';
 
@@ -161,6 +160,7 @@ export interface Restaurant {
   pinCode: string;
   cuisines: CuisineType[];
   primaryCuisine: CuisineType;
+  category?: RestaurantCategory;
   tier: 'Basic' | 'Premium';
   preOrderAdvancePercent: number;
   rating: number;
@@ -180,6 +180,8 @@ export interface Restaurant {
   approvalStatus: RestaurantApprovalStatus;
   registrationDate: string;
   featured?: boolean;
+  isDemo?: boolean;
+  isActive?: boolean;
 }
 
 export interface DiningTable {
@@ -263,7 +265,6 @@ export interface CelebrationBooking {
   totalPackageAmount: number;
   decorationCharge: 0; // Always ₹0 per business rule
   quotedTotalAmount: number;
-  quotationNotes?: string;
   advancePercent: number;
   advanceAmount: number;
   remainingAmount: number;
@@ -276,81 +277,31 @@ export interface CelebrationBooking {
   createdAt: string;
 }
 
-export type VegNonVegPreference =
-  | 'Pure Veg'
-  | 'Veg & Non-Veg'
-  | 'Non-Veg'
-  | 'Jain Options Available';
-
-export interface CelebrationQuotationItem {
-  id: string;
-  label: string;
-  category: 'Food' | 'Cake' | 'Service' | 'Other';
-  amount: number;
-}
-
-export interface CelebrationQuotation {
-  id: string;
-  requestId: string;
-  restaurantId: string;
-  restaurantName: string;
-  foodPackageDetails: string;
-  pricePerPlate: number;
-  platesCount: number;
-  cakeCharge: number;
-  specialServicesNotes: string;
-  decorationDetails: string;
-  decorationCharge: 0; // Always ₹0 — Decoration Included – No Additional Charges
-  additionalIncludedServices: string;
-  lineItems: CelebrationQuotationItem[];
-  totalAmount: number;
-  advancePercent: number;
-  advanceAmount: number;
-  remainingAmount: number;
-  validUntil: string;
-  termsAndConditions: string;
-  additionalNotes: string;
-  status: 'Draft' | 'Sent' | 'Accepted' | 'Rejected';
-  locked: boolean;
-  rejectionReason?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CustomCelebrationRequest {
-  id: string;
-  restaurantId: string;
-  restaurantName: string;
-  restaurantArea: string;
-  customerId: string;
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
-  occasionType: CelebrationCategory;
-  preferredDate: string;
-  preferredTime: string;
-  guestsCount: number;
-  estimatedBudget: number;
-  decorationTheme: string;
-  preferredColors: string;
-  cakeRequirements: string;
-  foodPreferences: string;
-  vegNonVegPreference: VegNonVegPreference;
-  decorationRequirements: string;
-  specialInstructions: string;
-  referenceImages: string[];
-  decorationCharge: 0; // Always ₹0 — Decoration Included – No Additional Charges
-  quotation?: CelebrationQuotation;
-  quotedAmount?: number;
-  quotationNotes?: string;
-  advancePercent: number;
-  advanceAmount?: number;
-  remainingAmount?: number;
-  advancePaid: boolean;
-  transactionId?: string;
-  status: CustomRequestStatus;
-  createdAt: string;
-  updatedAt: string;
+export interface PendingBookingIntent {
+  kind: 'restaurant_modal' | 'events_package';
+  restaurantId?: string;
+  tab?: 'overview' | 'book' | 'preorder' | 'celebrate';
+  celebrationPackageId?: string;
+  returnPath: string;
+  draft?: {
+    tableDate?: string;
+    tableTime?: string;
+    tableGuests?: number;
+    tableTier?: 'Basic' | 'Premium';
+    selectedOfferId?: string;
+    tableNotes?: string;
+    preOrderDate?: string;
+    preOrderTime?: string;
+    plateCount?: number;
+    selectedPrePkgId?: string;
+    foodPreference?: string;
+    celDate?: string;
+    celTime?: string;
+    celPlates?: number;
+    selectedCelPkgId?: string;
+    celFoodPref?: string;
+    celCustomerNote?: string;
+  };
 }
 
 export interface EventCategory {
@@ -444,6 +395,16 @@ export interface AppNotification {
   message: string;
   timeAgo: string;
   read: boolean;
+}
+
+export interface CityConfig {
+  id: string;
+  name: string;
+  state: string;
+  country: string;
+  isActive: boolean;
+  isDefaultLaunchCity: boolean;
+  neighbourhoods: string[];
 }
 
 export interface ToastMessage {

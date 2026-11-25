@@ -14,7 +14,7 @@ import { formatINR } from '../../utils/formatters';
 export function DemoPaymentModal() {
   const { activeDemoPayment, closeDemoPayment, completeDemoPayment } = useApp();
   const [method, setMethod] = useState<'UPI' | 'Card' | 'NetBanking'>('UPI');
-  const [upiId, setUpiId] = useState('aarav.varanasi@okdemo');
+  const [upiId, setUpiId] = useState('aarav.lucknow@okdemo');
   const [processing, setProcessing] = useState(false);
   const [receipt, setReceipt] = useState<PaymentRecord | null>(null);
 

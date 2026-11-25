@@ -9,8 +9,8 @@ const FAQS = [
     a: 'No. Phase 1 is a frontend-only demonstration using local simulated state. Bookings created here demonstrate the user flow and appear inside the demo dashboards without sending live requests to restaurants.',
   },
   {
-    q: 'Which localities in Varanasi are featured at launch?',
-    a: 'Featured sample venues span Assi Ghat, Nadesar, Dashashwamedh, Rathyatra, Sigra, Cantonment, Lanka, and Godowlia.',
+    q: 'Which neighbourhoods in Lucknow are featured at launch?',
+    a: 'DineRestro launches in Lucknow across Gomti Nagar, Hazratganj, Indira Nagar, Aliganj, Aminabad, Vibhuti Khand, and Chowk.',
   },
   {
     q: 'How do restaurant owners join DineRestro?',
@@ -69,7 +69,7 @@ export function ContactPage() {
                 Contact &amp; Help Center
               </h1>
               <p className="text-sm text-[#57534E] mt-2 leading-relaxed">
-                Questions about dining in Varanasi, celebration planning, or restaurant onboarding? Reach our local hospitality desk.
+                Questions about dining in Lucknow, celebration planning, or restaurant onboarding? Reach our local hospitality desk.
               </p>
             </div>
 
@@ -77,8 +77,8 @@ export function ContactPage() {
               <div className="flex items-start gap-3">
                 <MapPin className="w-4 h-4 text-[#6E1E2E] mt-0.5 shrink-0" />
                 <div>
-                  <p className="font-semibold text-[#1C1917]">Varanasi Launch Office</p>
-                  <p className="text-[#57534E]">Sigra Commercial Complex, Varanasi, UP 221010</p>
+                  <p className="font-semibold text-[#1C1917]">Lucknow Launch Office</p>
+                  <p className="text-[#57534E]">Hazratganj Commercial Center, Lucknow, UP 226001</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -92,7 +92,7 @@ export function ContactPage() {
                 <Phone className="w-4 h-4 text-[#6E1E2E] mt-0.5 shrink-0" />
                 <div>
                   <p className="font-semibold text-[#1C1917]">Partner Support Desk</p>
-                  <p className="text-[#57534E] tabular-nums">+91 542 220 4810 (10 AM – 8 PM IST)</p>
+                  <p className="text-[#57534E] tabular-nums">+91 522 220 4810 (10 AM – 8 PM IST)</p>
                 </div>
               </div>
             </div>
@@ -197,7 +197,7 @@ export function ContactPage() {
                     rows={4}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    placeholder="How can our Varanasi team assist you?"
+                    placeholder="How can our Lucknow team assist you?"
                     className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
                     required
                   />

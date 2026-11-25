@@ -1,12 +1,12 @@
-import { useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Search, SlidersHorizontal, RotateCcw } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { RotateCcw, Search, SlidersHorizontal } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import {
   ALL_AMENITIES,
   CELEBRATION_CATEGORIES,
   POPULAR_CUISINES,
-  VARANASI_AREAS,
+  RESTAURANT_CATEGORIES,
 } from '../../data/mockData';
 import type { AmenityType } from '../../types';
 import { RestaurantCard } from '../../components/cards/RestaurantCard';
@@ -14,14 +14,35 @@ import { DemoBanner } from '../../components/common/DemoBanner';
 import { EmptyStateCard } from '../../components/common/EmptyStateCard';
 
 export function ExplorePage() {
-  const { restaurants, celebrationPackages, preOrderPackages } = useApp();
+  const navigate = useNavigate();
+  const {
+    restaurants,
+    celebrationPackages,
+    preOrderPackages,
+    cities,
+    activeCities,
+    selectedCity,
+    setSelectedCity,
+    activeCityConfig,
+  } = useApp();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const actionIntent = searchParams.get('action') || '';
+  const cityParam = searchParams.get('city');
+  const areaParam = searchParams.get('area');
+
+  useEffect(() => {
+    if (cityParam && activeCities.some((c) => c.name.toLowerCase() === cityParam.toLowerCase())) {
+      setSelectedCity(
+        activeCities.find((c) => c.name.toLowerCase() === cityParam.toLowerCase())!.name
+      );
+    }
+  }, [activeCities, cityParam, setSelectedCity]);
 
   const [query, setQuery] = useState(searchParams.get('q') || '');
-  const [selectedArea, setSelectedArea] = useState(searchParams.get('area') || 'All Varanasi');
+  const [selectedArea, setSelectedArea] = useState(areaParam || 'All');
   const [selectedCuisine, setSelectedCuisine] = useState(searchParams.get('cuisine') || 'All');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [priceRangeFilter, setPriceRangeFilter] = useState<'all' | 'under1200' | '1200to1800' | 'above1800'>('all');
   const [ratingFilter, setRatingFilter] = useState<'all' | '4.5' | '4.7'>('all');
   const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'preorder' | 'celebration'>(
@@ -31,9 +52,21 @@ export function ExplorePage() {
   const [selectedAmenities, setSelectedAmenities] = useState<AmenityType[]>([]);
   const [sortBy, setSortBy] = useState<'popularity' | 'rating' | 'priceLow' | 'priceHigh'>('popularity');
 
-  const approvedRestaurants = useMemo(
-    () => restaurants.filter((r) => r.approvalStatus === 'Approved'),
-    [restaurants]
+  useEffect(() => {
+    if (areaParam) {
+      setSelectedArea(areaParam);
+    }
+  }, [areaParam]);
+
+  const approvedCityRestaurants = useMemo(
+    () =>
+      restaurants.filter(
+        (r) =>
+          r.approvalStatus === 'Approved' &&
+          r.isActive !== false &&
+          r.city.toLowerCase() === selectedCity.toLowerCase()
+      ),
+    [restaurants, selectedCity]
   );
 
   const toggleAmenity = (amenity: AmenityType) => {
@@ -42,20 +75,31 @@ export function ExplorePage() {
     );
   };
 
+  const handleCitySelect = (nextCity: string) => {
+    setSelectedCity(nextCity);
+    setSelectedArea('All');
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set('city', nextCity);
+    nextParams.delete('area');
+    setSearchParams(nextParams);
+  };
+
   const filteredRestaurants = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const list = approvedRestaurants.filter((r) => {
+    const list = approvedCityRestaurants.filter((r) => {
       const matchesQuery =
         !q ||
         r.name.toLowerCase().includes(q) ||
         r.area.toLowerCase().includes(q) ||
         r.cuisines.some((c) => c.toLowerCase().includes(q));
       const matchesArea =
-        selectedArea === 'All Varanasi' ||
+        selectedArea === 'All' ||
         r.area.toLowerCase() === selectedArea.toLowerCase();
       const matchesCuisine =
         selectedCuisine === 'All' ||
         r.cuisines.includes(selectedCuisine as (typeof r.cuisines)[number]);
+      const matchesCategory =
+        selectedCategory === 'All' || r.category === selectedCategory;
       const matchesPrice =
         priceRangeFilter === 'all' ||
         (priceRangeFilter === 'under1200' && r.priceForTwo <= 1200) ||
@@ -63,8 +107,10 @@ export function ExplorePage() {
         (priceRangeFilter === 'above1800' && r.priceForTwo > 1800);
       const matchesRating =
         ratingFilter === 'all' ||
-        (ratingFilter === '4.5' && r.rating >= 4.5) ||
-        (ratingFilter === '4.7' && r.rating >= 4.7);
+        (!r.isDemo &&
+          r.reviewCount > 0 &&
+          ((ratingFilter === '4.5' && r.rating >= 4.5) ||
+            (ratingFilter === '4.7' && r.rating >= 4.7)));
       const matchesAvailability =
         availabilityFilter === 'all' ||
         (availabilityFilter === 'preorder' &&
@@ -88,6 +134,7 @@ export function ExplorePage() {
         matchesQuery &&
         matchesArea &&
         matchesCuisine &&
+        matchesCategory &&
         matchesPrice &&
         matchesRating &&
         matchesAvailability &&
@@ -100,15 +147,16 @@ export function ExplorePage() {
       if (sortBy === 'priceLow') return a.priceForTwo - b.priceForTwo;
       if (sortBy === 'priceHigh') return b.priceForTwo - a.priceForTwo;
       if (sortBy === 'rating') return b.rating - a.rating;
-      return b.reviewCount - a.reviewCount;
+      return (b.featured ? 1 : 0) - (a.featured ? 1 : 0) || b.reviewCount - a.reviewCount;
     });
   }, [
-    approvedRestaurants,
+    approvedCityRestaurants,
     celebrationPackages,
     preOrderPackages,
     query,
     selectedArea,
     selectedCuisine,
+    selectedCategory,
     priceRangeFilter,
     ratingFilter,
     availabilityFilter,
@@ -119,15 +167,16 @@ export function ExplorePage() {
 
   const handleReset = () => {
     setQuery('');
-    setSelectedArea('All Varanasi');
+    setSelectedArea('All');
     setSelectedCuisine('All');
+    setSelectedCategory('All');
     setPriceRangeFilter('all');
     setRatingFilter('all');
     setAvailabilityFilter('all');
     setCelebrationFilter('All');
     setSelectedAmenities([]);
     setSortBy('popularity');
-    setSearchParams({});
+    setSearchParams({ city: selectedCity });
   };
 
   return (
@@ -136,46 +185,61 @@ export function ExplorePage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <p className="text-xs font-semibold text-[#6E1E2E] tracking-widest uppercase mb-1">
-              Varanasi Dining Discovery
+              {selectedCity}, {activeCityConfig.state} · Dining Discovery
             </p>
             <h1 className="font-display text-3xl sm:text-4xl font-semibold text-[#1C1917]">
               {actionIntent === 'preorder'
-                ? 'Select a Restaurant to Pre-Order Food'
+                ? `Pre-Order Food in ${selectedCity}`
                 : actionIntent === 'book'
-                  ? 'Book a Verified Varanasi Table'
-                  : 'Explore Restaurants, Menus & Celebration Venues'}
+                  ? `Reserve a Table in ${selectedCity}`
+                  : `Explore ${selectedCity} Restaurants & Celebration Venues`}
             </h1>
           </div>
           <p className="text-sm text-[#57534E] tabular-nums">
-            Showing {filteredRestaurants.length} of {approvedRestaurants.length} approved venues
+            Showing {filteredRestaurants.length} of {approvedCityRestaurants.length} verified venues in {selectedCity}
           </p>
         </div>
 
-        <DemoBanner message="Inspect photo galleries, uploaded menu photographs, 14 amenities, food pre-order plates, and ₹0-decor celebration packages inside any restaurant modal." />
+        <DemoBanner message={`Discover verified restaurants in ${selectedCity} across ${activeCityConfig.neighbourhoods.join(', ')}. Inspect photo galleries, menu photos, amenities, pre-order plates, and ₹0-decor celebrations inside any restaurant profile.`} />
 
         {/* Advanced Filter Bar */}
         <div className="bg-white border border-[#E5E0D8] rounded-lg p-4 sm:p-5 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="relative">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="relative lg:col-span-2">
               <Search className="w-4 h-4 text-[#6E1E2E] absolute left-3 top-2.5 pointer-events-none" />
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search restaurant, cuisine or area..."
+                placeholder={`Search ${selectedCity} venue, cuisine or neighbourhood...`}
                 className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
               />
             </div>
 
             <select
+              value={selectedCity}
+              onChange={(e) => handleCitySelect(e.target.value)}
+              aria-label="Filter by city"
+              className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg font-medium text-[#1C1917] focus:outline-none focus:border-[#6E1E2E]"
+            >
+              {cities.map((c) => (
+                <option key={c.id} value={c.name} disabled={!c.isActive}>
+                  {c.name}, {c.state}
+                  {!c.isActive ? ' (Coming Soon)' : ''}
+                </option>
+              ))}
+            </select>
+
+            <select
               value={selectedArea}
               onChange={(e) => setSelectedArea(e.target.value)}
-              aria-label="Filter by locality"
+              aria-label={`Filter by ${selectedCity} neighbourhood`}
               className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
             >
-              {VARANASI_AREAS.map((area) => (
+              <option value="All">All {selectedCity} Neighbourhoods</option>
+              {activeCityConfig.neighbourhoods.map((area) => (
                 <option key={area} value={area}>
-                  {area === 'All Varanasi' ? 'All Varanasi Localities' : area}
+                  {area}
                 </option>
               ))}
             </select>
@@ -191,6 +255,56 @@ export function ExplorePage() {
               <option value="1200to1800">₹1,200 – ₹1,800 for two</option>
               <option value="above1800">Above ₹1,800 for two</option>
             </select>
+          </div>
+
+          {/* Neighbourhood Quick Filter Chips */}
+          <div className="space-y-1.5">
+            <p className="text-[11px] font-semibold text-[#57534E]">
+              {selectedCity} Neighbourhoods
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedArea('All')}
+                className={`px-3 py-1 text-xs font-semibold rounded border transition-colors ${
+                  selectedArea === 'All'
+                    ? 'bg-[#6E1E2E] text-white border-[#6E1E2E]'
+                    : 'bg-[#FAF9F6] text-[#1C1917] border-[#E5E0D8] hover:border-[#6E1E2E] hover:bg-[#F3F1ED]'
+                }`}
+              >
+                All Neighbourhoods
+              </button>
+              {activeCityConfig.neighbourhoods.map((hood) => (
+                <button
+                  key={hood}
+                  type="button"
+                  onClick={() => setSelectedArea(hood)}
+                  className={`px-3 py-1 text-xs font-semibold rounded border transition-colors ${
+                    selectedArea.toLowerCase() === hood.toLowerCase()
+                      ? 'bg-[#6E1E2E] text-white border-[#6E1E2E]'
+                      : 'bg-[#FAF9F6] text-[#1C1917] border-[#E5E0D8] hover:border-[#6E1E2E] hover:bg-[#F3F1ED]'
+                  }`}
+                >
+                  {hood}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              aria-label="Filter by restaurant category"
+              className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
+            >
+              <option value="All">All Restaurant Categories</option>
+              {RESTAURANT_CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
 
             <select
               value={ratingFilter}
@@ -202,9 +316,7 @@ export function ExplorePage() {
               <option value="4.5">4.5★ &amp; Above</option>
               <option value="4.7">4.7★ &amp; Above</option>
             </select>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <select
               value={availabilityFilter}
               onChange={(e) => setAvailabilityFilter(e.target.value as typeof availabilityFilter)}
@@ -223,7 +335,7 @@ export function ExplorePage() {
               className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
             >
               <option value="All">All Celebration Types</option>
-              {CELEBRATION_CATEGORIES.filter((c) => c !== 'Custom Celebration').map((cat) => (
+              {CELEBRATION_CATEGORIES.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat} Packages
                 </option>
@@ -318,12 +430,21 @@ export function ExplorePage() {
 
         {/* Results */}
         {filteredRestaurants.length === 0 ? (
-          <EmptyStateCard
-            title="No matching restaurants found"
-            description="Try relaxing your locality, rating, amenity, or availability filters to discover more Varanasi dining venues."
-            actionLabel="View All Varanasi Restaurants"
-            onAction={handleReset}
-          />
+          approvedCityRestaurants.length === 0 ? (
+            <EmptyStateCard
+              title={`Now Launching in ${selectedCity}${selectedArea !== 'All' ? ` · ${selectedArea}` : ''}`}
+              description={`Verified ${selectedCity} restaurants across ${activeCityConfig.neighbourhoods.join(', ')} will appear here automatically once onboarded and approved. No placeholder listings or unverified addresses are fabricated.`}
+              actionLabel="Partner With Us — Register Restaurant"
+              onAction={() => navigate('/restaurant/signup')}
+            />
+          ) : (
+            <EmptyStateCard
+              title="No matching restaurants found"
+              description={`Try relaxing your neighbourhood, rating, amenity, or availability filters to discover verified ${selectedCity} dining venues.`}
+              actionLabel={`View All ${selectedCity} Restaurants`}
+              onAction={handleReset}
+            />
+          )
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredRestaurants.map((restaurant) => (

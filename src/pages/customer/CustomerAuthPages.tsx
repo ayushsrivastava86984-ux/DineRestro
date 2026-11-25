@@ -6,7 +6,7 @@ import { DemoBanner } from '../../components/common/DemoBanner';
 import { validateEmail, validateIndianMobile } from '../../utils/formatters';
 
 export function CustomerSignupPage() {
-  const { signupCustomerDemo } = useApp();
+  const { signupCustomerDemo, selectedCity, authBookingNotice } = useApp();
   const navigate = useNavigate();
 
   const [fullName, setFullName] = useState('');
@@ -54,13 +54,17 @@ export function CustomerSignupPage() {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      setSuccess('Demo customer account created! Redirecting to dashboard...');
-      signupCustomerDemo({
+      const restored = signupCustomerDemo({
         fullName: fullName.trim(),
         email: email.trim(),
         mobile: mobile.trim(),
       });
-      navigate('/customer/dashboard');
+      setSuccess(
+        restored
+          ? 'Account created! Returning to your selected booking...'
+          : 'Customer account created! Redirecting to dashboard...'
+      );
+      navigate(restored?.returnPath || '/customer/dashboard');
     }, 550);
   };
 
@@ -70,15 +74,21 @@ export function CustomerSignupPage() {
         <div className="bg-white border border-[#E5E0D8] rounded-lg p-6 sm:p-8 space-y-6">
           <div>
             <p className="text-xs font-semibold text-[#6E1E2E] tracking-wide mb-1">
-              Customer Portal · DEMO MODE
+              Customer Portal · {selectedCity}
             </p>
             <h1 className="font-display text-3xl font-semibold text-[#1C1917]">
               Create Customer Account
             </h1>
             <p className="text-sm text-[#57534E] mt-1">
-              Reserve Varanasi tables, unlock offers, and track your dining plans.
+              Reserve {selectedCity} tables, pre-order food, and plan celebrations seamlessly.
             </p>
           </div>
+
+          {authBookingNotice && (
+            <div className="px-4 py-3 rounded-lg bg-[#FDF2F4] border border-[#6E1E2E]/35 text-xs font-semibold text-[#6E1E2E]">
+              {authBookingNotice}
+            </div>
+          )}
 
           <DemoBanner message="Simulated Phase 1 signup only. This demo registration is not connected to a backend or production security." />
 
@@ -221,10 +231,10 @@ export function CustomerSignupPage() {
 }
 
 export function CustomerLoginPage() {
-  const { loginCustomerDemo } = useApp();
+  const { loginCustomerDemo, selectedCity, authBookingNotice, pendingBookingIntent } = useApp();
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState('aarav.varanasi@example.com');
+  const [email, setEmail] = useState('aarav.lucknow@example.com');
   const [password, setPassword] = useState('demo1234');
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -245,8 +255,8 @@ export function CustomerLoginPage() {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      loginCustomerDemo(email.trim());
-      navigate('/customer/dashboard');
+      const restored = loginCustomerDemo(email.trim());
+      navigate(restored?.returnPath || '/customer/dashboard');
     }, 450);
   };
 
@@ -256,15 +266,21 @@ export function CustomerLoginPage() {
         <div className="bg-white border border-[#E5E0D8] rounded-lg p-6 sm:p-8 space-y-6">
           <div>
             <p className="text-xs font-semibold text-[#6E1E2E] tracking-wide mb-1">
-              Customer Login · DEMO MODE
+              Customer Login · {selectedCity}
             </p>
             <h1 className="font-display text-3xl font-semibold text-[#1C1917]">
               Sign In as Diner
             </h1>
             <p className="text-sm text-[#57534E] mt-1">
-              Access your table booking previews, offers, and saved Varanasi spots.
+              Access your table bookings, pre-orders, celebrations, and saved {selectedCity} spots.
             </p>
           </div>
+
+          {authBookingNotice && (
+            <div className="px-4 py-3 rounded-lg bg-[#FDF2F4] border border-[#6E1E2E]/35 text-xs font-semibold text-[#6E1E2E]">
+              {authBookingNotice}
+            </div>
+          )}
 
           <DemoBanner message="Demo credentials are pre-filled for Phase 1 testing. This simulated login is not production-ready authentication." />
 
@@ -335,7 +351,13 @@ export function CustomerLoginPage() {
               className="w-full py-2.5 px-4 text-sm font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522] transition-colors flex items-center justify-center gap-2"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              <span>{loading ? 'Signing In...' : 'Login to Customer Dashboard (Demo)'}</span>
+              <span>
+                {loading
+                  ? 'Signing In...'
+                  : pendingBookingIntent
+                    ? 'Sign In & Continue Booking (Demo)'
+                    : 'Login to Customer Dashboard (Demo)'}
+              </span>
             </button>
           </form>
 

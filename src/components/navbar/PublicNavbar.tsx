@@ -73,7 +73,7 @@ export function PublicNavbar() {
           <button
             type="button"
             onClick={() => navigate('/explore')}
-            aria-label="Search Varanasi restaurants"
+            aria-label="Search restaurants"
             className="p-2 rounded-lg text-[#57534E] hover:text-[#6E1E2E] hover:bg-[#F3F1ED] transition-colors"
           >
             <Search className="w-4 h-4" />

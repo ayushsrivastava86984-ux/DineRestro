@@ -48,6 +48,8 @@ const CUSTOMER_NAV: DashboardNavItem[] = [
 export function CustomerDashboard() {
   const location = useLocation();
   const {
+    selectedCity,
+    cities,
     customerUser,
     updateCustomerProfile,
     restaurants,
@@ -81,8 +83,16 @@ export function CustomerDashboard() {
   const [city, setCity] = useState(customerUser.city);
   const [preferredCuisine, setPreferredCuisine] = useState<CuisineType>(customerUser.preferredCuisine);
 
-  const approvedRestaurants = restaurants.filter((r) => r.approvalStatus === 'Approved');
-  const [reviewRestId, setReviewRestId] = useState(approvedRestaurants[0]?.id || '');
+  const activeCity = customerUser.city?.trim() || selectedCity;
+  const approvedRestaurants = restaurants.filter(
+    (r) => r.approvalStatus === 'Approved' && r.isActive !== false
+  );
+  const cityApprovedRestaurants = approvedRestaurants.filter(
+    (r) => r.city.toLowerCase() === activeCity.toLowerCase()
+  );
+  const [reviewRestId, setReviewRestId] = useState(
+    cityApprovedRestaurants[0]?.id || approvedRestaurants[0]?.id || ''
+  );
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
 
@@ -102,8 +112,17 @@ export function CustomerDashboard() {
   const myNotifications = notifications.filter((n) => n.role === 'customer');
   const myReviews = reviews.filter((rv) => rv.customerName === customerUser.fullName || rv.visible);
 
-  const favoriteRestaurants = approvedRestaurants.filter((r) => favoriteIds.includes(r.id));
-  const activeOffers = offers.filter((o) => o.active);
+  const favoriteRestaurants = cityApprovedRestaurants.filter((r) =>
+    favoriteIds.includes(r.id)
+  );
+  const activeOffers = offers.filter((o) => {
+    if (!o.active) return false;
+    const rest = restaurants.find((r) => r.id === o.restaurantId);
+    return rest
+      ? rest.approvalStatus === 'Approved' &&
+          rest.city.toLowerCase() === activeCity.toLowerCase()
+      : false;
+  });
 
   const path = location.pathname;
   const activeSection =
@@ -143,7 +162,7 @@ export function CustomerDashboard() {
     updateCustomerProfile({
       fullName: fullName.trim() || customerUser.fullName,
       mobile: mobile.trim() || customerUser.mobile,
-      city: city.trim() || 'Varanasi',
+      city: city.trim() || selectedCity,
       preferredCuisine,
     });
   };
@@ -194,7 +213,7 @@ export function CustomerDashboard() {
                   Welcome back, {customerUser.fullName.split(' ')[0]}
                 </h1>
                 <p className="text-sm text-[#57534E] mt-1">
-                  Manage table bookings, food pre-orders, celebrations, and Varanasi dining favorites.
+                  Manage table bookings, food pre-orders, celebrations, and {activeCity} dining favorites.
                 </p>
               </div>
               <Link
@@ -235,17 +254,24 @@ export function CustomerDashboard() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="font-display text-2xl font-semibold text-[#1C1917]">
-                  Recommended in Varanasi
+                  Recommended in {activeCity}
                 </h2>
                 <Link to="/customer/explore" className="text-xs font-semibold text-[#6E1E2E] hover:underline">
                   Explore all
                 </Link>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                {approvedRestaurants.slice(0, 3).map((r) => (
-                  <RestaurantCard key={r.id} restaurant={r} />
-                ))}
-              </div>
+              {cityApprovedRestaurants.length === 0 ? (
+                <EmptyStateCard
+                  title={`Partner restaurants launching soon in ${activeCity}`}
+                  description={`Verified restaurants across ${activeCity} are currently onboarding. Approved venues will appear here automatically.`}
+                />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  {cityApprovedRestaurants.slice(0, 3).map((r) => (
+                    <RestaurantCard key={r.id} restaurant={r} />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -254,29 +280,45 @@ export function CustomerDashboard() {
           <div className="space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <h1 className="font-display text-3xl font-semibold text-[#1C1917]">
-                Explore Varanasi Restaurants
+                Explore {activeCity} Restaurants
               </h1>
               <input
                 type="text"
                 value={searchExplore}
                 onChange={(e) => setSearchExplore(e.target.value)}
-                placeholder="Filter by name, area, or cuisine..."
+                placeholder="Filter by name, neighbourhood, or cuisine..."
                 className="px-3.5 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg w-full sm:w-72 focus:outline-none focus:border-[#6E1E2E]"
               />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {approvedRestaurants
-                .filter(
-                  (r) =>
-                    !searchExplore.trim() ||
-                    r.name.toLowerCase().includes(searchExplore.toLowerCase()) ||
-                    r.area.toLowerCase().includes(searchExplore.toLowerCase()) ||
-                    r.cuisines.some((c) => c.toLowerCase().includes(searchExplore.toLowerCase()))
-                )
-                .map((r) => (
-                  <RestaurantCard key={r.id} restaurant={r} />
-                ))}
-            </div>
+            {(() => {
+              const matched = cityApprovedRestaurants.filter(
+                (r) =>
+                  !searchExplore.trim() ||
+                  r.name.toLowerCase().includes(searchExplore.toLowerCase()) ||
+                  r.area.toLowerCase().includes(searchExplore.toLowerCase()) ||
+                  r.cuisines.some((c) => c.toLowerCase().includes(searchExplore.toLowerCase()))
+              );
+              return matched.length === 0 ? (
+                <EmptyStateCard
+                  title={
+                    cityApprovedRestaurants.length === 0
+                      ? `Launching ${activeCity} dining partners`
+                      : 'No matching restaurants found'
+                  }
+                  description={
+                    cityApprovedRestaurants.length === 0
+                      ? `No approved restaurants are listed in ${activeCity} yet. Partner venues appear here once approved.`
+                      : 'Try clearing your filter or searching another neighbourhood.'
+                  }
+                />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {matched.map((r) => (
+                    <RestaurantCard key={r.id} restaurant={r} />
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         )}
 
@@ -293,7 +335,7 @@ export function CustomerDashboard() {
             {myBookings.length === 0 ? (
               <EmptyStateCard
                 title="No table reservations yet"
-                description="Browse Varanasi restaurants to book a Basic or Premium verified dining table."
+                description={`Browse ${activeCity} restaurants to book a Basic or Premium verified dining table.`}
               />
             ) : (
               <div className="space-y-3">
@@ -640,7 +682,9 @@ export function CustomerDashboard() {
                     className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
                   >
                     {approvedRestaurants.map((r) => (
-                      <option key={r.id} value={r.id}>{r.name}</option>
+                      <option key={r.id} value={r.id}>
+                        {r.name} {r.isDemo ? '(Demo Listing)' : ''}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -734,32 +778,39 @@ export function CustomerDashboard() {
         {activeSection === 'offers' && (
           <div className="space-y-5">
             <h1 className="font-display text-3xl font-semibold text-[#1C1917]">
-              Exclusive Member Offers
+              Exclusive Member Offers in {activeCity}
             </h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {activeOffers.map((offer) => (
-                <div key={offer.id} className="bg-white border border-[#E5E0D8] rounded-lg p-5 space-y-3">
-                  <div className="flex items-center justify-between text-xs text-[#57534E]">
-                    <span className="font-semibold text-[#6E1E2E]">
-                      {offer.discountLabel} · {offer.offerTier} Offer
-                    </span>
-                    <span className="tabular-nums">Valid till {formatDisplayDate(offer.validUntil)}</span>
+            {activeOffers.length === 0 ? (
+              <EmptyStateCard
+                title={`No member offers published in ${activeCity} yet`}
+                description={`As partner restaurants launch across ${activeCity}, curated dining offers will appear here.`}
+              />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {activeOffers.map((offer) => (
+                  <div key={offer.id} className="bg-white border border-[#E5E0D8] rounded-lg p-5 space-y-3">
+                    <div className="flex items-center justify-between text-xs text-[#57534E]">
+                      <span className="font-semibold text-[#6E1E2E]">
+                        {offer.discountLabel} · {offer.offerTier} Offer
+                      </span>
+                      <span className="tabular-nums">Valid till {formatDisplayDate(offer.validUntil)}</span>
+                    </div>
+                    <h3 className="text-lg font-semibold text-[#1C1917]">{offer.title}</h3>
+                    <p className="text-xs text-[#57534E]">
+                      {offer.restaurantName} · {offer.terms}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyCode(offer.code)}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-mono font-semibold bg-[#FAF9F6] border border-[#E5E0D8] rounded"
+                    >
+                      <span>{offer.code}</span>
+                      {copiedCode === offer.code ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
                   </div>
-                  <h3 className="text-lg font-semibold text-[#1C1917]">{offer.title}</h3>
-                  <p className="text-xs text-[#57534E]">
-                    {offer.restaurantName} · {offer.terms}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => handleCopyCode(offer.code)}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-mono font-semibold bg-[#FAF9F6] border border-[#E5E0D8] rounded"
-                  >
-                    <span>{offer.code}</span>
-                    {copiedCode === offer.code ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -771,7 +822,7 @@ export function CustomerDashboard() {
             {favoriteRestaurants.length === 0 ? (
               <EmptyStateCard
                 title="No saved favorites yet"
-                description="Tap the heart icon on any Varanasi restaurant to save it for quick booking."
+                description={`Tap the heart icon on any ${activeCity} restaurant to save it for quick booking.`}
               />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -825,10 +876,16 @@ export function CustomerDashboard() {
                     <MapPin className="w-4 h-4 text-[#57534E] absolute left-3 top-2.5" />
                     <input
                       type="text"
+                      list="customer-city-options"
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
                       className="w-full pl-9 pr-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
                     />
+                    <datalist id="customer-city-options">
+                      {cities.map((c) => (
+                        <option key={c.id} value={c.name} />
+                      ))}
+                    </datalist>
                   </div>
                 </div>
                 <div>

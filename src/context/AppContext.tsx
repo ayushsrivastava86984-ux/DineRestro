@@ -3,8 +3,8 @@ import {
   IMAGES,
   INITIAL_CELEBRATION_BOOKINGS,
   INITIAL_CELEBRATION_PACKAGES,
+  INITIAL_CITIES,
   INITIAL_CUSTOMERS,
-  INITIAL_CUSTOM_REQUESTS,
   INITIAL_NOTIFICATIONS,
   INITIAL_OFFERS,
   INITIAL_PAYMENTS,
@@ -16,25 +16,23 @@ import {
   INITIAL_REVIEWS,
   INITIAL_TABLES,
   INITIAL_TICKETS,
+  LUCKNOW_DEMO_RESTAURANTS,
 } from '../data/mockData';
 import type {
   AmenityType,
   AppNotification,
   CelebrationBooking,
   CelebrationBookingStatus,
-  CelebrationCategory,
   CelebrationPackage,
-  CelebrationQuotation,
-  CelebrationQuotationItem,
+  CityConfig,
   CuisineType,
-  CustomCelebrationRequest,
-  CustomRequestStatus,
   CustomerProfile,
   DiningOffer,
   DiningTable,
   FoodPreOrder,
   MenuPagePhoto,
   PaymentRecord,
+  PendingBookingIntent,
   PhotoCategory,
   PlatformSettings,
   PortalRole,
@@ -44,12 +42,12 @@ import type {
   ReservationStatus,
   Restaurant,
   RestaurantApprovalStatus,
+  RestaurantCategory,
   RestaurantPhoto,
   RestaurantReview,
   SupportTicket,
   TableStatus,
   ToastMessage,
-  VegNonVegPreference,
 } from '../types';
 
 interface CustomerAuthInfo {
@@ -67,6 +65,7 @@ interface RestaurantRegistrationInput {
   mobile: string;
   restaurantName: string;
   address: string;
+  area?: string;
   city: string;
   state: string;
   pinCode: string;
@@ -87,23 +86,17 @@ export interface DemoPaymentPayload {
   onComplete: (transactionId: string, method: string) => void;
 }
 
-export interface CustomQuotationInput {
-  foodPackageDetails: string;
-  pricePerPlate: number;
-  platesCount: number;
-  cakeCharge: number;
-  specialServicesNotes: string;
-  decorationDetails: string;
-  additionalIncludedServices: string;
-  lineItems: CelebrationQuotationItem[];
-  advancePercent: number;
-  validUntil: string;
-  termsAndConditions: string;
-  additionalNotes: string;
-}
-
 interface AppContextValue {
   role: PortalRole;
+  cities: CityConfig[];
+  activeCities: CityConfig[];
+  selectedCity: string;
+  activeCityConfig: CityConfig;
+  setSelectedCity: (cityName: string) => void;
+  addCity: (payload: { name: string; state: string; neighbourhoods: string[] }) => void;
+  toggleCityActive: (cityId: string) => void;
+  setDefaultLaunchCity: (cityId: string) => void;
+  addCityNeighbourhood: (cityId: string, neighbourhood: string) => void;
   customerUser: CustomerAuthInfo;
   activeRestaurantId: string;
   activeRestaurant: Restaurant;
@@ -113,7 +106,6 @@ interface AppContextValue {
   preOrders: FoodPreOrder[];
   celebrationPackages: CelebrationPackage[];
   celebrationBookings: CelebrationBooking[];
-  customRequests: CustomCelebrationRequest[];
   tables: DiningTable[];
   offers: DiningOffer[];
   payments: PaymentRecord[];
@@ -127,6 +119,9 @@ interface AppContextValue {
   selectedRestaurantForModal: Restaurant | null;
   modalInitialTab: 'overview' | 'book' | 'preorder' | 'celebrate';
   activeDemoPayment: DemoPaymentPayload | null;
+  pendingBookingIntent: PendingBookingIntent | null;
+  authBookingNotice: string | null;
+  restoredBookingDraft: PendingBookingIntent | null;
 
   addToast: (toast: Omit<ToastMessage, 'id'>) => void;
   dismissToast: (id: string) => void;
@@ -139,8 +134,17 @@ interface AppContextValue {
   closeDemoPayment: () => void;
   completeDemoPayment: (method: string) => PaymentRecord | null;
 
-  loginCustomerDemo: (email?: string, name?: string) => void;
-  signupCustomerDemo: (data: { fullName: string; email: string; mobile: string }) => void;
+  requireCustomerAuth: (intent: PendingBookingIntent) => boolean;
+  clearAuthBookingNotice: () => void;
+  consumeRestoredBookingDraft: () => void;
+  setAuthBookingNoticeMessage: (message: string | null) => void;
+
+  loginCustomerDemo: (email?: string, name?: string) => PendingBookingIntent | null;
+  signupCustomerDemo: (data: {
+    fullName: string;
+    email: string;
+    mobile: string;
+  }) => PendingBookingIntent | null;
   updateCustomerProfile: (updates: Partial<CustomerAuthInfo>) => void;
 
   loginRestaurantDemo: (email?: string) => void;
@@ -251,37 +255,6 @@ interface AppContextValue {
   ) => void;
   cancelCelebrationBooking: (bookingId: string) => void;
 
-  // Custom Celebration Requests (Quotation Compulsory Before Advance Payment)
-  createCustomCelebrationRequest: (payload: {
-    restaurant: Restaurant;
-    occasionType: CelebrationCategory;
-    preferredDate: string;
-    preferredTime: string;
-    guestsCount: number;
-    estimatedBudget: number;
-    decorationTheme: string;
-    preferredColors: string;
-    cakeRequirements: string;
-    foodPreferences: string;
-    vegNonVegPreference: VegNonVegPreference;
-    decorationRequirements: string;
-    specialInstructions: string;
-    referenceImages?: string[];
-    customerName?: string;
-    customerEmail?: string;
-    customerPhone?: string;
-  }) => CustomCelebrationRequest;
-  markCustomRequestUnderReview: (requestId: string) => void;
-  upsertAndSendCustomQuotation: (
-    requestId: string,
-    input: CustomQuotationInput
-  ) => void;
-  acceptCustomRequestQuotation: (requestId: string) => void;
-  rejectCustomRequestQuotation: (requestId: string, reason?: string) => void;
-  markCustomRequestAdvancePaid: (requestId: string, transactionId: string) => void;
-  cancelCustomRequest: (requestId: string) => void;
-  updateCustomRequestStatus: (requestId: string, status: CustomRequestStatus) => void;
-
   updateTableStatus: (tableId: string, status: TableStatus) => void;
   addTable: (table: Omit<DiningTable, 'id' | 'restaurantId'>) => void;
 
@@ -290,6 +263,18 @@ interface AppContextValue {
 
   updatePlatformSettings: (settings: PlatformSettings) => void;
   updateRestaurantApproval: (restaurantId: string, status: RestaurantApprovalStatus) => void;
+  toggleRestaurantActive: (restaurantId: string) => void;
+  deleteRestaurant: (restaurantId: string) => void;
+  editRestaurantListing: (
+    restaurantId: string,
+    updates: Partial<
+      Pick<
+        Restaurant,
+        'name' | 'area' | 'category' | 'priceForTwo' | 'priceRange' | 'description' | 'offerText' | 'tier'
+      >
+    >
+  ) => void;
+  seedLucknowDemoRestaurants: () => void;
   updateCustomerStatus: (customerId: string, status: CustomerProfile['status']) => void;
   toggleReviewVisibility: (reviewId: string) => void;
   submitReview: (payload: {
@@ -306,9 +291,9 @@ interface AppContextValue {
 const DEFAULT_CUSTOMER: CustomerAuthInfo = {
   id: 'cust-1',
   fullName: 'Aarav Srivastava',
-  email: 'aarav.varanasi@example.com',
+  email: 'aarav.lucknow@example.com',
   mobile: '+91 98390 11223',
-  city: 'Varanasi',
+  city: 'Lucknow',
   preferredCuisine: 'North Indian',
 };
 
@@ -316,8 +301,12 @@ const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<PortalRole>('guest');
+  const [cities, setCities] = useState<CityConfig[]>(INITIAL_CITIES);
+  const [selectedCity, setSelectedCity] = useState<string>(
+    INITIAL_CITIES.find((c) => c.isDefaultLaunchCity)?.name || 'Lucknow'
+  );
   const [customerUser, setCustomerUser] = useState<CustomerAuthInfo>(DEFAULT_CUSTOMER);
-  const [activeRestaurantId, setActiveRestaurantId] = useState<string>('rest-kashi-terrace');
+  const [activeRestaurantId, setActiveRestaurantId] = useState<string>('rest-lko-awadh-mahal');
 
   const [restaurants, setRestaurants] = useState<Restaurant[]>(INITIAL_RESTAURANTS);
   const [reservations, setReservations] = useState<Reservation[]>(INITIAL_RESERVATIONS);
@@ -330,9 +319,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [celebrationBookings, setCelebrationBookings] = useState<CelebrationBooking[]>(
     INITIAL_CELEBRATION_BOOKINGS
   );
-  const [customRequests, setCustomRequests] = useState<CustomCelebrationRequest[]>(
-    INITIAL_CUSTOM_REQUESTS
-  );
   const [tables, setTables] = useState<DiningTable[]>(INITIAL_TABLES);
   const [offers, setOffers] = useState<DiningOffer[]>(INITIAL_OFFERS);
   const [payments, setPayments] = useState<PaymentRecord[]>(INITIAL_PAYMENTS);
@@ -344,8 +330,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [tickets, setTickets] = useState<SupportTicket[]>(INITIAL_TICKETS);
   const [notifications, setNotifications] = useState<AppNotification[]>(INITIAL_NOTIFICATIONS);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([
-    'rest-kashi-terrace',
-    'rest-darbar-haveli',
+    'rest-lko-awadh-mahal',
+    'rest-lko-nawabs-courtyard',
   ]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [selectedRestaurantForModal, setSelectedRestaurantForModal] =
@@ -354,6 +340,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     'overview' | 'book' | 'preorder' | 'celebrate'
   >('overview');
   const [activeDemoPayment, setActiveDemoPayment] = useState<DemoPaymentPayload | null>(null);
+  const [pendingBookingIntent, setPendingBookingIntent] =
+    useState<PendingBookingIntent | null>(null);
+  const [authBookingNotice, setAuthBookingNotice] = useState<string | null>(null);
+  const [restoredBookingDraft, setRestoredBookingDraft] =
+    useState<PendingBookingIntent | null>(null);
 
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -383,9 +374,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setModalInitialTab('overview');
   }, []);
 
-  const openDemoPayment = useCallback((payload: DemoPaymentPayload) => {
-    setActiveDemoPayment(payload);
-  }, []);
+  const openDemoPayment = useCallback(
+    (payload: DemoPaymentPayload) => {
+      if (role !== 'customer') {
+        setAuthBookingNotice(
+          'Please log in or create an account to continue with your booking.'
+        );
+        addToast({
+          type: 'error',
+          title: 'Login Required',
+          description: 'Please log in or create an account to continue with your booking.',
+        });
+        return;
+      }
+      setActiveDemoPayment(payload);
+    },
+    [addToast, role]
+  );
 
   const closeDemoPayment = useCallback(() => {
     setActiveDemoPayment(null);
@@ -393,7 +398,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const completeDemoPayment = useCallback(
     (method: string) => {
-      if (!activeDemoPayment) return null;
+      if (!activeDemoPayment || role !== 'customer') return null;
       const txnId = `DEMO-TXN-${Math.floor(100000 + Math.random() * 899999)}`;
       const record: PaymentRecord = {
         id: `PAY-${Math.floor(200 + Math.random() * 799)}`,
@@ -405,7 +410,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         amount: activeDemoPayment.amount,
         paymentMethod: `${method} (DEMO ONLY)`,
         status: 'DEMO PAID',
-        createdAt: '2026-11-23',
+        createdAt: '2026-11-25',
       };
       setPayments((prev) => [record, ...prev]);
       activeDemoPayment.onComplete(txnId, method);
@@ -416,12 +421,60 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
       return record;
     },
-    [activeDemoPayment, addToast]
+    [activeDemoPayment, addToast, role]
+  );
+
+  const requireCustomerAuth = useCallback(
+    (intent: PendingBookingIntent) => {
+      if (role === 'customer') return true;
+      setPendingBookingIntent(intent);
+      setAuthBookingNotice(
+        'Please log in or create an account to continue with your booking.'
+      );
+      setSelectedRestaurantForModal(null);
+      addToast({
+        type: 'info',
+        title: 'Login Required',
+        description: 'Please log in or create an account to continue with your booking.',
+      });
+      return false;
+    },
+    [addToast, role]
+  );
+
+  const clearAuthBookingNotice = useCallback(() => {
+    setAuthBookingNotice(null);
+  }, []);
+
+  const consumeRestoredBookingDraft = useCallback(() => {
+    setRestoredBookingDraft(null);
+  }, []);
+
+  const setAuthBookingNoticeMessage = useCallback((message: string | null) => {
+    setAuthBookingNotice(message);
+  }, []);
+
+  const restorePendingIntentAfterAuth = useCallback(
+    (intent: PendingBookingIntent | null) => {
+      if (!intent) return null;
+      setRestoredBookingDraft(intent);
+      setPendingBookingIntent(null);
+      if (intent.kind === 'restaurant_modal' && intent.restaurantId) {
+        const matchedRest = restaurants.find((r) => r.id === intent.restaurantId);
+        if (matchedRest) {
+          setSelectedRestaurantForModal(matchedRest);
+          setModalInitialTab(intent.tab || 'book');
+        }
+      }
+      return intent;
+    },
+    [restaurants]
   );
 
   const loginCustomerDemo = useCallback(
     (email?: string, name?: string) => {
       setRole('customer');
+      setAuthBookingNotice(null);
       if (email || name) {
         setCustomerUser((prev) => ({
           ...prev,
@@ -429,13 +482,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           fullName: name || prev.fullName,
         }));
       }
+      const intentToRestore = restorePendingIntentAfterAuth(pendingBookingIntent);
       addToast({
         type: 'success',
-        title: 'Demo Customer Session Started',
-        description: 'Explore bookings, pre-orders, and celebration quotes.',
+        title: 'Customer Session Started',
+        description: intentToRestore
+          ? 'Restored your selected restaurant & booking details.'
+          : 'Explore bookings, food pre-orders, and celebration packages across Lucknow.',
       });
+      return intentToRestore;
     },
-    [addToast]
+    [addToast, pendingBookingIntent, restorePendingIntentAfterAuth]
   );
 
   const signupCustomerDemo = useCallback(
@@ -445,8 +502,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         fullName: data.fullName,
         email: data.email,
         mobile: data.mobile,
-        city: 'Varanasi',
-        joinedDate: '2026-11-23',
+        city: selectedCity,
+        joinedDate: '2026-11-25',
         totalBookings: 0,
         status: 'Active',
         preferredCuisine: 'North Indian',
@@ -457,17 +514,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         fullName: data.fullName,
         email: data.email,
         mobile: data.mobile,
-        city: 'Varanasi',
+        city: selectedCity,
         preferredCuisine: 'North Indian',
       });
       setRole('customer');
+      setAuthBookingNotice(null);
+      const intentToRestore = restorePendingIntentAfterAuth(pendingBookingIntent);
       addToast({
         type: 'success',
-        title: 'Demo Customer Account Created',
-        description: 'Redirected to your Customer Dashboard (Demo Mode).',
+        title: 'Customer Account Created',
+        description: intentToRestore
+          ? 'Returning to complete your booking.'
+          : 'Welcome to DineRestro Lucknow.',
       });
+      return intentToRestore;
     },
-    [addToast]
+    [addToast, pendingBookingIntent, restorePendingIntentAfterAuth, selectedCity]
   );
 
   const updateCustomerProfile = useCallback(
@@ -484,7 +546,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const matched = email
         ? restaurants.find((r) => r.ownerEmail.toLowerCase() === email.toLowerCase())
         : undefined;
-      setActiveRestaurantId(matched ? matched.id : 'rest-kashi-terrace');
+      setActiveRestaurantId(matched ? matched.id : 'rest-lko-awadh-mahal');
       addToast({
         type: 'success',
         title: 'Demo Partner Session Started',
@@ -497,6 +559,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const signupRestaurantDemo = useCallback(
     (data: RestaurantRegistrationInput) => {
       const newId = `rest-${Date.now()}`;
+      const cityMatch = cities.find(
+        (c) => c.name.toLowerCase() === (data.city || selectedCity).trim().toLowerCase()
+      );
+      const resolvedCity = cityMatch?.name || data.city.trim() || selectedCity;
+      const resolvedArea =
+        data.area?.trim() || cityMatch?.neighbourhoods[0] || 'Gomti Nagar';
       const newRest: Restaurant = {
         id: newId,
         name: data.restaurantName,
@@ -505,25 +573,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ownerEmail: data.ownerEmail,
         contactNumber: data.contactNumber,
         address: data.address,
-        area: 'Sigra',
-        city: data.city || 'Varanasi',
-        state: data.state || 'Uttar Pradesh',
+        area: resolvedArea,
+        city: resolvedCity,
+        state: data.state || cityMatch?.state || 'Uttar Pradesh',
         pinCode: data.pinCode,
         cuisines: [data.cuisine],
         primaryCuisine: data.cuisine,
+        category: 'Casual Dining',
         tier: 'Basic',
         preOrderAdvancePercent: platformSettings.defaultPreOrderAdvancePercent,
-        rating: 4.5,
+        rating: 0,
         reviewCount: 0,
         priceForTwo: 1200,
         priceRange: '₹1,200 for two',
         offerText: 'New Partner Launch Preview',
-        logoUrl: IMAGES.heritageCourtyard,
-        image: IMAGES.heritageCourtyard,
+        logoUrl: IMAGES.lucknowHeritage,
+        image: IMAGES.lucknowHeritage,
         photos: [
           {
             id: `p-${Date.now()}`,
-            url: IMAGES.heritageCourtyard,
+            url: IMAGES.lucknowHeritage,
             category: 'Dining Area',
             caption: `${data.restaurantName} dining preview`,
           },
@@ -542,7 +611,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         availabilityNote: 'Pending partner review.',
         features: ['Table Reservations', 'Celebration Hosting'],
         approvalStatus: 'Pending Approval',
-        registrationDate: '2026-11-23',
+        isDemo: false,
+        isActive: true,
+        registrationDate: '2026-11-25',
         featured: false,
       };
       setRestaurants((prev) => [newRest, ...prev]);
@@ -554,7 +625,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         description: 'Your restaurant registration is pending approval (Demo Mode).',
       });
     },
-    [addToast]
+    [addToast, cities, platformSettings.defaultPreOrderAdvancePercent, selectedCity]
   );
 
   const updateActiveRestaurantProfile = useCallback(
@@ -894,6 +965,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       specialRequest?: string;
       transactionId?: string;
     }) => {
+      if (role !== 'customer') {
+        throw new Error('Authentication required before booking.');
+      }
       const resolvedTier =
         payload.bookingTier ||
         payload.selectedOffer?.offerTier ||
@@ -929,7 +1003,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         occasion: payload.occasion,
         specialRequest: payload.specialRequest,
         status: payload.transactionId ? 'Confirmed' : 'Pending',
-        createdAt: '2026-11-23',
+        createdAt: '2026-11-25',
       };
       setReservations((prev) => [created, ...prev]);
       addToast({
@@ -939,7 +1013,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
       return created;
     },
-    [addToast, customerUser.id, platformSettings.basicOfferFeePerGuest, platformSettings.premiumOfferFeePerGuest]
+    [
+      addToast,
+      customerUser.id,
+      platformSettings.basicOfferFeePerGuest,
+      platformSettings.premiumOfferFeePerGuest,
+      role,
+    ]
   );
 
   const updateReservationStatus = useCallback(
@@ -966,6 +1046,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       advancePaid: boolean;
       transactionId?: string;
     }) => {
+      if (role !== 'customer') {
+        throw new Error('Authentication required before pre-ordering.');
+      }
       const totalFoodAmount = payload.pkg.pricePerPlate * payload.plateCount;
       const advanceAmount = Math.round((totalFoodAmount * payload.advancePercent) / 100);
       const remainingAmount = totalFoodAmount - advanceAmount;
@@ -991,7 +1074,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         advancePaid: payload.advancePaid,
         transactionId: payload.transactionId,
         status: payload.advancePaid ? 'Advance Paid' : 'Pending',
-        createdAt: '2026-11-23',
+        createdAt: '2026-11-25',
       };
       setPreOrders((prev) => [created, ...prev]);
       addToast({
@@ -1001,7 +1084,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
       return created;
     },
-    [addToast, customerUser.id]
+    [addToast, customerUser.id, role]
   );
 
   const updatePreOrderStatus = useCallback(
@@ -1044,6 +1127,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       payAdvanceNow: boolean;
       transactionId?: string;
     }) => {
+      if (role !== 'customer') {
+        throw new Error('Authentication required before booking a celebration package.');
+      }
       const totalPackageAmount = payload.pkg.pricePerPlate * payload.platesCount;
       const advanceAmount = Math.round((totalPackageAmount * payload.advancePercent) / 100);
       const remainingAmount = totalPackageAmount - advanceAmount;
@@ -1082,7 +1168,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         customerNote: normalizedNote,
         specialRequests: normalizedNote,
         status: isPaid ? 'Confirmed' : 'Advance Pending',
-        createdAt: '2026-11-23',
+        createdAt: '2026-11-25',
       };
       setCelebrationBookings((prev) => [created, ...prev]);
       setNotifications((prev) => [
@@ -1107,7 +1193,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
       return created;
     },
-    [addToast, customerUser.id]
+    [addToast, customerUser.id, role]
   );
 
   const markCelebrationAdvancePaid = useCallback(
@@ -1144,340 +1230,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         prev.map((cb) => (cb.id === bookingId ? { ...cb, status: 'Cancelled' } : cb))
       );
       addToast({ type: 'info', title: `Celebration Booking Cancelled (${bookingId})` });
-    },
-    [addToast]
-  );
-
-  const createCustomCelebrationRequest = useCallback(
-    (payload: {
-      restaurant: Restaurant;
-      occasionType: CelebrationCategory;
-      preferredDate: string;
-      preferredTime: string;
-      guestsCount: number;
-      estimatedBudget: number;
-      decorationTheme: string;
-      preferredColors: string;
-      cakeRequirements: string;
-      foodPreferences: string;
-      vegNonVegPreference: VegNonVegPreference;
-      decorationRequirements: string;
-      specialInstructions: string;
-      referenceImages?: string[];
-      customerName?: string;
-      customerEmail?: string;
-      customerPhone?: string;
-    }) => {
-      const today = '2026-11-23';
-      const created: CustomCelebrationRequest = {
-        id: `CREQ-${Math.floor(510 + Math.random() * 480)}`,
-        restaurantId: payload.restaurant.id,
-        restaurantName: payload.restaurant.name,
-        restaurantArea: payload.restaurant.area,
-        customerId: customerUser.id,
-        customerName: payload.customerName || customerUser.fullName,
-        customerEmail: payload.customerEmail || customerUser.email,
-        customerPhone: payload.customerPhone || customerUser.mobile,
-        occasionType: payload.occasionType,
-        preferredDate: payload.preferredDate,
-        preferredTime: payload.preferredTime,
-        guestsCount: payload.guestsCount,
-        estimatedBudget: payload.estimatedBudget,
-        decorationTheme: payload.decorationTheme,
-        preferredColors: payload.preferredColors,
-        cakeRequirements: payload.cakeRequirements,
-        foodPreferences: payload.foodPreferences,
-        vegNonVegPreference: payload.vegNonVegPreference,
-        decorationRequirements: payload.decorationRequirements,
-        specialInstructions: payload.specialInstructions,
-        referenceImages: payload.referenceImages || [],
-        decorationCharge: 0,
-        advancePercent: platformSettings.defaultCelebrationAdvancePercent,
-        advancePaid: false,
-        status: 'Request Received',
-        createdAt: today,
-        updatedAt: today,
-      };
-      setCustomRequests((prev) => [created, ...prev]);
-      setNotifications((prev) => [
-        {
-          id: `notif-creq-${Date.now()}`,
-          role: 'restaurant',
-          title: `New Custom Celebration Request (${created.id})`,
-          message: `${created.customerName} requested a custom ${created.occasionType} for ${created.guestsCount} guests. Please review and send a quotation.`,
-          timeAgo: 'Just now',
-          read: false,
-        },
-        ...prev,
-      ]);
-      addToast({
-        type: 'success',
-        title: `Custom Request Submitted (${created.id})`,
-        description: `${payload.restaurant.name} will review your requirements and send a quotation (Decoration ₹0).`,
-      });
-      return created;
-    },
-    [addToast, customerUser, platformSettings.defaultCelebrationAdvancePercent]
-  );
-
-  const markCustomRequestUnderReview = useCallback(
-    (requestId: string) => {
-      setCustomRequests((prev) =>
-        prev.map((req) =>
-          req.id === requestId && req.status === 'Request Received'
-            ? { ...req, status: 'Under Review', updatedAt: '2026-11-23' }
-            : req
-        )
-      );
-      addToast({ type: 'info', title: `Request ${requestId} Marked Under Review` });
-    },
-    [addToast]
-  );
-
-  const upsertAndSendCustomQuotation = useCallback(
-    (requestId: string, input: CustomQuotationInput) => {
-      const targetReq = customRequests.find((r) => r.id === requestId);
-      if (!targetReq) return;
-      if (targetReq.quotation?.locked) {
-        addToast({
-          type: 'error',
-          title: 'Quotation Locked',
-          description: 'Customer has already accepted this quotation; terms cannot be edited.',
-        });
-        return;
-      }
-
-      const foodTotal = Math.max(0, input.pricePerPlate) * Math.max(1, input.platesCount);
-      const cakeTotal = Math.max(0, input.cakeCharge);
-      const lineItemsTotal = input.lineItems.reduce((sum, item) => sum + Math.max(0, item.amount), 0);
-      const totalAmount = foodTotal + cakeTotal + lineItemsTotal; // decorationCharge is ALWAYS ₹0
-      const advancePercent = Math.min(100, Math.max(10, input.advancePercent));
-      const advanceAmount = Math.round((totalAmount * advancePercent) / 100);
-      const remainingAmount = totalAmount - advanceAmount;
-      const today = '2026-11-23';
-
-      const quotationObj: CelebrationQuotation = {
-        id: targetReq.quotation?.id || `QUOT-${Math.floor(310 + Math.random() * 680)}`,
-        requestId: targetReq.id,
-        restaurantId: targetReq.restaurantId,
-        restaurantName: targetReq.restaurantName,
-        foodPackageDetails: input.foodPackageDetails.trim(),
-        pricePerPlate: Math.max(0, input.pricePerPlate),
-        platesCount: Math.max(1, input.platesCount),
-        cakeCharge: cakeTotal,
-        specialServicesNotes: input.specialServicesNotes.trim(),
-        decorationDetails: input.decorationDetails.trim(),
-        decorationCharge: 0,
-        additionalIncludedServices: input.additionalIncludedServices.trim(),
-        lineItems: input.lineItems,
-        totalAmount,
-        advancePercent,
-        advanceAmount,
-        remainingAmount,
-        validUntil: input.validUntil,
-        termsAndConditions: input.termsAndConditions.trim(),
-        additionalNotes: input.additionalNotes.trim(),
-        status: 'Sent',
-        locked: false,
-        createdAt: targetReq.quotation?.createdAt || today,
-        updatedAt: today,
-      };
-
-      setCustomRequests((prev) =>
-        prev.map((req) =>
-          req.id === requestId
-            ? {
-                ...req,
-                quotation: quotationObj,
-                quotedAmount: totalAmount,
-                quotationNotes: input.additionalNotes.trim() || input.foodPackageDetails.trim(),
-                decorationCharge: 0,
-                advancePercent,
-                advanceAmount,
-                remainingAmount,
-                status: 'Quotation Sent',
-                updatedAt: today,
-              }
-            : req
-        )
-      );
-
-      setNotifications((prev) => [
-        {
-          id: `notif-quot-${Date.now()}`,
-          role: 'customer',
-          title: `Quotation Received for ${requestId}`,
-          message: `${targetReq.restaurantName} sent a quotation of ₹${totalAmount.toLocaleString('en-IN')} (Decoration ₹0). Review & accept to unlock advance payment.`,
-          timeAgo: 'Just now',
-          read: false,
-        },
-        ...prev,
-      ]);
-
-      addToast({
-        type: 'success',
-        title: `Quotation Sent (${quotationObj.id})`,
-        description: 'Customer must review and accept before advance payment unlocks.',
-      });
-    },
-    [addToast, customRequests]
-  );
-
-  const acceptCustomRequestQuotation = useCallback(
-    (requestId: string) => {
-      const target = customRequests.find((r) => r.id === requestId);
-      if (!target || !target.quotation) return;
-      setCustomRequests((prev) =>
-        prev.map((req) =>
-          req.id === requestId && req.quotation
-            ? {
-                ...req,
-                status: 'Quotation Accepted',
-                updatedAt: '2026-11-23',
-                quotation: {
-                  ...req.quotation,
-                  status: 'Accepted',
-                  locked: true,
-                  updatedAt: '2026-11-23',
-                },
-              }
-            : req
-        )
-      );
-      setNotifications((prev) => [
-        {
-          id: `notif-qacc-${Date.now()}`,
-          role: 'restaurant',
-          title: `Quotation Accepted (${requestId})`,
-          message: `${target.customerName} accepted your quotation (${target.quotation?.id}). Advance payment is now unlocked.`,
-          timeAgo: 'Just now',
-          read: false,
-        },
-        ...prev,
-      ]);
-      addToast({
-        type: 'success',
-        title: `Quotation Accepted & Locked (${requestId})`,
-        description: 'Proceed to pay the demo advance to confirm your custom celebration.',
-      });
-    },
-    [addToast, customRequests]
-  );
-
-  const rejectCustomRequestQuotation = useCallback(
-    (requestId: string, reason?: string) => {
-      const target = customRequests.find((r) => r.id === requestId);
-      if (!target) return;
-      setCustomRequests((prev) =>
-        prev.map((req) =>
-          req.id === requestId
-            ? {
-                ...req,
-                status: 'Quotation Rejected',
-                updatedAt: '2026-11-23',
-                quotation: req.quotation
-                  ? {
-                      ...req.quotation,
-                      status: 'Rejected',
-                      locked: false,
-                      rejectionReason: reason?.trim() || 'Customer requested a revised proposal.',
-                      updatedAt: '2026-11-23',
-                    }
-                  : undefined,
-              }
-            : req
-        )
-      );
-      setNotifications((prev) => [
-        {
-          id: `notif-qrej-${Date.now()}`,
-          role: 'restaurant',
-          title: `Quotation Rejected (${requestId})`,
-          message: `${target.customerName} declined the quotation. You may revise terms or coordinate directly.`,
-          timeAgo: 'Just now',
-          read: false,
-        },
-        ...prev,
-      ]);
-      addToast({
-        type: 'info',
-        title: `Quotation Declined (${requestId})`,
-        description: 'You can submit a revised request or contact the restaurant directly.',
-      });
-    },
-    [addToast, customRequests]
-  );
-
-  const markCustomRequestAdvancePaid = useCallback(
-    (requestId: string, transactionId: string) => {
-      const target = customRequests.find((r) => r.id === requestId);
-      if (
-        !target ||
-        !target.quotation?.locked ||
-        (target.status !== 'Quotation Accepted' && target.status !== 'Advance Pending')
-      ) {
-        addToast({
-          type: 'error',
-          title: 'Advance Payment Locked',
-          description: 'Custom celebration requests require quotation acceptance before advance payment.',
-        });
-        return;
-      }
-      setCustomRequests((prev) =>
-        prev.map((req) =>
-          req.id === requestId
-            ? {
-                ...req,
-                advancePaid: true,
-                transactionId,
-                status: 'Confirmed',
-                updatedAt: '2026-11-23',
-              }
-            : req
-        )
-      );
-      setNotifications((prev) => [
-        {
-          id: `notif-cpay-${Date.now()}`,
-          role: 'restaurant',
-          title: `Custom Celebration Confirmed (${requestId})`,
-          message: `${target.customerName} completed demo advance payment (${transactionId}).`,
-          timeAgo: 'Just now',
-          read: false,
-        },
-        ...prev,
-      ]);
-      addToast({
-        type: 'success',
-        title: `Custom Celebration Confirmed (${requestId})`,
-        description: 'Advance payment logged and booking confirmed.',
-      });
-    },
-    [addToast, customRequests]
-  );
-
-  const cancelCustomRequest = useCallback(
-    (requestId: string) => {
-      setCustomRequests((prev) =>
-        prev.map((req) =>
-          req.id === requestId
-            ? { ...req, status: 'Cancelled', updatedAt: '2026-11-23' }
-            : req
-        )
-      );
-      addToast({ type: 'info', title: `Custom Request Cancelled (${requestId})` });
-    },
-    [addToast]
-  );
-
-  const updateCustomRequestStatus = useCallback(
-    (requestId: string, status: CustomRequestStatus) => {
-      setCustomRequests((prev) =>
-        prev.map((req) =>
-          req.id === requestId ? { ...req, status, updatedAt: '2026-11-23' } : req
-        )
-      );
-      addToast({ type: 'success', title: `Custom Request Status: ${status} (Demo)` });
     },
     [addToast]
   );
@@ -1550,6 +1302,60 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     },
     [addToast]
   );
+
+  const toggleRestaurantActive = useCallback(
+    (restaurantId: string) => {
+      setRestaurants((prev) =>
+        prev.map((r) =>
+          r.id === restaurantId ? { ...r, isActive: r.isActive === false ? true : false } : r
+        )
+      );
+      addToast({ type: 'info', title: 'Restaurant Visibility Updated' });
+    },
+    [addToast]
+  );
+
+  const deleteRestaurant = useCallback(
+    (restaurantId: string) => {
+      setRestaurants((prev) => prev.filter((r) => r.id !== restaurantId));
+      addToast({ type: 'info', title: 'Restaurant Listing Removed' });
+    },
+    [addToast]
+  );
+
+  const editRestaurantListing = useCallback(
+    (
+      restaurantId: string,
+      updates: Partial<
+        Pick<
+          Restaurant,
+          'name' | 'area' | 'category' | 'priceForTwo' | 'priceRange' | 'description' | 'offerText' | 'tier'
+        >
+      >
+    ) => {
+      setRestaurants((prev) =>
+        prev.map((r) => (r.id === restaurantId ? { ...r, ...updates } : r))
+      );
+      addToast({ type: 'success', title: 'Restaurant Listing Updated' });
+    },
+    [addToast]
+  );
+
+  const seedLucknowDemoRestaurants = useCallback(() => {
+    setRestaurants((prev) => {
+      const existingIds = new Set(prev.map((r) => r.id));
+      const missing = LUCKNOW_DEMO_RESTAURANTS.filter((demo) => !existingIds.has(demo.id));
+      if (missing.length === 0) {
+        return prev;
+      }
+      return [...missing, ...prev];
+    });
+    addToast({
+      type: 'success',
+      title: 'Lucknow Demo Listings Verified',
+      description: 'All 12 fictional Lucknow demo listings are available without duplicates.',
+    });
+  }, [addToast]);
 
   const updateCustomerStatus = useCallback(
     (customerId: string, status: CustomerProfile['status']) => {
@@ -1631,6 +1437,99 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  const addCity = useCallback(
+    (payload: { name: string; state: string; neighbourhoods: string[] }) => {
+      const cleanName = payload.name.trim();
+      if (!cleanName) return;
+      const existing = cities.find(
+        (c) => c.name.toLowerCase() === cleanName.toLowerCase()
+      );
+      if (existing) {
+        addToast({
+          type: 'error',
+          title: 'City Already Exists',
+          description: `${existing.name} is already configured on DineRestro.`,
+        });
+        return;
+      }
+      const created: CityConfig = {
+        id: `city-${cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}`,
+        name: cleanName,
+        state: payload.state.trim() || 'Uttar Pradesh',
+        country: 'India',
+        isActive: true,
+        isDefaultLaunchCity: false,
+        neighbourhoods: payload.neighbourhoods.map((n) => n.trim()).filter(Boolean),
+      };
+      setCities((prev) => [...prev, created]);
+      addToast({
+        type: 'success',
+        title: `${created.name} Added`,
+        description: `${created.neighbourhoods.length} neighbourhood filter(s) ready for discovery.`,
+      });
+    },
+    [addToast, cities]
+  );
+
+  const toggleCityActive = useCallback(
+    (cityId: string) => {
+      setCities((prev) => {
+        const updated = prev.map((c) => {
+          if (c.id !== cityId) return c;
+          if (c.isDefaultLaunchCity && c.isActive) {
+            return c;
+          }
+          return { ...c, isActive: !c.isActive };
+        });
+        return updated;
+      });
+      addToast({ type: 'info', title: 'City Availability Updated' });
+    },
+    [addToast]
+  );
+
+  const setDefaultLaunchCity = useCallback(
+    (cityId: string) => {
+      const target = cities.find((c) => c.id === cityId);
+      if (!target) return;
+      setCities((prev) =>
+        prev.map((c) => ({
+          ...c,
+          isDefaultLaunchCity: c.id === cityId,
+          isActive: c.id === cityId ? true : c.isActive,
+        }))
+      );
+      setSelectedCity(target.name);
+      addToast({
+        type: 'success',
+        title: `${target.name} Set as Default Launch City`,
+      });
+    },
+    [addToast, cities]
+  );
+
+  const addCityNeighbourhood = useCallback(
+    (cityId: string, neighbourhood: string) => {
+      const clean = neighbourhood.trim();
+      if (!clean) return;
+      setCities((prev) =>
+        prev.map((c) =>
+          c.id === cityId && !c.neighbourhoods.some((n) => n.toLowerCase() === clean.toLowerCase())
+            ? { ...c, neighbourhoods: [...c.neighbourhoods, clean] }
+            : c
+        )
+      );
+      addToast({ type: 'success', title: `Neighbourhood "${clean}" Added` });
+    },
+    [addToast]
+  );
+
+  const activeCities = cities.filter((c) => c.isActive);
+  const activeCityConfig =
+    cities.find((c) => c.name.toLowerCase() === selectedCity.toLowerCase()) ||
+    cities.find((c) => c.isDefaultLaunchCity) ||
+    cities[0];
+
   const activeRestaurant =
     restaurants.find((r) => r.id === activeRestaurantId) || restaurants[0];
 
@@ -1643,6 +1542,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     <AppContext.Provider
       value={{
         role,
+        cities,
+        activeCities,
+        selectedCity,
+        activeCityConfig,
+        setSelectedCity,
+        addCity,
+        toggleCityActive,
+        setDefaultLaunchCity,
+        addCityNeighbourhood,
         customerUser,
         activeRestaurantId,
         activeRestaurant,
@@ -1652,7 +1560,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         preOrders,
         celebrationPackages,
         celebrationBookings,
-        customRequests,
         tables,
         offers,
         payments,
@@ -1666,6 +1573,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         selectedRestaurantForModal: liveSelectedRestaurant,
         modalInitialTab,
         activeDemoPayment,
+        pendingBookingIntent,
+        authBookingNotice,
+        restoredBookingDraft,
         addToast,
         dismissToast,
         openRestaurantModal,
@@ -1673,6 +1583,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         openDemoPayment,
         closeDemoPayment,
         completeDemoPayment,
+        requireCustomerAuth,
+        clearAuthBookingNotice,
+        consumeRestoredBookingDraft,
+        setAuthBookingNoticeMessage,
         loginCustomerDemo,
         signupCustomerDemo,
         updateCustomerProfile,
@@ -1709,20 +1623,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         markCelebrationAdvancePaid,
         updateCelebrationBookingStatus,
         cancelCelebrationBooking,
-        createCustomCelebrationRequest,
-        markCustomRequestUnderReview,
-        upsertAndSendCustomQuotation,
-        acceptCustomRequestQuotation,
-        rejectCustomRequestQuotation,
-        markCustomRequestAdvancePaid,
-        cancelCustomRequest,
-        updateCustomRequestStatus,
         updateTableStatus,
         addTable,
         addOffer,
         toggleOfferActive,
         updatePlatformSettings,
         updateRestaurantApproval,
+        toggleRestaurantActive,
+        deleteRestaurant,
+        editRestaurantListing,
+        seedLucknowDemoRestaurants,
         updateCustomerStatus,
         toggleReviewVisibility,
         submitReview,

@@ -6,7 +6,7 @@ import { BrandLogo } from '../common/BrandLogo';
 import { validateEmail } from '../../utils/formatters';
 
 export function PublicFooter() {
-  const { addToast } = useApp();
+  const { addToast, selectedCity, activeCityConfig } = useApp();
   const [newsletterEmail, setNewsletterEmail] = useState('');
 
   const handleInfoNotice = (label: string) => {
@@ -30,7 +30,7 @@ export function PublicFooter() {
     addToast({
       type: 'success',
       title: 'Subscribed to DineRestro Editorial (Demo)',
-      description: `Varanasi chef notes & seasonal dining dispatches queued for ${newsletterEmail}.`,
+      description: `${selectedCity} dining notes & seasonal celebration updates queued for ${newsletterEmail}.`,
     });
     setNewsletterEmail('');
   };
@@ -44,11 +44,13 @@ export function PublicFooter() {
               <BrandLogo variant="full" surface="dark" showTagline />
             </Link>
             <p className="text-sm text-[#D6CFC5] leading-relaxed max-w-sm">
-              Curating Varanasi&apos;s finest riverfront rooftops, heritage havelis, photo-menu pre-orders, and zero-decor-charge celebrations.
+              Discover {selectedCity}. Reserve Your Table. Celebrate Every Moment. Curated dining discovery, photo-menu pre-orders, and zero-decor-charge celebrations across {activeCityConfig.neighbourhoods.slice(0, 4).join(', ')} &amp; beyond.
             </p>
             <div className="flex items-center gap-1.5 text-xs font-medium text-[#E5D3B3]">
               <MapPin className="w-3.5 h-3.5 text-[#B8863B] shrink-0" />
-              <span>Varanasi, Uttar Pradesh, India</span>
+              <span>
+                {activeCityConfig.name}, {activeCityConfig.state}, {activeCityConfig.country}
+              </span>
             </div>
             <div className="flex items-center gap-2.5 pt-1">
               {[
@@ -153,7 +155,7 @@ export function PublicFooter() {
           <div className="lg:col-span-3">
             <h4 className="text-sm font-semibold text-[#E5D3B3] mb-3.5">Newsletter</h4>
             <p className="text-xs text-[#D6CFC5] mb-3 leading-relaxed">
-              Receive seasonal Varanasi chef tasting menus, new ghat-side openings, and celebration ideas.
+              Receive seasonal {selectedCity} chef tasting notes, partner restaurant launches, and celebration ideas.
             </p>
             <form onSubmit={handleSubscribe} className="space-y-2.5">
               <div className="relative">
@@ -178,7 +180,10 @@ export function PublicFooter() {
         </div>
 
         <div className="mt-12 pt-6 border-t border-[#292524] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#A8A29E]">
-          <p>© 2026 DineRestro Hospitality Pvt. Ltd. · Varanasi, Uttar Pradesh</p>
+          <p>
+            © 2026 DineRestro Hospitality Pvt. Ltd. · {activeCityConfig.name},{' '}
+            {activeCityConfig.state}
+          </p>
           <div className="flex flex-wrap items-center gap-4">
             <button
               type="button"

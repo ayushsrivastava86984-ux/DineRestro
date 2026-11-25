@@ -20,7 +20,6 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     normalized === 'resolved' ||
     normalized === 'advance paid' ||
     normalized === 'ready' ||
-    normalized === 'quotation accepted' ||
     normalized === 'demo paid'
   ) {
     style = 'bg-[#ECF4EE] text-[#1E462A] border-[#BBD6C3]';
@@ -29,7 +28,6 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     normalized === 'rejected' ||
     normalized === 'cancelled' ||
     normalized === 'declined' ||
-    normalized === 'quotation rejected' ||
     normalized === 'suspended' ||
     normalized === 'occupied' ||
     normalized === 'demo refunded'
@@ -37,7 +35,6 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     style = 'bg-[#FDF2F4] text-[#8B1E35] border-[#EAC4CC]';
     Icon = XCircle;
   } else if (
-    normalized === 'quotation sent' ||
     normalized === 'preparing' ||
     normalized === 'under review'
   ) {
@@ -46,9 +43,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
   } else if (
     normalized === 'open' ||
     normalized === 'pending' ||
-    normalized === 'advance pending' ||
-    normalized === 'request received' ||
-    normalized === 'inquiry received'
+    normalized === 'advance pending'
   ) {
     style = 'bg-[#F3F1ED] text-[#1C1917] border-[#D6CFC5]';
     Icon = AlertTriangle;

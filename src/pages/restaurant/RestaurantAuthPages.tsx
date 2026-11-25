@@ -12,7 +12,7 @@ import {
 } from '../../utils/formatters';
 
 export function RestaurantSignupPage() {
-  const { signupRestaurantDemo } = useApp();
+  const { signupRestaurantDemo, selectedCity, cities, activeCityConfig } = useApp();
   const navigate = useNavigate();
 
   const [ownerName, setOwnerName] = useState('');
@@ -24,13 +24,18 @@ export function RestaurantSignupPage() {
 
   const [restaurantName, setRestaurantName] = useState('');
   const [address, setAddress] = useState('');
-  const [city, setCity] = useState('Varanasi');
-  const [stateName, setStateName] = useState('Uttar Pradesh');
-  const [pinCode, setPinCode] = useState('221005');
+  const [city, setCity] = useState(selectedCity);
+  const [area, setArea] = useState(activeCityConfig.neighbourhoods[0] || 'Gomti Nagar');
+  const [stateName, setStateName] = useState(activeCityConfig.state || 'Uttar Pradesh');
+  const [pinCode, setPinCode] = useState('226001');
   const [cuisine, setCuisine] = useState<CuisineType>('North Indian');
   const [contactNumber, setContactNumber] = useState('');
   const [restaurantEmail, setRestaurantEmail] = useState('');
   const [description, setDescription] = useState('');
+
+  const matchedCityConfig = cities.find(
+    (c) => c.name.toLowerCase() === city.trim().toLowerCase()
+  );
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -52,7 +57,7 @@ export function RestaurantSignupPage() {
       return;
     }
     if (!validatePinCode(pinCode)) {
-      setError('Please enter a valid 6-digit PIN code (e.g., 221005).');
+      setError('Please enter a valid 6-digit PIN code (e.g., 226001).');
       return;
     }
     if (password.length < 6) {
@@ -77,6 +82,7 @@ export function RestaurantSignupPage() {
         mobile: mobile.trim(),
         restaurantName: restaurantName.trim(),
         address: address.trim(),
+        area: area.trim(),
         city: city.trim(),
         state: stateName.trim(),
         pinCode: pinCode.trim(),
@@ -101,7 +107,7 @@ export function RestaurantSignupPage() {
               Register Your Restaurant
             </h1>
             <p className="text-sm text-[#57534E] mt-1">
-              Join DineRestro in Varanasi to accept table bookings, upload photo menus, and host celebrations.
+              Join DineRestro in {selectedCity} to accept table bookings, upload photo menus, and host celebrations.
             </p>
           </div>
 
@@ -214,7 +220,7 @@ export function RestaurantSignupPage() {
                     type="text"
                     value={restaurantName}
                     onChange={(e) => setRestaurantName(e.target.value)}
-                    placeholder="e.g., Ganga View Heritage Kitchen"
+                    placeholder="e.g., Awadhi Heritage Kitchen"
                     className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
                     required
                   />
@@ -245,24 +251,73 @@ export function RestaurantSignupPage() {
                   type="text"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Street, Landmark, Ghat or Locality"
+                  placeholder="Street, Landmark, or Neighbourhood (e.g., Gomti Nagar)"
                   className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-[#1C1917] mb-1">
                     City *
                   </label>
                   <input
                     type="text"
+                    list="rest-city-options"
                     value={city}
-                    onChange={(e) => setCity(e.target.value)}
+                    onChange={(e) => {
+                      const nextCity = e.target.value;
+                      setCity(nextCity);
+                      const found = cities.find(
+                        (c) => c.name.toLowerCase() === nextCity.trim().toLowerCase()
+                      );
+                      if (found) {
+                        setStateName(found.state);
+                        if (found.neighbourhoods.length > 0) {
+                          setArea(found.neighbourhoods[0]);
+                        }
+                      }
+                    }}
                     className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
                     required
                   />
+                  <datalist id="rest-city-options">
+                    {cities.map((c) => (
+                      <option key={c.id} value={c.name} />
+                    ))}
+                  </datalist>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#1C1917] mb-1">
+                    Neighbourhood / Area *
+                  </label>
+                  {matchedCityConfig && matchedCityConfig.neighbourhoods.length > 0 ? (
+                    <select
+                      value={
+                        matchedCityConfig.neighbourhoods.includes(area)
+                          ? area
+                          : matchedCityConfig.neighbourhoods[0]
+                      }
+                      onChange={(e) => setArea(e.target.value)}
+                      className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
+                    >
+                      {matchedCityConfig.neighbourhoods.map((nb) => (
+                        <option key={nb} value={nb}>
+                          {nb}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={area}
+                      onChange={(e) => setArea(e.target.value)}
+                      placeholder="Neighbourhood"
+                      className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
+                      required
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-[#1C1917] mb-1">

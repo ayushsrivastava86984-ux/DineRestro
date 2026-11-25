@@ -24,7 +24,7 @@ export function BrandLogo({
       >
         <img
           src={BRAND_LOGO_SRC}
-          alt="DineRestro — Discover. Reserve. Celebrate."
+          alt="DineRestro — Discover Lucknow. Reserve Your Table. Celebrate Every Moment."
           className={`${
             variant === 'full' ? 'h-20 sm:h-24' : 'h-11 sm:h-12'
           } w-auto object-contain mix-blend-multiply`}
@@ -37,7 +37,7 @@ export function BrandLogo({
     <span className={`inline-flex items-center select-none shrink-0 ${className}`}>
       <img
         src={BRAND_LOGO_SRC}
-        alt="DineRestro — Discover. Reserve. Celebrate."
+        alt="DineRestro — Discover Lucknow. Reserve Your Table. Celebrate Every Moment."
         className={`${
           variant === 'full' ? 'h-24 sm:h-28' : 'h-12 sm:h-14'
         } w-auto object-contain mix-blend-multiply`}

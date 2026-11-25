@@ -113,14 +113,6 @@ export function AppRoutes() {
             }
           />
         ))}
-        <Route
-          path="/customer/custom-requests"
-          element={
-            <PortalGuard requiredRole="customer" redirectTo="/customer/login">
-              <Navigate to="/customer/celebrations" replace />
-            </PortalGuard>
-          }
-        />
 
         {/* Restaurant Owner Portal Routes */}
         {[
@@ -135,8 +127,6 @@ export function AppRoutes() {
           '/restaurant/celebrations',
           '/restaurant/decorations',
           '/restaurant/events',
-          '/restaurant/custom-requests',
-          '/restaurant/quotations',
           '/restaurant/payments',
           '/restaurant/offers',
           '/restaurant/analytics',
@@ -160,6 +150,7 @@ export function AppRoutes() {
         {/* Internal Admin Portal Routes */}
         {[
           '/admin/dashboard',
+          '/admin/cities',
           '/admin/customers',
           '/admin/restaurants',
           '/admin/approvals',
@@ -172,8 +163,7 @@ export function AppRoutes() {
           '/admin/fees',
           '/admin/reservations',
           '/admin/preorders',
-          '/admin/quotations',
-          '/admin/custom-requests',
+          '/admin/celebrations',
           '/admin/payments',
           '/admin/reviews',
           '/admin/support',
