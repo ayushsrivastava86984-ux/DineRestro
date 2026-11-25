@@ -17,6 +17,7 @@ export function ExplorePage() {
   const navigate = useNavigate();
   const {
     restaurants,
+    menuItems,
     celebrationPackages,
     preOrderPackages,
     cities,
@@ -114,7 +115,8 @@ export function ExplorePage() {
       const matchesAvailability =
         availabilityFilter === 'all' ||
         (availabilityFilter === 'preorder' &&
-          preOrderPackages.some((p) => p.restaurantId === r.id && p.available)) ||
+          (preOrderPackages.some((p) => p.restaurantId === r.id && p.available) ||
+            menuItems.some((m) => m.restaurantId === r.id && m.available))) ||
         (availabilityFilter === 'celebration' &&
           celebrationPackages.some(
             (cp) => cp.restaurantId === r.id && cp.approvalStatus === 'Approved'
@@ -152,6 +154,7 @@ export function ExplorePage() {
   }, [
     approvedCityRestaurants,
     celebrationPackages,
+    menuItems,
     preOrderPackages,
     query,
     selectedArea,

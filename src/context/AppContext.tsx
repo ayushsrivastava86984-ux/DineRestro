@@ -5,6 +5,7 @@ import {
   INITIAL_CELEBRATION_PACKAGES,
   INITIAL_CITIES,
   INITIAL_CUSTOMERS,
+  INITIAL_MENU_ITEMS,
   INITIAL_NOTIFICATIONS,
   INITIAL_OFFERS,
   INITIAL_PAYMENTS,
@@ -30,6 +31,7 @@ import type {
   DiningOffer,
   DiningTable,
   FoodPreOrder,
+  MenuItem,
   MenuPagePhoto,
   PaymentRecord,
   PendingBookingIntent,
@@ -42,6 +44,7 @@ import type {
   ReservationStatus,
   Restaurant,
   RestaurantApprovalStatus,
+  RestaurantCart,
   RestaurantCategory,
   RestaurantPhoto,
   RestaurantReview,
@@ -49,6 +52,14 @@ import type {
   TableStatus,
   ToastMessage,
 } from '../types';
+import {
+  addItemToRestaurantCart,
+  buildOrderItemSnapshots,
+  calculateCartOrderTotals,
+  checkAddMenuItemToCart,
+  removeCartItem,
+  updateCartQuantity,
+} from '../utils/foodOrderHelpers';
 
 interface CustomerAuthInfo {
   id: string;
@@ -101,6 +112,8 @@ interface AppContextValue {
   activeRestaurantId: string;
   activeRestaurant: Restaurant;
   restaurants: Restaurant[];
+  menuItems: MenuItem[];
+  cart: RestaurantCart | null;
   reservations: Reservation[];
   preOrderPackages: PreOrderPlatePackage[];
   preOrders: FoodPreOrder[];
@@ -117,7 +130,7 @@ interface AppContextValue {
   favoriteIds: string[];
   toasts: ToastMessage[];
   selectedRestaurantForModal: Restaurant | null;
-  modalInitialTab: 'overview' | 'book' | 'preorder' | 'celebrate';
+  modalInitialTab: 'overview' | 'menu' | 'book' | 'preorder' | 'celebrate';
   activeDemoPayment: DemoPaymentPayload | null;
   pendingBookingIntent: PendingBookingIntent | null;
   authBookingNotice: string | null;
@@ -127,7 +140,7 @@ interface AppContextValue {
   dismissToast: (id: string) => void;
   openRestaurantModal: (
     restaurant: Restaurant,
-    initialTab?: 'overview' | 'book' | 'preorder' | 'celebrate'
+    initialTab?: 'overview' | 'menu' | 'book' | 'preorder' | 'celebrate'
   ) => void;
   closeRestaurantModal: () => void;
   openDemoPayment: (payload: DemoPaymentPayload) => void;
@@ -173,6 +186,22 @@ interface AppContextValue {
   replaceMenuPhoto: (photoId: string, newUrl: string, targetRestId?: string) => void;
   deleteMenuPhoto: (photoId: string, targetRestId?: string) => void;
   reorderMenuPhoto: (photoId: string, direction: 'up' | 'down', targetRestId?: string) => void;
+
+  // Structured Menu Items (Food Ordering)
+  addMenuItem: (item: Omit<MenuItem, 'id' | 'restaurantId'>, targetRestId?: string) => void;
+  updateMenuItem: (itemId: string, updates: Partial<MenuItem>) => void;
+  deleteMenuItem: (itemId: string) => void;
+  toggleMenuItemAvailability: (itemId: string) => void;
+
+  // Restaurant-Locked Customer Cart
+  addToCart: (
+    restaurant: Restaurant,
+    item: MenuItem
+  ) => { added: boolean; reason?: 'unavailable' | 'restaurant_mismatch' | 'different_restaurant' };
+  replaceCartWithItem: (restaurant: Restaurant, item: MenuItem) => void;
+  updateCartItemQuantity: (menuItemId: string, delta: number) => void;
+  removeFromCart: (menuItemId: string) => void;
+  clearCart: () => void;
 
   // Plate-wise Pre-Order Packages
   addPreOrderPackage: (pkg: Omit<PreOrderPlatePackage, 'id' | 'restaurantId'>) => void;
@@ -226,6 +255,16 @@ interface AppContextValue {
     customerPhone: string;
     advancePercent: number;
     advancePaid: boolean;
+    transactionId?: string;
+  }) => FoodPreOrder;
+  createCartFoodOrder: (payload: {
+    restaurant: Restaurant;
+    date: string;
+    time: string;
+    customerName: string;
+    customerPhone: string;
+    specialInstructions?: string;
+    orderMode: 'Pre-Order Advance' | 'Order at Restaurant';
     transactionId?: string;
   }) => FoodPreOrder;
   updatePreOrderStatus: (preOrderId: string, status: PreOrderStatus) => void;
@@ -297,6 +336,36 @@ const DEFAULT_CUSTOMER: CustomerAuthInfo = {
   preferredCuisine: 'North Indian',
 };
 
+const CART_STORAGE_KEY = 'dinerestro_cart_v1';
+
+function readStoredCart(): RestaurantCart | null {
+  try {
+    if (typeof window === 'undefined' || !window.sessionStorage) return null;
+    const raw = window.sessionStorage.getItem(CART_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as RestaurantCart;
+    if (parsed && parsed.restaurantId && Array.isArray(parsed.items) && parsed.items.length > 0) {
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredCart(nextCart: RestaurantCart | null) {
+  try {
+    if (typeof window === 'undefined' || !window.sessionStorage) return;
+    if (!nextCart || nextCart.items.length === 0) {
+      window.sessionStorage.removeItem(CART_STORAGE_KEY);
+    } else {
+      window.sessionStorage.setItem(CART_STORAGE_KEY, JSON.stringify(nextCart));
+    }
+  } catch {
+    // Ignore storage errors in restricted environments
+  }
+}
+
 const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
@@ -309,6 +378,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [activeRestaurantId, setActiveRestaurantId] = useState<string>('rest-lko-awadh-mahal');
 
   const [restaurants, setRestaurants] = useState<Restaurant[]>(INITIAL_RESTAURANTS);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(INITIAL_MENU_ITEMS);
+  const [cart, setCartState] = useState<RestaurantCart | null>(() => readStoredCart());
+  const setCart = useCallback(
+    (updater: RestaurantCart | null | ((prev: RestaurantCart | null) => RestaurantCart | null)) => {
+      setCartState((prev) => {
+        const next = typeof updater === 'function' ? updater(prev) : updater;
+        writeStoredCart(next);
+        return next;
+      });
+    },
+    []
+  );
   const [reservations, setReservations] = useState<Reservation[]>(INITIAL_RESERVATIONS);
   const [preOrderPackages, setPreOrderPackages] =
     useState<PreOrderPlatePackage[]>(INITIAL_PREORDER_PACKAGES);
@@ -337,7 +418,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [selectedRestaurantForModal, setSelectedRestaurantForModal] =
     useState<Restaurant | null>(null);
   const [modalInitialTab, setModalInitialTab] = useState<
-    'overview' | 'book' | 'preorder' | 'celebrate'
+    'overview' | 'menu' | 'book' | 'preorder' | 'celebrate'
   >('overview');
   const [activeDemoPayment, setActiveDemoPayment] = useState<DemoPaymentPayload | null>(null);
   const [pendingBookingIntent, setPendingBookingIntent] =
@@ -361,7 +442,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const openRestaurantModal = useCallback(
     (
       restaurant: Restaurant,
-      initialTab: 'overview' | 'book' | 'preorder' | 'celebrate' = 'overview'
+      initialTab: 'overview' | 'menu' | 'book' | 'preorder' | 'celebrate' = 'overview'
     ) => {
       setSelectedRestaurantForModal(restaurant);
       setModalInitialTab(initialTab);
@@ -827,6 +908,156 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [activeRestaurantId]
   );
 
+  const addMenuItem = useCallback(
+    (item: Omit<MenuItem, 'id' | 'restaurantId'>, targetRestId?: string) => {
+      const id = targetRestId || activeRestaurantId;
+      const created: MenuItem = {
+        ...item,
+        id: `mi-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        restaurantId: id,
+      };
+      setMenuItems((prev) => [created, ...prev]);
+      addToast({
+        type: 'success',
+        title: `Menu Item Added: ${created.name}`,
+        description: `₹${created.price} · ${created.category} · ${created.dietaryType}`,
+      });
+    },
+    [activeRestaurantId, addToast]
+  );
+
+  const updateMenuItem = useCallback(
+    (itemId: string, updates: Partial<MenuItem>) => {
+      setMenuItems((prev) =>
+        prev.map((item) => (item.id === itemId ? { ...item, ...updates } : item))
+      );
+      // Sync live price/name/availability if the item is currently in the customer cart
+      setCart((prevCart) => {
+        if (!prevCart) return null;
+        if (updates.available === false) {
+          return removeCartItem(prevCart, itemId);
+        }
+        return {
+          ...prevCart,
+          items: prevCart.items.map((ci) =>
+            ci.menuItemId === itemId
+              ? {
+                  ...ci,
+                  name: updates.name ?? ci.name,
+                  description: updates.description ?? ci.description,
+                  price: updates.price ?? ci.price,
+                  category: updates.category ?? ci.category,
+                  dietaryType: updates.dietaryType ?? ci.dietaryType,
+                  imageUrl: updates.imageUrl ?? ci.imageUrl,
+                }
+              : ci
+          ),
+        };
+      });
+      addToast({ type: 'success', title: 'Menu Item Updated' });
+    },
+    [addToast, setCart]
+  );
+
+  const deleteMenuItem = useCallback(
+    (itemId: string) => {
+      setMenuItems((prev) => prev.filter((item) => item.id !== itemId));
+      setCart((prevCart) => removeCartItem(prevCart, itemId));
+      addToast({ type: 'info', title: 'Menu Item Removed' });
+    },
+    [addToast, setCart]
+  );
+
+  const toggleMenuItemAvailability = useCallback(
+    (itemId: string) => {
+      let nextAvailable = true;
+      setMenuItems((prev) =>
+        prev.map((item) => {
+          if (item.id !== itemId) return item;
+          nextAvailable = !item.available;
+          return { ...item, available: nextAvailable };
+        })
+      );
+      if (!nextAvailable) {
+        setCart((prevCart) => removeCartItem(prevCart, itemId));
+      }
+      addToast({
+        type: 'info',
+        title: nextAvailable ? 'Item Marked Available' : 'Item Marked Unavailable',
+      });
+    },
+    [addToast, setCart]
+  );
+
+  const addToCart = useCallback(
+    (restaurant: Restaurant, item: MenuItem) => {
+      const check = checkAddMenuItemToCart(cart, restaurant, item);
+      if (!check.allowed) {
+        if (check.reason === 'unavailable') {
+          addToast({
+            type: 'error',
+            title: 'Item Unavailable',
+            description: `${item.name} is currently unavailable at ${restaurant.name}.`,
+          });
+        }
+        return { added: false as const, reason: check.reason };
+      }
+
+      setCart((prev) => addItemToRestaurantCart(prev, restaurant, item, false));
+      return { added: true as const };
+    },
+    [addToast, cart, setCart]
+  );
+
+  const replaceCartWithItem = useCallback(
+    (restaurant: Restaurant, item: MenuItem) => {
+      if (!item.available) {
+        addToast({
+          type: 'error',
+          title: 'Item Unavailable',
+          description: `${item.name} cannot be added while unavailable.`,
+        });
+        return;
+      }
+      setCart(() => addItemToRestaurantCart(null, restaurant, item, true));
+      addToast({
+        type: 'info',
+        title: `Cart Switched to ${restaurant.name}`,
+        description: `Added ${item.name} to your new cart.`,
+      });
+    },
+    [addToast, setCart]
+  );
+
+  const updateCartItemQuantity = useCallback(
+    (menuItemId: string, delta: number) => {
+      if (delta > 0) {
+        const liveItem = menuItems.find((m) => m.id === menuItemId);
+        if (liveItem && !liveItem.available) {
+          addToast({
+            type: 'error',
+            title: 'Item Unavailable',
+            description: `${liveItem.name} is currently unavailable.`,
+          });
+          return;
+        }
+      }
+      setCart((prev) => updateCartQuantity(prev, menuItemId, delta));
+    },
+    [addToast, menuItems, setCart]
+  );
+
+  const removeFromCart = useCallback(
+    (menuItemId: string) => {
+      setCart((prev) => removeCartItem(prev, menuItemId));
+    },
+    [setCart]
+  );
+
+  const clearCart = useCallback(() => {
+    setCart(null);
+  }, [setCart]);
+
   const addPreOrderPackage = useCallback(
     (pkg: Omit<PreOrderPlatePackage, 'id' | 'restaurantId'>) => {
       const created: PreOrderPlatePackage = {
@@ -1087,6 +1318,115 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [addToast, customerUser.id, role]
   );
 
+  const createCartFoodOrder = useCallback(
+    (payload: {
+      restaurant: Restaurant;
+      date: string;
+      time: string;
+      customerName: string;
+      customerPhone: string;
+      specialInstructions?: string;
+      orderMode: 'Pre-Order Advance' | 'Order at Restaurant';
+      transactionId?: string;
+    }) => {
+      if (role !== 'customer') {
+        throw new Error('Authentication required before placing a food order.');
+      }
+      if (!cart || cart.restaurantId !== payload.restaurant.id || cart.items.length === 0) {
+        throw new Error('Your cart is empty for this restaurant.');
+      }
+
+      const itemSnapshots = buildOrderItemSnapshots(
+        cart.items,
+        menuItems,
+        payload.restaurant.id
+      );
+
+      const totals = calculateCartOrderTotals(
+        itemSnapshots.map((s) => ({ price: s.unitPrice, quantity: s.quantity })),
+        payload.restaurant.preOrderAdvancePercent,
+        payload.orderMode
+      );
+
+      const isAdvanceMode = payload.orderMode === 'Pre-Order Advance';
+      const isAdvancePaid = Boolean(isAdvanceMode && payload.transactionId);
+      const cleanInstructions = (payload.specialInstructions || '').trim().slice(0, 500);
+      const distinctDietary = Array.from(new Set(itemSnapshots.map((i) => i.dietaryType)));
+      const foodPrefSummary =
+        distinctDietary.length === 1 ? `All ${distinctDietary[0]}` : 'Veg & Non-Veg Mixed';
+
+      const created: FoodPreOrder = {
+        id: `PO-${Math.floor(4210 + Math.random() * 689)}`,
+        restaurantId: payload.restaurant.id,
+        restaurantName: payload.restaurant.name,
+        restaurantArea: payload.restaurant.area,
+        customerId: customerUser.id,
+        customerName: payload.customerName,
+        customerPhone: payload.customerPhone,
+        date: payload.date,
+        time: payload.time,
+        packageId: 'menu-cart',
+        packageName: `Menu Order (${itemSnapshots.length} ${
+          itemSnapshots.length === 1 ? 'dish' : 'dishes'
+        })`,
+        plateCount: totals.totalQuantity,
+        pricePerPlate:
+          totals.totalQuantity > 0
+            ? Math.round(totals.totalFoodAmount / totals.totalQuantity)
+            : 0,
+        foodPreference: foodPrefSummary,
+        orderSource: 'menu_cart',
+        orderMode: payload.orderMode,
+        items: itemSnapshots,
+        specialInstructions: cleanInstructions || undefined,
+        paymentStatus: isAdvanceMode
+          ? isAdvancePaid
+            ? 'Advance Paid'
+            : 'Unpaid'
+          : 'Pay at Restaurant',
+        totalFoodAmount: totals.totalFoodAmount,
+        advancePercent: totals.advancePercent,
+        advanceAmount: totals.advanceAmount,
+        remainingAmount: totals.remainingAmount,
+        advancePaid: isAdvancePaid,
+        transactionId: payload.transactionId,
+        status: isAdvancePaid ? 'Advance Paid' : 'Pending',
+        createdAt: '2026-11-25',
+      };
+
+      setPreOrders((prev) => [created, ...prev]);
+      setCart(null);
+      setNotifications((prev) => [
+        {
+          id: `notif-po-${Date.now()}`,
+          role: 'restaurant',
+          title: `New Menu Food Order (${created.id})`,
+          message: `${created.customerName} ordered ${totals.totalQuantity} item(s) totaling ₹${created.totalFoodAmount} (${
+            isAdvanceMode
+              ? `${created.advancePercent}% advance ₹${created.advanceAmount} paid`
+              : 'Order at Restaurant — ₹0 advance'
+          }).`,
+          timeAgo: 'Just now',
+          read: false,
+        },
+        ...prev,
+      ]);
+
+      addToast({
+        type: 'success',
+        title: isAdvanceMode
+          ? `Food Pre-Order Confirmed (${created.id})`
+          : `Restaurant Order Logged (${created.id})`,
+        description: isAdvanceMode
+          ? `₹${created.advanceAmount} advance paid · ₹${created.remainingAmount} payable at ${payload.restaurant.name}.`
+          : `₹${created.totalFoodAmount} payable directly at ${payload.restaurant.name}.`,
+      });
+
+      return created;
+    },
+    [addToast, cart, customerUser.id, menuItems, role, setCart]
+  );
+
   const updatePreOrderStatus = useCallback(
     (preOrderId: string, status: PreOrderStatus) => {
       setPreOrders((prev) =>
@@ -1102,7 +1442,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setPreOrders((prev) =>
         prev.map((po) =>
           po.id === preOrderId
-            ? { ...po, advancePaid: true, transactionId, status: 'Advance Paid' }
+            ? {
+                ...po,
+                advancePaid: true,
+                paymentStatus: 'Advance Paid',
+                transactionId,
+                status: 'Advance Paid',
+              }
             : po
         )
       );
@@ -1555,6 +1901,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         activeRestaurantId,
         activeRestaurant,
         restaurants,
+        menuItems,
+        cart,
         reservations,
         preOrderPackages,
         preOrders,
@@ -1604,6 +1952,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         replaceMenuPhoto,
         deleteMenuPhoto,
         reorderMenuPhoto,
+        addMenuItem,
+        updateMenuItem,
+        deleteMenuItem,
+        toggleMenuItemAvailability,
+        addToCart,
+        replaceCartWithItem,
+        updateCartItemQuantity,
+        removeFromCart,
+        clearCart,
         addPreOrderPackage,
         updatePreOrderPackage,
         deletePreOrderPackage,
@@ -1617,6 +1974,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         createTableReservation,
         updateReservationStatus,
         createFoodPreOrder,
+        createCartFoodOrder,
         updatePreOrderStatus,
         markPreOrderAdvancePaid,
         createCelebrationBooking,

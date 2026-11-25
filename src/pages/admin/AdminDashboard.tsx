@@ -1638,41 +1638,58 @@ export function AdminDashboard() {
                   <tr className="border-b border-[#E5E0D8] bg-[#FAF9F6] text-xs text-[#57534E]">
                     <th className="py-3 px-4 font-semibold">Ref ID</th>
                     <th className="py-3 px-4 font-semibold">Customer &amp; Restaurant</th>
-                    <th className="py-3 px-4 font-semibold">Plate Package</th>
-                    <th className="py-3 px-4 font-semibold text-right">Plates</th>
+                    <th className="py-3 px-4 font-semibold">Order Details</th>
+                    <th className="py-3 px-4 font-semibold text-right">Qty / Plates</th>
                     <th className="py-3 px-4 font-semibold text-right">Total / Advance</th>
                     <th className="py-3 px-4 font-semibold">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E5E0D8]">
-                  {preOrders.map((po) => (
-                    <tr key={po.id} className="hover:bg-[#FAF9F6]/40">
-                      <td className="py-3 px-4 font-mono text-xs font-semibold text-[#6E1E2E]">
-                        {po.id}
-                      </td>
-                      <td className="py-3 px-4 text-xs">
-                        <div className="font-semibold text-[#1C1917]">{po.customerName}</div>
-                        <div className="text-[#57534E]">
-                          {po.restaurantName} · {formatDisplayDate(po.date)} {po.time}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-xs">
-                        <div className="font-medium text-[#1C1917]">{po.packageName}</div>
-                        <div className="text-[#57534E]">{po.foodPreference}</div>
-                      </td>
-                      <td className="py-3 px-4 text-right tabular-nums">{po.plateCount}</td>
-                      <td className="py-3 px-4 text-right text-xs tabular-nums">
-                        <div className="font-semibold">{formatINR(po.totalFoodAmount)}</div>
-                        <div className="text-[#6E1E2E]">
-                          Adv ({po.advancePercent}%): {formatINR(po.advanceAmount)}{' '}
-                          {po.advancePaid ? '(Paid)' : '(Pending)'}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <StatusBadge status={po.status} />
-                      </td>
-                    </tr>
-                  ))}
+                  {preOrders.map((po) => {
+                    const isMenuCart =
+                      po.orderSource === 'menu_cart' && po.items && po.items.length > 0;
+                    return (
+                      <tr key={po.id} className="hover:bg-[#FAF9F6]/40">
+                        <td className="py-3 px-4 font-mono text-xs font-semibold text-[#6E1E2E]">
+                          {po.id}
+                        </td>
+                        <td className="py-3 px-4 text-xs">
+                          <div className="font-semibold text-[#1C1917]">{po.customerName}</div>
+                          <div className="text-[#57534E]">
+                            {po.restaurantName} · {formatDisplayDate(po.date)} {po.time}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-xs">
+                          <div className="font-medium text-[#1C1917]">
+                            {isMenuCart
+                              ? `${po.items!.length} menu dish(es): ${po.items!
+                                  .map((i) => `${i.quantity}× ${i.itemName}`)
+                                  .join(', ')}`
+                              : po.packageName}
+                          </div>
+                          <div className="text-[#57534E]">
+                            {po.orderMode || 'Pre-Order Advance'} · {po.foodPreference}
+                          </div>
+                          {po.specialInstructions && (
+                            <div className="text-[11px] text-[#6E1E2E] mt-0.5">
+                              Note: {po.specialInstructions}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right tabular-nums">{po.plateCount}</td>
+                        <td className="py-3 px-4 text-right text-xs tabular-nums">
+                          <div className="font-semibold">{formatINR(po.totalFoodAmount)}</div>
+                          <div className="text-[#6E1E2E]">
+                            Adv ({po.advancePercent}%): {formatINR(po.advanceAmount)}{' '}
+                            {po.paymentStatus ? `(${po.paymentStatus})` : po.advancePaid ? '(Paid)' : '(Pending)'}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <StatusBadge status={po.status} />
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

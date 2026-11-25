@@ -23,6 +23,8 @@ import {
   Clock,
   X,
   Bell,
+  Pencil,
+  Search,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { DashboardLayout, type DashboardNavItem } from '../../components/layout/DashboardLayout';
@@ -36,12 +38,15 @@ import {
   CELEBRATION_CATEGORIES,
   DEMO_ANALYTICS_WEEKLY,
   IMAGES,
+  MENU_CATEGORIES,
 } from '../../data/mockData';
 import type {
   AmenityType,
   CelebrationBooking,
   CelebrationCategory,
   DiningTable,
+  MenuCategoryName,
+  MenuItem,
   PhotoCategory,
   PlateCourseItem,
   PreOrderStatus,
@@ -54,7 +59,7 @@ const RESTAURANT_NAV: DashboardNavItem[] = [
   { label: 'Restaurant Profile', to: '/restaurant/profile', icon: Store },
   { label: 'Photo Gallery', to: '/restaurant/gallery', icon: ImagesIcon },
   { label: 'Amenities', to: '/restaurant/amenities', icon: CheckSquare },
-  { label: 'Menu Gallery', to: '/restaurant/menu', icon: FileImage },
+  { label: 'Menu & Items', to: '/restaurant/menu', icon: FileImage },
   { label: 'Table Management', to: '/restaurant/tables', icon: Armchair },
   { label: 'Reservations', to: '/restaurant/reservations', icon: CalendarClock },
   { label: 'Food Pre-orders', to: '/restaurant/preorders', icon: Utensils },
@@ -105,6 +110,11 @@ export function RestaurantDashboard() {
     replaceMenuPhoto,
     deleteMenuPhoto,
     reorderMenuPhoto,
+    menuItems,
+    addMenuItem,
+    updateMenuItem,
+    deleteMenuItem,
+    toggleMenuItemAvailability,
     preOrderPackages,
     addPreOrderPackage,
     deletePreOrderPackage,
@@ -140,6 +150,23 @@ export function RestaurantDashboard() {
 
   // Menu photo upload helper state
   const [menuPageTitle, setMenuPageTitle] = useState('');
+
+  // Structured Menu Item CRUD state
+  const [menuViewTab, setMenuViewTab] = useState<'all' | 'items' | 'gallery'>('all');
+  const [menuFilterCat, setMenuFilterCat] = useState<string>('All');
+  const [menuSearchQuery, setMenuSearchQuery] = useState('');
+  const [editingMenuItemId, setEditingMenuItemId] = useState<string | null>(null);
+  const [confirmDeleteItemId, setConfirmDeleteItemId] = useState<string | null>(null);
+  const [miName, setMiName] = useState('');
+  const [miDesc, setMiDesc] = useState('');
+  const [miPrice, setMiPrice] = useState<number>(320);
+  const [miCategory, setMiCategory] = useState<MenuCategoryName>('Starters');
+  const [miDiet, setMiDiet] = useState<'Veg' | 'Non-Veg'>('Veg');
+  const [miAvailable, setMiAvailable] = useState(true);
+  const [miBestseller, setMiBestseller] = useState(false);
+  const [miRecommended, setMiRecommended] = useState(false);
+  const [miPrepTime, setMiPrepTime] = useState<string>('15');
+  const [miImageUrl, setMiImageUrl] = useState<string>(IMAGES.northIndian);
 
   // Profile form state
   const [profName, setProfName] = useState(activeRestaurant.name);
@@ -237,6 +264,7 @@ export function RestaurantDashboard() {
   const displayReservations = restReservations.length > 0 ? restReservations : reservations;
   const restPreOrders = preOrders.filter((p) => p.restaurantId === activeRestaurant.id);
   const displayPreOrders = restPreOrders.length > 0 ? restPreOrders : preOrders;
+  const restMenuItems = menuItems.filter((m) => m.restaurantId === activeRestaurant.id);
   const restPrePackages = preOrderPackages.filter((p) => p.restaurantId === activeRestaurant.id);
   const restCelPackages = celebrationPackages.filter((c) => c.restaurantId === activeRestaurant.id);
   const restCelBookings = celebrationBookings.filter((c) => c.restaurantId === activeRestaurant.id);
@@ -278,6 +306,66 @@ export function RestaurantDashboard() {
       status: 'Available',
     });
     setNewTableNum('');
+  };
+
+  const resetMenuItemForm = () => {
+    setEditingMenuItemId(null);
+    setMiName('');
+    setMiDesc('');
+    setMiPrice(320);
+    setMiCategory('Starters');
+    setMiDiet('Veg');
+    setMiAvailable(true);
+    setMiBestseller(false);
+    setMiRecommended(false);
+    setMiPrepTime('15');
+    setMiImageUrl(IMAGES.northIndian);
+  };
+
+  const startEditMenuItem = (item: MenuItem) => {
+    setEditingMenuItemId(item.id);
+    setMiName(item.name);
+    setMiDesc(item.description);
+    setMiPrice(item.price);
+    setMiCategory(item.category);
+    setMiDiet(item.dietaryType);
+    setMiAvailable(item.available);
+    setMiBestseller(Boolean(item.isBestseller));
+    setMiRecommended(Boolean(item.isRecommended));
+    setMiPrepTime(item.prepTimeMinutes ? String(item.prepTimeMinutes) : '');
+    setMiImageUrl(item.imageUrl);
+  };
+
+  const handleSaveMenuItem = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!miName.trim() || miPrice <= 0) {
+      addToast({
+        type: 'error',
+        title: 'Enter Dish Name & Price',
+        description: 'Dish name and a valid INR price above ₹0 are required.',
+      });
+      return;
+    }
+    const parsedPrep = miPrepTime.trim() ? Math.max(1, Number(miPrepTime)) : undefined;
+    const payload: Omit<MenuItem, 'id' | 'restaurantId'> = {
+      name: miName.trim(),
+      description: miDesc.trim() || 'Freshly prepared house specialty.',
+      price: Math.round(Number(miPrice)),
+      category: miCategory,
+      dietaryType: miDiet,
+      imageUrl: miImageUrl || IMAGES.northIndian,
+      available: miAvailable,
+      isBestseller: miBestseller,
+      isRecommended: miRecommended,
+      prepTimeMinutes: Number.isFinite(parsedPrep) ? parsedPrep : undefined,
+    };
+
+    if (editingMenuItemId) {
+      updateMenuItem(editingMenuItemId, payload);
+    } else {
+      addMenuItem(payload);
+    }
+    resetMenuItemForm();
   };
 
   const handleCreatePreOrderPkg = (e: React.FormEvent) => {
@@ -760,131 +848,480 @@ export function RestaurantDashboard() {
           </div>
         )}
 
-        {/* PHOTO-BASED MENU GALLERY (NO INDIVIDUAL DISH UPLOADS) */}
+        {/* MENU MANAGEMENT (STRUCTURED ITEMS + PHOTO GALLERY) */}
         {activeSection === 'menu' && (
-          <div className="space-y-6">
-            <div>
-              <h1 className="font-display text-3xl font-semibold text-[#1C1917]">
-                Menu Gallery (Photo-Based Menu Pages)
-              </h1>
-              <p className="text-sm text-[#57534E] mt-1">
-                Upload photographs of your complete printed menu pages. Customers inspect these pages before booking or pre-ordering plates.
-              </p>
+          <div className="space-y-8">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h1 className="font-display text-3xl font-semibold text-[#1C1917]">
+                  Menu Management — Items &amp; Printed Pages
+                </h1>
+                <p className="text-sm text-[#57534E] mt-1">
+                  Manage individual orderable food items with INR pricing and availability alongside your printed menu page gallery.
+                </p>
+              </div>
+              <div className="inline-flex rounded-lg border border-[#E5E0D8] bg-white p-1">
+                {[
+                  { id: 'all' as const, label: 'All Sections' },
+                  { id: 'items' as const, label: `Food Items (${restMenuItems.length})` },
+                  { id: 'gallery' as const, label: `Menu Pages (${activeRestaurant.menuPhotos.length})` },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setMenuViewTab(tab.id)}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
+                      menuViewTab === tab.id
+                        ? 'bg-[#6E1E2E] text-white'
+                        : 'text-[#57534E] hover:text-[#1C1917]'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="bg-white border border-[#E5E0D8] rounded-lg p-5 flex flex-wrap items-end gap-3">
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-xs font-semibold mb-1">Menu Page Label</label>
-                <input
-                  type="text"
-                  value={menuPageTitle}
-                  onChange={(e) => setMenuPageTitle(e.target.value)}
-                  placeholder="e.g., Starters, Curries & Breads Menu"
-                  className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
-                />
-              </div>
-              <label className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg cursor-pointer hover:bg-[#541522]">
-                <Upload className="w-4 h-4" />
-                <span>Upload Menu Page Photos</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={(e) =>
-                    readFilesAsDataUrls(e.target.files, (urls) => {
-                      addMenuPhotos(
-                        urls.map((url, idx) => ({
-                          url,
-                          title: menuPageTitle.trim() || `Uploaded Menu Page ${idx + 1}`,
-                        }))
-                      );
-                      setMenuPageTitle('');
-                    })
-                  }
-                />
-              </label>
-              <button
-                type="button"
-                onClick={() =>
-                  addMenuPhotos([
-                    {
-                      url: IMAGES.menuHeritage,
-                      title: menuPageTitle.trim() || 'Seasonal Specials Menu Sheet',
-                    },
-                  ])
-                }
-                className="px-4 py-2.5 text-xs font-semibold border border-[#E5E0D8] rounded-lg hover:bg-[#FAF9F6]"
-              >
-                + Add Sample Menu Page
-              </button>
-            </div>
+            {/* SECTION A: STRUCTURED FOOD ITEMS */}
+            {(menuViewTab === 'all' || menuViewTab === 'items') && (
+              <div className="space-y-6">
+                <form
+                  onSubmit={handleSaveMenuItem}
+                  className="bg-white border border-[#E5E0D8] rounded-lg p-5 sm:p-6 space-y-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h2 className="text-xl font-semibold text-[#1C1917]">
+                      {editingMenuItemId ? 'Edit Menu Dish' : 'Add Structured Menu Dish'}
+                    </h2>
+                    {editingMenuItemId && (
+                      <button
+                        type="button"
+                        onClick={resetMenuItemForm}
+                        className="text-xs font-semibold text-[#6E1E2E] hover:underline"
+                      >
+                        Cancel Edit
+                      </button>
+                    )}
+                  </div>
 
-            {activeRestaurant.menuPhotos.length === 0 ? (
-              <div className="bg-white border border-[#E5E0D8] rounded-lg p-10 text-center text-sm text-[#57534E]">
-                No menu photos uploaded yet. Upload your first menu page photograph above.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {activeRestaurant.menuPhotos.map((page, index) => (
-                  <div key={page.id} className="bg-white border border-[#E5E0D8] rounded-lg overflow-hidden flex flex-col">
-                    <button
-                      type="button"
-                      onClick={() => setMenuPreviewUrl({ url: page.url, title: page.title })}
-                      className="aspect-[3/4] w-full overflow-hidden bg-[#FAF9F6]"
-                    >
-                      <SafeImage src={page.url} alt={page.title} className="w-full h-full object-cover" />
-                    </button>
-                    <div className="p-4 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-semibold mb-1">Dish Name *</label>
+                      <input
+                        type="text"
+                        value={miName}
+                        onChange={(e) => setMiName(e.target.value)}
+                        placeholder="e.g., Awadhi Galouti Kebab"
+                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1">Price (₹ INR) *</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={miPrice}
+                        onChange={(e) => setMiPrice(Number(e.target.value))}
+                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg tabular-nums"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1">Category *</label>
+                      <select
+                        value={miCategory}
+                        onChange={(e) => setMiCategory(e.target.value as MenuCategoryName)}
+                        className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
+                      >
+                        {MENU_CATEGORIES.map((cat) => (
+                          <option key={cat} value={cat}>
+                            {cat}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-semibold mb-1">Dish Description</label>
+                      <input
+                        type="text"
+                        value={miDesc}
+                        onChange={(e) => setMiDesc(e.target.value)}
+                        placeholder="Key ingredients, cooking style, or portion notes..."
+                        className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <p className="text-xs font-mono font-semibold text-[#6E1E2E]">
-                          Page {page.pageNumber}
-                        </p>
-                        <p className="text-sm font-semibold text-[#1C1917]">{page.title}</p>
+                        <label className="block text-xs font-semibold mb-1">Dietary Type</label>
+                        <select
+                          value={miDiet}
+                          onChange={(e) => setMiDiet(e.target.value as 'Veg' | 'Non-Veg')}
+                          className="w-full px-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg"
+                        >
+                          <option value="Veg">Veg</option>
+                          <option value="Non-Veg">Non-Veg</option>
+                        </select>
                       </div>
-                      <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#E5E0D8]">
-                        <button
-                          type="button"
-                          disabled={index === 0}
-                          onClick={() => reorderMenuPhoto(page.id, 'up')}
-                          className="p-1.5 border border-[#E5E0D8] rounded disabled:opacity-40"
-                          title="Move page earlier"
-                        >
-                          <ArrowUp className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          disabled={index === activeRestaurant.menuPhotos.length - 1}
-                          onClick={() => reorderMenuPhoto(page.id, 'down')}
-                          className="p-1.5 border border-[#E5E0D8] rounded disabled:opacity-40"
-                          title="Move page later"
-                        >
-                          <ArrowDown className="w-3.5 h-3.5" />
-                        </button>
-                        <label className="px-2.5 py-1 text-xs font-medium border border-[#E5E0D8] rounded cursor-pointer hover:bg-[#FAF9F6]">
-                          Replace
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) =>
-                              readFilesAsDataUrls(e.target.files, (urls) =>
-                                replaceMenuPhoto(page.id, urls[0])
-                              )
-                            }
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => deleteMenuPhoto(page.id)}
-                          className="ml-auto px-2.5 py-1 text-xs font-medium text-[#6E1E2E] border border-[#E5E0D8] rounded hover:bg-[#F3F1ED]"
-                        >
-                          Delete
-                        </button>
+                      <div>
+                        <label className="block text-xs font-semibold mb-1">Prep Time (min)</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={120}
+                          value={miPrepTime}
+                          onChange={(e) => setMiPrepTime(e.target.value)}
+                          placeholder="15"
+                          className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg tabular-nums"
+                        />
                       </div>
                     </div>
                   </div>
-                ))}
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-center pt-1">
+                    <div className="flex flex-wrap items-center gap-4 text-xs">
+                      <label className="inline-flex items-center gap-2 cursor-pointer font-medium text-[#1C1917]">
+                        <input
+                          type="checkbox"
+                          checked={miAvailable}
+                          onChange={(e) => setMiAvailable(e.target.checked)}
+                          className="accent-[#6E1E2E] w-4 h-4"
+                        />
+                        <span>Available for Ordering</span>
+                      </label>
+                      <label className="inline-flex items-center gap-2 cursor-pointer font-medium text-[#1C1917]">
+                        <input
+                          type="checkbox"
+                          checked={miBestseller}
+                          onChange={(e) => setMiBestseller(e.target.checked)}
+                          className="accent-[#6E1E2E] w-4 h-4"
+                        />
+                        <span>Bestseller</span>
+                      </label>
+                      <label className="inline-flex items-center gap-2 cursor-pointer font-medium text-[#1C1917]">
+                        <input
+                          type="checkbox"
+                          checked={miRecommended}
+                          onChange={(e) => setMiRecommended(e.target.checked)}
+                          className="accent-[#6E1E2E] w-4 h-4"
+                        />
+                        <span>Recommended</span>
+                      </label>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden border border-[#E5E0D8] shrink-0 bg-[#FAF9F6]">
+                        <SafeImage src={miImageUrl} alt="Dish preview" className="w-full h-full object-cover" />
+                      </div>
+                      <label className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-[#E5E0D8] rounded-lg cursor-pointer hover:bg-[#FAF9F6]">
+                        <Upload className="w-3.5 h-3.5 text-[#6E1E2E]" />
+                        <span>Upload Dish Photo</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) =>
+                            readFilesAsDataUrls(e.target.files, (urls) => setMiImageUrl(urls[0]))
+                          }
+                        />
+                      </label>
+                      <select
+                        value={miImageUrl}
+                        onChange={(e) => setMiImageUrl(e.target.value)}
+                        aria-label="Choose preset dish photograph"
+                        className="px-2.5 py-2 text-xs bg-white border border-[#E5E0D8] rounded-lg"
+                      >
+                        <option value={IMAGES.northIndian}>Preset: North Indian / Kebab</option>
+                        <option value={IMAGES.lucknowAwadhiFineDining}>Preset: Awadhi Biryani</option>
+                        <option value={IMAGES.italianContinental}>Preset: Pizza &amp; Pasta</option>
+                        <option value={IMAGES.lucknowAsianBistro}>Preset: Pan-Asian Wok</option>
+                        <option value={IMAGES.dessertsCafe}>Preset: Desserts &amp; Patisserie</option>
+                        <option value={IMAGES.menuDrinksDesserts}>Preset: Beverages &amp; Sweets</option>
+                      </select>
+                      <button
+                        type="submit"
+                        className="ml-auto px-5 py-2.5 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
+                      >
+                        {editingMenuItemId ? 'Save Dish Changes' : '+ Add Food Item'}
+                      </button>
+                    </div>
+                  </div>
+                </form>
+
+                {/* Structured Menu Items List */}
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h2 className="text-lg font-semibold text-[#1C1917]">
+                      Published Menu Items ({restMenuItems.length})
+                    </h2>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="relative">
+                        <Search className="w-3.5 h-3.5 text-[#57534E] absolute left-2.5 top-2.5 pointer-events-none" />
+                        <input
+                          type="text"
+                          value={menuSearchQuery}
+                          onChange={(e) => setMenuSearchQuery(e.target.value)}
+                          placeholder="Filter dishes..."
+                          className="pl-8 pr-3 py-1.5 text-xs bg-white border border-[#E5E0D8] rounded-lg"
+                        />
+                      </div>
+                      <select
+                        value={menuFilterCat}
+                        onChange={(e) => setMenuFilterCat(e.target.value)}
+                        aria-label="Filter menu items by category"
+                        className="px-2.5 py-1.5 text-xs bg-white border border-[#E5E0D8] rounded-lg"
+                      >
+                        <option value="All">All Categories</option>
+                        {MENU_CATEGORIES.map((cat) => (
+                          <option key={cat} value={cat}>
+                            {cat}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {restMenuItems.length === 0 ? (
+                    <div className="bg-white border border-[#E5E0D8] rounded-lg p-8 text-center text-sm text-[#57534E]">
+                      No structured food items added yet. Use the form above to add orderable dishes.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                      {restMenuItems
+                        .filter((item) => {
+                          const matchesCat =
+                            menuFilterCat === 'All' || item.category === menuFilterCat;
+                          const q = menuSearchQuery.trim().toLowerCase();
+                          const matchesQ =
+                            !q ||
+                            item.name.toLowerCase().includes(q) ||
+                            item.description.toLowerCase().includes(q);
+                          return matchesCat && matchesQ;
+                        })
+                        .map((item) => (
+                          <div
+                            key={item.id}
+                            className="bg-white border border-[#E5E0D8] rounded-lg p-4 flex gap-3.5"
+                          >
+                            <div className="w-20 h-20 rounded-lg overflow-hidden border border-[#E5E0D8] shrink-0 bg-[#FAF9F6]">
+                              <SafeImage src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex-1 min-w-0 space-y-1.5">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="text-[11px] font-medium text-[#57534E] truncate">
+                                    <span
+                                      className={
+                                        item.dietaryType === 'Veg'
+                                          ? 'text-[#2F7D4F] font-semibold'
+                                          : 'text-[#B42318] font-semibold'
+                                      }
+                                    >
+                                      {item.dietaryType}
+                                    </span>{' '}
+                                    · {item.category}
+                                    {item.prepTimeMinutes ? ` · ${item.prepTimeMinutes} min` : ''}
+                                    {item.isBestseller ? ' · Bestseller' : ''}
+                                    {item.isRecommended ? ' · Recommended' : ''}
+                                  </p>
+                                  <h3 className="text-sm font-semibold text-[#1C1917] truncate">
+                                    {item.name}
+                                  </h3>
+                                </div>
+                                <span className="font-mono text-sm font-semibold text-[#6E1E2E] tabular-nums shrink-0">
+                                  {formatINR(item.price)}
+                                </span>
+                              </div>
+                              <p className="text-xs text-[#57534E] line-clamp-2">{item.description}</p>
+                              <div className="flex flex-wrap items-center gap-2 pt-1.5 border-t border-[#E5E0D8]">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleMenuItemAvailability(item.id)}
+                                  className={`px-2.5 py-1 text-[11px] font-semibold rounded border ${
+                                    item.available
+                                      ? 'bg-[#ECF4EE] border-[#BBD6C3] text-[#1C1917]'
+                                      : 'bg-[#FDF2F4] border-[#EAC4CC] text-[#8B1E35]'
+                                  }`}
+                                >
+                                  {item.available ? 'Available' : 'Unavailable'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => startEditMenuItem(item)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold border border-[#E5E0D8] rounded hover:bg-[#FAF9F6]"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                  <span>Edit</span>
+                                </button>
+                                {confirmDeleteItemId === item.id ? (
+                                  <div className="ml-auto flex items-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        deleteMenuItem(item.id);
+                                        setConfirmDeleteItemId(null);
+                                      }}
+                                      className="px-2 py-1 text-[11px] font-semibold bg-[#B42318] text-white rounded"
+                                    >
+                                      Confirm Delete
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setConfirmDeleteItemId(null)}
+                                      className="px-2 py-1 text-[11px] font-medium border border-[#E5E0D8] rounded"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmDeleteItemId(item.id)}
+                                    className="ml-auto px-2.5 py-1 text-[11px] font-semibold text-[#8B1E35] border border-[#E5E0D8] rounded hover:bg-[#FDF2F4]"
+                                  >
+                                    Delete
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* SECTION B: EXISTING PHOTO-BASED MENU GALLERY (PRESERVED) */}
+            {(menuViewTab === 'all' || menuViewTab === 'gallery') && (
+              <div className="space-y-5 pt-4 border-t border-[#E5E0D8]">
+                <div>
+                  <h2 className="text-xl font-semibold text-[#1C1917]">
+                    Printed Menu Page Gallery (Photo-Based Menu Pages)
+                  </h2>
+                  <p className="text-xs text-[#57534E] mt-0.5">
+                    Upload photographs of your complete printed menu pages. Customers can inspect these pages alongside your structured food items.
+                  </p>
+                </div>
+
+                <div className="bg-white border border-[#E5E0D8] rounded-lg p-5 flex flex-wrap items-end gap-3">
+                  <div className="flex-1 min-w-[200px]">
+                    <label className="block text-xs font-semibold mb-1">Menu Page Label</label>
+                    <input
+                      type="text"
+                      value={menuPageTitle}
+                      onChange={(e) => setMenuPageTitle(e.target.value)}
+                      placeholder="e.g., Starters, Curries & Breads Menu"
+                      className="w-full px-3 py-2 text-sm border border-[#E5E0D8] rounded-lg"
+                    />
+                  </div>
+                  <label className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg cursor-pointer hover:bg-[#541522]">
+                    <Upload className="w-4 h-4" />
+                    <span>Upload Menu Page Photos</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) =>
+                        readFilesAsDataUrls(e.target.files, (urls) => {
+                          addMenuPhotos(
+                            urls.map((url, idx) => ({
+                              url,
+                              title: menuPageTitle.trim() || `Uploaded Menu Page ${idx + 1}`,
+                            }))
+                          );
+                          setMenuPageTitle('');
+                        })
+                      }
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      addMenuPhotos([
+                        {
+                          url: IMAGES.menuHeritage,
+                          title: menuPageTitle.trim() || 'Seasonal Specials Menu Sheet',
+                        },
+                      ])
+                    }
+                    className="px-4 py-2.5 text-xs font-semibold border border-[#E5E0D8] rounded-lg hover:bg-[#FAF9F6]"
+                  >
+                    + Add Sample Menu Page
+                  </button>
+                </div>
+
+                {activeRestaurant.menuPhotos.length === 0 ? (
+                  <div className="bg-white border border-[#E5E0D8] rounded-lg p-10 text-center text-sm text-[#57534E]">
+                    No menu photos uploaded yet. Upload your first menu page photograph above.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {activeRestaurant.menuPhotos.map((page, index) => (
+                      <div key={page.id} className="bg-white border border-[#E5E0D8] rounded-lg overflow-hidden flex flex-col">
+                        <button
+                          type="button"
+                          onClick={() => setMenuPreviewUrl({ url: page.url, title: page.title })}
+                          className="aspect-[3/4] w-full overflow-hidden bg-[#FAF9F6]"
+                        >
+                          <SafeImage src={page.url} alt={page.title} className="w-full h-full object-cover" />
+                        </button>
+                        <div className="p-4 space-y-3">
+                          <div>
+                            <p className="text-xs font-mono font-semibold text-[#6E1E2E]">
+                              Page {page.pageNumber}
+                            </p>
+                            <p className="text-sm font-semibold text-[#1C1917]">{page.title}</p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#E5E0D8]">
+                            <button
+                              type="button"
+                              disabled={index === 0}
+                              onClick={() => reorderMenuPhoto(page.id, 'up')}
+                              className="p-1.5 border border-[#E5E0D8] rounded disabled:opacity-40"
+                              title="Move page earlier"
+                            >
+                              <ArrowUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={index === activeRestaurant.menuPhotos.length - 1}
+                              onClick={() => reorderMenuPhoto(page.id, 'down')}
+                              className="p-1.5 border border-[#E5E0D8] rounded disabled:opacity-40"
+                              title="Move page later"
+                            >
+                              <ArrowDown className="w-3.5 h-3.5" />
+                            </button>
+                            <label className="px-2.5 py-1 text-xs font-medium border border-[#E5E0D8] rounded cursor-pointer hover:bg-[#FAF9F6]">
+                              Replace
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) =>
+                                  readFilesAsDataUrls(e.target.files, (urls) =>
+                                    replaceMenuPhoto(page.id, urls[0])
+                                  )
+                                }
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => deleteMenuPhoto(page.id)}
+                              className="ml-auto px-2.5 py-1 text-xs font-medium text-[#6E1E2E] border border-[#E5E0D8] rounded hover:bg-[#F3F1ED]"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1139,47 +1576,129 @@ export function RestaurantDashboard() {
               </div>
             </div>
 
-            {/* Incoming Pre-Orders */}
+            {/* Incoming Pre-Orders (Menu Cart & Plate Packages) */}
             <div className="space-y-3">
               <h2 className="text-lg font-semibold text-[#1C1917]">
-                Incoming Food Pre-Orders ({displayPreOrders.length})
+                Incoming Food Orders &amp; Pre-Orders ({displayPreOrders.length})
               </h2>
-              {displayPreOrders.map((po) => (
-                <div key={po.id} className="bg-white border border-[#E5E0D8] rounded-lg p-5 space-y-3">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <p className="text-xs font-mono font-semibold text-[#6E1E2E]">
-                        {po.id} · {formatDisplayDate(po.date)} at {po.time}
-                      </p>
-                      <h3 className="text-lg font-semibold text-[#1C1917]">
-                        {po.customerName} — {po.plateCount} × {po.packageName}
-                      </h3>
-                      <p className="text-xs text-[#57534E]">
-                        Preference: {po.foodPreference} · Total: {formatINR(po.totalFoodAmount)} · Advance ({po.advancePercent}%): {formatINR(po.advanceAmount)} ({po.advancePaid ? 'DEMO PAID' : 'Unpaid'}) · Remaining at Venue: {formatINR(po.remainingAmount)}
-                      </p>
+              {displayPreOrders.map((po) => {
+                const isMenuCart = po.orderSource === 'menu_cart' && po.items && po.items.length > 0;
+                const payStatusLabel =
+                  po.paymentStatus ||
+                  (po.orderMode === 'Order at Restaurant'
+                    ? 'Pay at Restaurant'
+                    : po.advancePaid
+                      ? 'Advance Paid'
+                      : 'Advance Pending');
+                return (
+                  <div key={po.id} className="bg-white border border-[#E5E0D8] rounded-lg p-5 space-y-3.5">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-mono font-semibold text-[#6E1E2E]">
+                          {po.id} · {formatDisplayDate(po.date)} at {po.time} ·{' '}
+                          {po.orderMode || 'Pre-Order Advance'}
+                        </p>
+                        <h3 className="text-lg font-semibold text-[#1C1917] mt-0.5">
+                          {po.customerName}{' '}
+                          <span className="text-xs font-normal text-[#57534E] tabular-nums">
+                            ({po.customerPhone})
+                          </span>
+                        </h3>
+                        <p className="text-xs text-[#57534E]">
+                          {isMenuCart
+                            ? `${po.items!.length} dish(es) · ${po.plateCount} total qty`
+                            : `${po.plateCount} × ${po.packageName}`}{' '}
+                          · {po.foodPreference}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-1 text-[11px] font-semibold rounded border border-[#E5E0D8] bg-[#FAF9F6] text-[#1C1917]">
+                          {payStatusLabel}
+                        </span>
+                        <StatusBadge status={po.status} />
+                      </div>
                     </div>
-                    <StatusBadge status={po.status} />
+
+                    {isMenuCart && (
+                      <div className="border border-[#E5E0D8] rounded-lg overflow-hidden">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="bg-[#FAF9F6] border-b border-[#E5E0D8] text-[#57534E]">
+                              <th className="py-2 px-3 font-semibold">Dish</th>
+                              <th className="py-2 px-3 font-semibold">Type</th>
+                              <th className="py-2 px-3 font-semibold text-right">Qty</th>
+                              <th className="py-2 px-3 font-semibold text-right">Unit Price</th>
+                              <th className="py-2 px-3 font-semibold text-right">Subtotal</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#E5E0D8]">
+                            {po.items!.map((oi) => (
+                              <tr key={oi.id}>
+                                <td className="py-2 px-3 font-medium text-[#1C1917]">{oi.itemName}</td>
+                                <td className="py-2 px-3 text-[#57534E]">{oi.dietaryType}</td>
+                                <td className="py-2 px-3 text-right font-mono tabular-nums">{oi.quantity}</td>
+                                <td className="py-2 px-3 text-right font-mono tabular-nums">
+                                  {formatINR(oi.unitPrice)}
+                                </td>
+                                <td className="py-2 px-3 text-right font-mono font-semibold tabular-nums">
+                                  {formatINR(oi.subtotal)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {po.specialInstructions && (
+                      <div className="px-3.5 py-2.5 rounded-lg bg-[#FAF9F6] border border-[#E5E0D8] text-xs">
+                        <span className="font-semibold text-[#1C1917]">Special Instructions: </span>
+                        <span className="text-[#57534E]">{po.specialInstructions}</span>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-3 gap-3 bg-[#FAF9F6]/70 border border-[#E5E0D8] rounded-lg p-3 text-xs tabular-nums">
+                      <div>
+                        <p className="text-[#57534E]">Order Total</p>
+                        <p className="font-mono font-semibold text-[#1C1917]">
+                          {formatINR(po.totalFoodAmount)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[#57534E]">Advance ({po.advancePercent}%)</p>
+                        <p className="font-mono font-semibold text-[#6E1E2E]">
+                          {formatINR(po.advanceAmount)} ({po.advancePaid ? 'Paid' : payStatusLabel})
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[#57534E]">Remaining at Venue</p>
+                        <p className="font-mono font-semibold text-[#1C1917]">
+                          {formatINR(po.remainingAmount)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {(
+                        ['Accepted', 'Preparing', 'Ready', 'Completed', 'Rejected'] as PreOrderStatus[]
+                      ).map((st) => (
+                        <button
+                          key={st}
+                          type="button"
+                          onClick={() => updatePreOrderStatus(po.id, st)}
+                          className={`px-3 py-1.5 text-xs font-semibold rounded border ${
+                            po.status === st
+                              ? 'bg-[#6E1E2E] text-white border-[#6E1E2E]'
+                              : 'border-[#E5E0D8] hover:bg-[#FAF9F6]'
+                          }`}
+                        >
+                          {st}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {(
-                      ['Accepted', 'Preparing', 'Ready', 'Completed', 'Rejected'] as PreOrderStatus[]
-                    ).map((st) => (
-                      <button
-                        key={st}
-                        type="button"
-                        onClick={() => updatePreOrderStatus(po.id, st)}
-                        className={`px-3 py-1.5 text-xs font-semibold rounded border ${
-                          po.status === st
-                            ? 'bg-[#6E1E2E] text-white border-[#6E1E2E]'
-                            : 'border-[#E5E0D8] hover:bg-[#FAF9F6]'
-                        }`}
-                      >
-                        {st}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Pre-Order Plate Package Builder */}

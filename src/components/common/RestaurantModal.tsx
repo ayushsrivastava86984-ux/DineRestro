@@ -10,15 +10,26 @@ import {
   Lock,
   MapPin,
   MessageSquarePlus,
+  Minus,
   PartyPopper,
   Phone,
+  Plus,
+  Search,
+  ShoppingBag,
   Star,
+  Trash2,
   Utensils,
   X,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { SafeImage } from './SafeImage';
 import { PaymentBreakdownCard } from './PaymentBreakdownCard';
+import { MENU_CATEGORIES } from '../../data/mockData';
+import type { FoodPreOrder, MenuItem } from '../../types';
+import {
+  calculateCartOrderTotals,
+  type CartOrderMode,
+} from '../../utils/foodOrderHelpers';
 import {
   MAX_CELEBRATION_NOTE_LENGTH,
   formatDisplayDate,
@@ -53,18 +64,38 @@ export function RestaurantModal() {
     toggleFavorite,
     customerUser,
     offers,
+    menuItems,
+    cart,
+    addToCart,
+    replaceCartWithItem,
+    updateCartItemQuantity,
+    removeFromCart,
+    clearCart,
     preOrderPackages,
     celebrationPackages,
     reviews,
     platformSettings,
     createTableReservation,
     createFoodPreOrder,
+    createCartFoodOrder,
     createCelebrationBooking,
     openDemoPayment,
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'book' | 'preorder' | 'celebrate'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'menu' | 'book' | 'preorder' | 'celebrate'>('overview');
   const [lightboxImage, setLightboxImage] = useState<{ url: string; title: string } | null>(null);
+
+  // Interactive Menu & Cart Ordering state
+  const [menuSearch, setMenuSearch] = useState('');
+  const [menuCategoryFilter, setMenuCategoryFilter] = useState<string>('All');
+  const [menuDietaryFilter, setMenuDietaryFilter] = useState<'All' | 'Veg' | 'Non-Veg'>('All');
+  const [cartConflictItem, setCartConflictItem] = useState<MenuItem | null>(null);
+  const [cartOrderMode, setCartOrderMode] = useState<CartOrderMode>('Pre-Order Advance');
+  const [cartDate, setCartDate] = useState(getTodayISO());
+  const [cartTime, setCartTime] = useState('08:00 PM');
+  const [cartSpecialInstructions, setCartSpecialInstructions] = useState('');
+  const [showCartReview, setShowCartReview] = useState(false);
+  const [confirmedCartOrder, setConfirmedCartOrder] = useState<FoodPreOrder | null>(null);
 
   // A. Multi-step Book a Table state
   const [tableStep, setTableStep] = useState<1 | 2 | 3>(1);
@@ -106,6 +137,9 @@ export function RestaurantModal() {
   const restOffers = restaurant
     ? offers.filter((o) => o.active && o.restaurantId === restaurant.id)
     : [];
+  const restMenuItems = restaurant
+    ? menuItems.filter((m) => m.restaurantId === restaurant.id)
+    : [];
   const restPrePackages = restaurant
     ? preOrderPackages.filter((p) => p.restaurantId === restaurant.id && p.available)
     : [];
@@ -136,10 +170,35 @@ export function RestaurantModal() {
       setFormError('');
       setTableConfirmedRef(null);
       setPreOrderConfirmedRef(null);
+      setConfirmedCartOrder(null);
+      setShowCartReview(false);
+      setCartConflictItem(null);
+      setMenuSearch('');
+      setMenuCategoryFilter('All');
+      setMenuDietaryFilter('All');
       setCelConfirmedInfo(null);
-      setGuestName(customerUser.fullName);
-      setGuestPhone(customerUser.mobile);
+      setGuestName(matchingDraft?.preOrderGuestName || customerUser.fullName);
+      setGuestPhone(matchingDraft?.preOrderGuestPhone || customerUser.mobile);
       setCelEmail(customerUser.email);
+
+      if (matchingDraft?.preOrderDate) setCartDate(matchingDraft.preOrderDate);
+      if (matchingDraft?.preOrderTime) setCartTime(matchingDraft.preOrderTime);
+      if (matchingDraft?.preOrderMode) {
+        setCartOrderMode(
+          matchingDraft.preOrderMode === 'Order at Restaurant'
+            ? 'Order at Restaurant'
+            : 'Pre-Order Advance'
+        );
+      }
+      if (matchingDraft?.preOrderSpecialInstructions !== undefined) {
+        setCartSpecialInstructions(matchingDraft.preOrderSpecialInstructions);
+      }
+      if (
+        (restoredBookingDraft?.tab === 'menu' || modalInitialTab === 'menu') &&
+        matchingDraft
+      ) {
+        setShowCartReview(true);
+      }
 
       if (matchingDraft?.tableDate) setTableDate(matchingDraft.tableDate);
       if (matchingDraft?.tableTime) setTableTime(matchingDraft.tableTime);
@@ -198,8 +257,138 @@ export function RestaurantModal() {
   const celAdvAmt = Math.round((celTotalAmt * celAdvPercent) / 100);
   const celRemainingAmt = celTotalAmt - celAdvAmt;
 
+  const restaurantCart =
+    cart && cart.restaurantId === restaurant.id ? cart : null;
+  const restaurantCartCount = restaurantCart
+    ? restaurantCart.items.reduce((sum, i) => sum + i.quantity, 0)
+    : 0;
+  const cartTotals = calculateCartOrderTotals(
+    restaurantCart?.items || [],
+    restaurantAdvancePercent,
+    cartOrderMode
+  );
+
+  const availableCategoriesForRest = MENU_CATEGORIES.filter((cat) =>
+    restMenuItems.some((item) => item.category === cat)
+  );
+  const filteredMenuItems = restMenuItems.filter((item) => {
+    const q = menuSearch.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
+      item.name.toLowerCase().includes(q) ||
+      item.description.toLowerCase().includes(q) ||
+      item.category.toLowerCase().includes(q);
+    const matchesCategory =
+      menuCategoryFilter === 'All' || item.category === menuCategoryFilter;
+    const matchesDietary =
+      menuDietaryFilter === 'All' || item.dietaryType === menuDietaryFilter;
+    return matchesSearch && matchesCategory && matchesDietary;
+  });
+
+  const handleAddDishToCart = (item: MenuItem) => {
+    setFormError('');
+    setConfirmedCartOrder(null);
+    const res = addToCart(restaurant, item);
+    if (!res.added && res.reason === 'different_restaurant') {
+      setCartConflictItem(item);
+    }
+  };
+
+  const handleReviewCartCheckout = () => {
+    setFormError('');
+    if (!restaurantCart || restaurantCart.items.length === 0) {
+      setFormError('Add at least one available dish to your cart before reviewing.');
+      return;
+    }
+    const unavailableInCart = restaurantCart.items.find((ci) => {
+      const live = restMenuItems.find((m) => m.id === ci.menuItemId);
+      return !live || !live.available;
+    });
+    if (unavailableInCart) {
+      setFormError(`"${unavailableInCart.name}" is currently unavailable. Please remove it from your cart.`);
+      return;
+    }
+    if (!guestName.trim() || !validateIndianMobile(guestPhone)) {
+      setFormError('Please enter a valid guest name and 10-digit mobile number.');
+      return;
+    }
+    setShowCartReview(true);
+  };
+
+  const handleConfirmCartOrder = () => {
+    setFormError('');
+    if (!restaurantCart || restaurantCart.items.length === 0) {
+      setFormError('Your cart is empty.');
+      return;
+    }
+    if (role !== 'customer') {
+      redirectToCustomerLoginWithDraft('menu');
+      return;
+    }
+
+    if (cartOrderMode === 'Order at Restaurant') {
+      try {
+        const created = createCartFoodOrder({
+          restaurant,
+          date: cartDate,
+          time: cartTime,
+          customerName: guestName.trim(),
+          customerPhone: guestPhone.trim(),
+          specialInstructions: cartSpecialInstructions.trim(),
+          orderMode: 'Order at Restaurant',
+        });
+        setConfirmedCartOrder(created);
+        setShowCartReview(false);
+        setCartSpecialInstructions('');
+      } catch (err) {
+        setFormError(err instanceof Error ? err.message : 'Unable to submit order.');
+      }
+      return;
+    }
+
+    openDemoPayment({
+      title: `Food Pre-Order Advance (${cartTotals.advancePercent}% · DEMO ONLY)`,
+      referenceId: `ORD-${restaurant.id.slice(-4).toUpperCase()}`,
+      paymentType: 'Food Pre-Order Advance',
+      customerName: guestName.trim(),
+      restaurantName: restaurant.name,
+      amount: cartTotals.advanceAmount,
+      breakdownLines: [
+        {
+          label: 'Selected Dishes',
+          value: `${cartTotals.distinctItemsCount} dish(es) · ${cartTotals.totalQuantity} qty`,
+        },
+        { label: 'Food Subtotal', value: formatINR(cartTotals.totalFoodAmount) },
+        { label: 'Additional Charges', value: '₹0 (No platform table fee)' },
+        {
+          label: `Advance Payable Now (${cartTotals.advancePercent}%)`,
+          value: formatINR(cartTotals.advanceAmount),
+        },
+        {
+          label: 'Remaining Amount at Restaurant',
+          value: formatINR(cartTotals.remainingAmount),
+        },
+      ],
+      onComplete: (txnId) => {
+        const created = createCartFoodOrder({
+          restaurant,
+          date: cartDate,
+          time: cartTime,
+          customerName: guestName.trim(),
+          customerPhone: guestPhone.trim(),
+          specialInstructions: cartSpecialInstructions.trim(),
+          orderMode: 'Pre-Order Advance',
+          transactionId: txnId,
+        });
+        setConfirmedCartOrder(created);
+        setShowCartReview(false);
+        setCartSpecialInstructions('');
+      },
+    });
+  };
+
   const redirectToCustomerLoginWithDraft = (
-    tab: 'book' | 'preorder' | 'celebrate'
+    tab: 'menu' | 'book' | 'preorder' | 'celebrate'
   ) => {
     requireCustomerAuth({
       kind: 'restaurant_modal',
@@ -213,8 +402,17 @@ export function RestaurantModal() {
         tableTier,
         selectedOfferId,
         tableNotes,
-        preOrderDate,
-        preOrderTime,
+        preOrderDate: tab === 'menu' ? cartDate : preOrderDate,
+        preOrderTime: tab === 'menu' ? cartTime : preOrderTime,
+        preOrderMode:
+          tab === 'menu'
+            ? cartOrderMode === 'Order at Restaurant'
+              ? 'Order at Restaurant'
+              : 'Pre-order Food'
+            : preOrderMode,
+        preOrderSpecialInstructions: cartSpecialInstructions,
+        preOrderGuestName: guestName,
+        preOrderGuestPhone: guestPhone,
         plateCount,
         selectedPrePkgId: chosenPrePkg?.id,
         foodPreference,
@@ -503,10 +701,17 @@ export function RestaurantModal() {
         {/* Navigation Tabs */}
         <div className="px-4 sm:px-5 py-3 border-b border-[#E5E0D8] bg-[#FAF9F6] flex flex-wrap items-center gap-2 shrink-0">
           {[
-            { id: 'overview' as const, label: 'Profile, Menu Photos & Gallery' },
-            { id: 'book' as const, label: 'A. Book a Table' },
-            { id: 'preorder' as const, label: 'B. Pre-Order Food' },
-            { id: 'celebrate' as const, label: 'C. Celebrate an Occasion' },
+            { id: 'overview' as const, label: 'Profile & Gallery' },
+            {
+              id: 'menu' as const,
+              label:
+                restaurantCartCount > 0
+                  ? `Menu & Order (${restaurantCartCount})`
+                  : 'Menu & Order',
+            },
+            { id: 'book' as const, label: 'Book a Table' },
+            { id: 'preorder' as const, label: 'Plate Packages' },
+            { id: 'celebrate' as const, label: 'Celebrate' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -515,13 +720,14 @@ export function RestaurantModal() {
                 setActiveTab(tab.id);
                 setFormError('');
               }}
-              className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
+              className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap inline-flex items-center gap-1.5 ${
                 activeTab === tab.id
                   ? 'bg-[#6E1E2E] text-white'
                   : 'bg-white text-[#1C1917] border border-[#E5E0D8] hover:border-[#6E1E2E]'
               }`}
             >
-              {tab.label}
+              {tab.id === 'menu' && <ShoppingBag className="w-3.5 h-3.5 shrink-0" />}
+              <span>{tab.label}</span>
             </button>
           ))}
         </div>
@@ -531,7 +737,11 @@ export function RestaurantModal() {
             <div className="px-4 py-2.5 rounded-lg bg-[#FAF9F6] border border-[#6E1E2E]/30 text-xs text-[#6E1E2E] flex items-center justify-between gap-2">
               <span className="inline-flex items-center gap-1.5 font-medium">
                 <Lock className="w-3.5 h-3.5 shrink-0" />
-                <span>Customer login is required to complete any booking. Your selections will be preserved.</span>
+                <span>
+                  {activeTab === 'menu'
+                    ? 'Browse the menu and build your cart freely. Customer login is checked only when confirming checkout; your cart will stay saved.'
+                    : 'Customer login is required to complete any booking. Your selections will be preserved.'}
+                </span>
               </span>
             </div>
           )}
@@ -570,7 +780,18 @@ export function RestaurantModal() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('menu')}
+                  className="text-left p-4 rounded-lg border border-[#6E1E2E]/40 bg-[#FAF9F6] hover:border-[#6E1E2E] transition-colors"
+                >
+                  <p className="text-xs font-semibold text-[#6E1E2E]">Menu &amp; Cart</p>
+                  <p className="text-base font-semibold text-[#1C1917] mt-0.5">Order From Menu</p>
+                  <p className="text-xs text-[#57534E] mt-1 tabular-nums">
+                    {restMenuItems.filter((m) => m.available).length} dishes · {restaurantAdvancePercent}% advance or ₹0 pay at table.
+                  </p>
+                </button>
                 <button
                   type="button"
                   onClick={() => {
@@ -591,9 +812,9 @@ export function RestaurantModal() {
                   className="text-left p-4 rounded-lg border border-[#E5E0D8] bg-[#FAF9F6]/60 hover:border-[#6E1E2E] transition-colors"
                 >
                   <p className="text-xs font-semibold text-[#6E1E2E]">Option B</p>
-                  <p className="text-base font-semibold text-[#1C1917] mt-0.5">Pre-Order Food</p>
+                  <p className="text-base font-semibold text-[#1C1917] mt-0.5">Plate Packages</p>
                   <p className="text-xs text-[#57534E] mt-1">
-                    Menu photos + plate packages ({restaurantAdvancePercent}% restaurant advance) or Order at Restaurant.
+                    Curated multi-course plate sets ({restaurantAdvancePercent}% restaurant advance).
                   </p>
                 </button>
                 <button
@@ -602,9 +823,9 @@ export function RestaurantModal() {
                   className="text-left p-4 rounded-lg border border-[#E5E0D8] bg-[#FAF9F6]/60 hover:border-[#6E1E2E] transition-colors"
                 >
                   <p className="text-xs font-semibold text-[#6E1E2E]">Option C</p>
-                  <p className="text-base font-semibold text-[#1C1917] mt-0.5">Celebrate an Occasion</p>
+                  <p className="text-base font-semibold text-[#1C1917] mt-0.5">Celebrate</p>
                   <p className="text-xs text-[#57534E] mt-1">
-                    Ready celebration packages with ₹0 decoration &amp; optional special instructions.
+                    Ready celebration packages with ₹0 decoration &amp; optional instructions.
                   </p>
                 </button>
               </div>
@@ -634,13 +855,25 @@ export function RestaurantModal() {
               </div>
 
               <div>
-                <div className="flex items-baseline justify-between mb-2.5">
-                  <h3 className="text-base font-semibold text-[#1C1917]">
-                    Restaurant Menu Gallery (Uploaded Menu Pages)
-                  </h3>
-                  <span className="text-xs text-[#57534E] tabular-nums">
-                    {restaurant.menuPhotos.length} page(s)
-                  </span>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                  <div className="flex items-baseline gap-2.5">
+                    <h3 className="text-base font-semibold text-[#1C1917]">
+                      Restaurant Menu Gallery (Uploaded Menu Pages)
+                    </h3>
+                    <span className="text-xs text-[#57534E] tabular-nums">
+                      {restaurant.menuPhotos.length} page(s)
+                    </span>
+                  </div>
+                  {restMenuItems.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('menu')}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#6E1E2E] bg-[#FAF9F6] border border-[#6E1E2E]/40 rounded-lg hover:bg-[#6E1E2E] hover:text-white transition-colors"
+                    >
+                      <ShoppingBag className="w-3.5 h-3.5" />
+                      <span>Order Individual Dishes ({restMenuItems.length})</span>
+                    </button>
+                  )}
                 </div>
                 {restaurant.menuPhotos.length === 0 ? (
                   <p className="text-xs text-[#57534E]">No menu photographs uploaded yet.</p>
@@ -723,6 +956,666 @@ export function RestaurantModal() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* TAB 2: INTERACTIVE MENU & CART ORDERING */}
+          {activeTab === 'menu' && (
+            <div className="space-y-5">
+              <div className="flex flex-wrap items-baseline justify-between gap-2 pb-3 border-b border-[#E5E0D8]">
+                <div>
+                  <h3 className="font-display text-2xl font-semibold text-[#1C1917]">
+                    Menu &amp; Food Pre-Order — {restaurant.name}
+                  </h3>
+                  <p className="text-xs text-[#57534E] mt-0.5">
+                    Select dishes directly into your cart. Choose{' '}
+                    <strong className="text-[#6E1E2E]">
+                      {restaurantAdvancePercent}% Pre-Order Advance
+                    </strong>{' '}
+                    or <strong className="text-[#1C1917]">Order at Restaurant (₹0 advance)</strong>. No table booking fee applies to food orders.
+                  </p>
+                </div>
+                {restaurant.menuPhotos.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setLightboxImage({
+                        url: restaurant.menuPhotos[0].url,
+                        title: restaurant.menuPhotos[0].title,
+                      })
+                    }
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-[#E5E0D8] rounded-lg bg-white text-[#1C1917] hover:border-[#6E1E2E]"
+                  >
+                    <ImageIcon className="w-3.5 h-3.5 text-[#6E1E2E]" />
+                    <span>View Printed Menu Pages ({restaurant.menuPhotos.length})</span>
+                  </button>
+                )}
+              </div>
+
+              {cartConflictItem && cart && cart.restaurantId !== restaurant.id && (
+                <div className="p-4 rounded-lg border border-[#6E1E2E]/50 bg-[#FDF2F4] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-semibold text-[#6E1E2E]">
+                      Cart Locked to {cart.restaurantName}
+                    </p>
+                    <p className="text-xs text-[#1C1917]">
+                      Your cart currently holds {cart.items.length} item(s) from{' '}
+                      <strong>{cart.restaurantName}</strong>. Clear your existing cart to add{' '}
+                      <strong>{cartConflictItem.name}</strong> from {restaurant.name}?
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setCartConflictItem(null)}
+                      className="px-3 py-1.5 text-xs font-semibold border border-[#D6CFC5] bg-white text-[#1C1917] rounded-lg"
+                    >
+                      Keep Existing Cart
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        replaceCartWithItem(restaurant, cartConflictItem);
+                        setCartConflictItem(null);
+                      }}
+                      className="px-3 py-1.5 text-xs font-semibold bg-[#6E1E2E] text-white rounded-lg hover:bg-[#541522]"
+                    >
+                      Clear Cart &amp; Add Dish
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {/* Left Column: Menu Filters + Dish List */}
+                <div className="lg:col-span-7 space-y-4">
+                  <div className="flex flex-col sm:flex-row gap-2.5">
+                    <div className="relative flex-1">
+                      <Search className="w-4 h-4 text-[#57534E] absolute left-3 top-2.5 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={menuSearch}
+                        onChange={(e) => setMenuSearch(e.target.value)}
+                        placeholder="Search dishes, ingredients, or category..."
+                        aria-label="Search restaurant menu"
+                        className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-[#E5E0D8] rounded-lg focus:outline-none focus:border-[#6E1E2E]"
+                      />
+                    </div>
+                    <div className="inline-flex rounded-lg border border-[#E5E0D8] bg-[#FAF9F6] p-0.5 shrink-0">
+                      {(['All', 'Veg', 'Non-Veg'] as const).map((diet) => (
+                        <button
+                          key={diet}
+                          type="button"
+                          onClick={() => setMenuDietaryFilter(diet)}
+                          className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
+                            menuDietaryFilter === diet
+                              ? 'bg-[#6E1E2E] text-white'
+                              : 'text-[#57534E] hover:text-[#1C1917]'
+                          }`}
+                        >
+                          {diet}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {availableCategoriesForRest.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setMenuCategoryFilter('All')}
+                        className={`px-3 py-1 text-xs font-semibold rounded border transition-colors ${
+                          menuCategoryFilter === 'All'
+                            ? 'bg-[#1C1917] text-white border-[#1C1917]'
+                            : 'bg-white text-[#57534E] border-[#E5E0D8] hover:border-[#6E1E2E]'
+                        }`}
+                      >
+                        All ({restMenuItems.length})
+                      </button>
+                      {availableCategoriesForRest.map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setMenuCategoryFilter(cat)}
+                          className={`px-3 py-1 text-xs font-semibold rounded border transition-colors ${
+                            menuCategoryFilter === cat
+                              ? 'bg-[#1C1917] text-white border-[#1C1917]'
+                              : 'bg-white text-[#57534E] border-[#E5E0D8] hover:border-[#6E1E2E]'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {restMenuItems.length === 0 ? (
+                    <div className="p-6 border border-[#E5E0D8] rounded-lg bg-[#FAF9F6] text-center space-y-2">
+                      <p className="text-sm font-semibold text-[#1C1917]">
+                        No individual menu items published yet
+                      </p>
+                      <p className="text-xs text-[#57534E]">
+                        You can view printed menu pages in Profile &amp; Gallery or reserve a Plate Package.
+                      </p>
+                    </div>
+                  ) : filteredMenuItems.length === 0 ? (
+                    <div className="p-6 border border-[#E5E0D8] rounded-lg bg-[#FAF9F6] text-center space-y-2">
+                      <p className="text-sm font-semibold text-[#1C1917]">No dishes match your filter</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMenuSearch('');
+                          setMenuCategoryFilter('All');
+                          setMenuDietaryFilter('All');
+                        }}
+                        className="text-xs font-semibold text-[#6E1E2E] underline"
+                      >
+                        Reset menu filters
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {filteredMenuItems.map((item) => {
+                        const cartEntry = restaurantCart?.items.find(
+                          (ci) => ci.menuItemId === item.id
+                        );
+                        const qtyInCart = cartEntry?.quantity || 0;
+                        const isVeg = item.dietaryType === 'Veg';
+                        const metaParts = [
+                          item.category,
+                          item.prepTimeMinutes ? `${item.prepTimeMinutes} min` : null,
+                          item.isBestseller ? 'Bestseller' : null,
+                          item.isRecommended ? 'Recommended' : null,
+                        ].filter(Boolean);
+
+                        return (
+                          <div
+                            key={item.id}
+                            className={`border rounded-lg p-3.5 flex gap-3.5 transition-colors ${
+                              item.available
+                                ? 'border-[#E5E0D8] bg-white hover:border-[#6E1E2E]/40'
+                                : 'border-[#E5E0D8] bg-[#FAF9F6]/70 opacity-75'
+                            }`}
+                          >
+                            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden shrink-0 border border-[#E5E0D8] bg-[#FAF9F6]">
+                              <SafeImage
+                                src={item.imageUrl}
+                                alt={item.name}
+                                className="w-full h-full object-cover"
+                                fallbackTitle={item.name}
+                              />
+                            </div>
+
+                            <div className="flex-1 min-w-0 flex flex-col justify-between gap-2">
+                              <div>
+                                <div className="flex items-center gap-2 text-[11px] font-medium text-[#57534E]">
+                                  <span
+                                    className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-[2px] border shrink-0 ${
+                                      isVeg ? 'border-[#2F7D4F]' : 'border-[#B42318]'
+                                    }`}
+                                    aria-hidden="true"
+                                  >
+                                    <span
+                                      className={`w-1.5 h-1.5 rounded-full ${
+                                        isVeg ? 'bg-[#2F7D4F]' : 'bg-[#B42318]'
+                                      }`}
+                                    />
+                                  </span>
+                                  <span className={isVeg ? 'text-[#2F7D4F] font-semibold' : 'text-[#B42318] font-semibold'}>
+                                    {item.dietaryType}
+                                  </span>
+                                  <span aria-hidden="true">·</span>
+                                  <span className="truncate">{metaParts.join(' · ')}</span>
+                                </div>
+                                <h4 className="text-sm font-semibold text-[#1C1917] mt-0.5 leading-snug">
+                                  {item.name}
+                                </h4>
+                                <p className="text-xs text-[#57534E] mt-0.5 line-clamp-2">
+                                  {item.description}
+                                </p>
+                              </div>
+
+                              <div className="flex items-center justify-between gap-2 pt-1">
+                                <div className="flex items-baseline gap-2">
+                                  <span className="font-mono text-sm font-semibold text-[#1C1917] tabular-nums">
+                                    {formatINR(item.price)}
+                                  </span>
+                                  {!item.available && (
+                                    <span className="text-[11px] font-medium text-[#B42318]">
+                                      Unavailable
+                                    </span>
+                                  )}
+                                </div>
+
+                                {!item.available ? (
+                                  <button
+                                    type="button"
+                                    disabled
+                                    className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-[#E5E0D8] bg-[#FAF9F6] text-[#57534E] cursor-not-allowed"
+                                  >
+                                    Unavailable
+                                  </button>
+                                ) : qtyInCart > 0 ? (
+                                  <div className="inline-flex items-center border border-[#6E1E2E] rounded-lg overflow-hidden bg-white">
+                                    <button
+                                      type="button"
+                                      onClick={() => updateCartItemQuantity(item.id, -1)}
+                                      aria-label={`Decrease ${item.name} quantity`}
+                                      className="px-2.5 py-1.5 text-[#6E1E2E] hover:bg-[#FAF9F6]"
+                                    >
+                                      <Minus className="w-3.5 h-3.5" />
+                                    </button>
+                                    <span className="px-2.5 py-1 text-xs font-mono font-semibold text-[#1C1917] tabular-nums">
+                                      {qtyInCart}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => updateCartItemQuantity(item.id, 1)}
+                                      aria-label={`Increase ${item.name} quantity`}
+                                      className="px-2.5 py-1.5 text-[#6E1E2E] hover:bg-[#FAF9F6]"
+                                    >
+                                      <Plus className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAddDishToCart(item)}
+                                    className="inline-flex items-center gap-1 px-3.5 py-1.5 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522] transition-colors"
+                                  >
+                                    <Plus className="w-3.5 h-3.5" />
+                                    <span>Add</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Right Column: Restaurant-Locked Cart, Checkout & Review */}
+                <div className="lg:col-span-5 border border-[#E5E0D8] rounded-lg bg-[#FAF9F6] p-4 sm:p-5 space-y-4">
+                  {confirmedCartOrder ? (
+                    <div className="py-5 text-center space-y-3">
+                      <CheckCircle2 className="w-10 h-10 text-[#2F7D4F] mx-auto" />
+                      <h4 className="font-display text-2xl font-semibold text-[#1C1917]">
+                        Order Recorded ({confirmedCartOrder.id})
+                      </h4>
+                      <p className="text-xs text-[#57534E] leading-relaxed">
+                        {confirmedCartOrder.orderMode === 'Order at Restaurant'
+                          ? `Order at Restaurant confirmed for ${formatDisplayDate(confirmedCartOrder.date)} at ${confirmedCartOrder.time}. Total ${formatINR(confirmedCartOrder.totalFoodAmount)} payable directly at ${confirmedCartOrder.restaurantName}.`
+                          : `Pre-order advance of ${formatINR(confirmedCartOrder.advanceAmount)} (${confirmedCartOrder.advancePercent}%) recorded. Remaining ${formatINR(confirmedCartOrder.remainingAmount)} payable at ${confirmedCartOrder.restaurantName}.`}
+                      </p>
+                      <div className="text-left border border-[#E5E0D8] bg-white rounded-lg p-3 space-y-1.5 text-xs">
+                        {confirmedCartOrder.items?.map((oi) => (
+                          <div key={oi.id} className="flex items-center justify-between gap-2">
+                            <span className="text-[#1C1917] truncate">
+                              {oi.quantity} × {oi.itemName}
+                            </span>
+                            <span className="font-mono text-[#1C1917] tabular-nums shrink-0">
+                              {formatINR(oi.subtotal)}
+                            </span>
+                          </div>
+                        ))}
+                        {confirmedCartOrder.specialInstructions && (
+                          <p className="pt-1.5 border-t border-[#E5E0D8] text-[11px] text-[#57534E]">
+                            Note: {confirmedCartOrder.specialInstructions}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmedCartOrder(null)}
+                        className="w-full py-2 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
+                      >
+                        Start Another Menu Order
+                      </button>
+                    </div>
+                  ) : cart && cart.restaurantId !== restaurant.id && cart.items.length > 0 ? (
+                    <div className="space-y-3 text-center py-4">
+                      <ShoppingBag className="w-8 h-8 text-[#6E1E2E] mx-auto" />
+                      <h4 className="text-sm font-semibold text-[#1C1917]">
+                        Active Cart belongs to {cart.restaurantName}
+                      </h4>
+                      <p className="text-xs text-[#57534E]">
+                        DineRestro keeps each food order strictly tied to one restaurant ({cart.items.length} item(s) waiting in your {cart.restaurantName} cart).
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => clearCart()}
+                        className="px-4 py-2 text-xs font-semibold border border-[#D6CFC5] bg-white text-[#1C1917] rounded-lg hover:border-[#6E1E2E]"
+                      >
+                        Clear {cart.restaurantName} Cart
+                      </button>
+                    </div>
+                  ) : !restaurantCart || restaurantCart.items.length === 0 ? (
+                    <div className="py-6 text-center space-y-2.5">
+                      <ShoppingBag className="w-8 h-8 text-[#6E1E2E]/70 mx-auto" />
+                      <h4 className="text-sm font-semibold text-[#1C1917]">Your Cart is Empty</h4>
+                      <p className="text-xs text-[#57534E] leading-relaxed">
+                        Add individual dishes from {restaurant.name}&apos;s menu to build your food order. Pre-orders require a {restaurantAdvancePercent}% advance, or pick Order at Restaurant with ₹0 online advance.
+                      </p>
+                    </div>
+                  ) : showCartReview ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between border-b border-[#E5E0D8] pb-2.5">
+                        <div>
+                          <p className="text-[11px] font-semibold text-[#6E1E2E] uppercase tracking-wider">
+                            Step 2 · Review &amp; Confirm
+                          </p>
+                          <h4 className="text-base font-semibold text-[#1C1917]">
+                            {restaurant.name}
+                          </h4>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowCartReview(false)}
+                          className="text-xs font-semibold text-[#6E1E2E] hover:underline"
+                        >
+                          Edit Cart
+                        </button>
+                      </div>
+
+                      <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                        {restaurantCart.items.map((ci) => (
+                          <div
+                            key={ci.menuItemId}
+                            className="bg-white border border-[#E5E0D8] rounded-lg p-2.5 flex items-center gap-2.5 text-xs"
+                          >
+                            <div className="w-10 h-10 rounded overflow-hidden shrink-0 border border-[#E5E0D8]">
+                              <SafeImage src={ci.imageUrl} alt={ci.name} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-[#1C1917] truncate">{ci.name}</p>
+                              <p className="text-[11px] text-[#57534E] tabular-nums">
+                                {formatINR(ci.price)} × {ci.quantity}
+                              </p>
+                            </div>
+                            <span className="font-mono font-semibold text-[#1C1917] tabular-nums shrink-0">
+                              {formatINR(ci.price * ci.quantity)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="bg-white border border-[#E5E0D8] rounded-lg p-3 space-y-1.5 text-xs">
+                        <div className="flex justify-between gap-2">
+                          <span className="text-[#57534E]">Dining Slot</span>
+                          <span className="font-medium text-[#1C1917]">
+                            {formatDisplayDate(cartDate)} · {cartTime}
+                          </span>
+                        </div>
+                        <div className="flex justify-between gap-2">
+                          <span className="text-[#57534E]">Guest</span>
+                          <span className="font-medium text-[#1C1917]">
+                            {guestName} ({guestPhone})
+                          </span>
+                        </div>
+                        <div className="flex justify-between gap-2">
+                          <span className="text-[#57534E]">Order Type</span>
+                          <span className="font-semibold text-[#6E1E2E]">{cartOrderMode}</span>
+                        </div>
+                        {cartSpecialInstructions.trim() && (
+                          <div className="pt-1 border-t border-[#E5E0D8]">
+                            <p className="text-[#57534E]">Special Instructions:</p>
+                            <p className="text-[#1C1917]">{cartSpecialInstructions}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <PaymentBreakdownCard
+                        title="Order Payment Summary"
+                        rows={[
+                          { label: 'Food Subtotal', value: formatINR(cartTotals.totalFoodAmount) },
+                          { label: 'Additional Charges (No table fee)', value: '₹0' },
+                          { label: 'Total Amount', value: formatINR(cartTotals.totalFoodAmount), accent: true },
+                          {
+                            label: 'Remaining Payable at Restaurant',
+                            value: formatINR(cartTotals.remainingAmount),
+                          },
+                        ]}
+                        totalLabel={
+                          cartOrderMode === 'Order at Restaurant'
+                            ? 'Online Advance Payable Now'
+                            : `Advance Payable Now (${cartTotals.advancePercent}%)`
+                        }
+                        totalValue={formatINR(cartTotals.advanceAmount)}
+                      />
+
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowCartReview(false)}
+                          className="sm:w-1/3 py-2.5 text-xs font-semibold border border-[#D6CFC5] bg-white text-[#1C1917] rounded-lg hover:bg-[#F3F1ED]"
+                        >
+                          Back
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleConfirmCartOrder}
+                          className="sm:w-2/3 py-2.5 px-4 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522]"
+                        >
+                          {role !== 'customer'
+                            ? 'Sign In to Confirm Order'
+                            : cartOrderMode === 'Order at Restaurant'
+                              ? 'Confirm Order at Restaurant (₹0 Advance)'
+                              : `Pay ${cartTotals.advancePercent}% Advance (${formatINR(cartTotals.advanceAmount)})`}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between border-b border-[#E5E0D8] pb-2.5">
+                        <div>
+                          <h4 className="text-base font-semibold text-[#1C1917]">
+                            Your Cart ({cartTotals.totalQuantity} item{cartTotals.totalQuantity === 1 ? '' : 's'})
+                          </h4>
+                          <p className="text-[11px] text-[#57534E]">{restaurant.name}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => clearCart()}
+                          className="text-xs font-medium text-[#B42318] hover:underline"
+                        >
+                          Clear
+                        </button>
+                      </div>
+
+                      <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                        {restaurantCart.items.map((ci) => (
+                          <div
+                            key={ci.menuItemId}
+                            className="bg-white border border-[#E5E0D8] rounded-lg p-2.5 space-y-2"
+                          >
+                            <div className="flex items-start gap-2.5">
+                              <div className="w-11 h-11 rounded overflow-hidden shrink-0 border border-[#E5E0D8]">
+                                <SafeImage src={ci.imageUrl} alt={ci.name} className="w-full h-full object-cover" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold text-[#1C1917] truncate">
+                                  {ci.name}
+                                </p>
+                                <p className="text-[11px] text-[#57534E] tabular-nums">
+                                  {formatINR(ci.price)} each · {ci.dietaryType}
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeFromCart(ci.menuItemId)}
+                                aria-label={`Remove ${ci.name}`}
+                                className="p-1 text-[#57534E] hover:text-[#B42318]"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="inline-flex items-center border border-[#E5E0D8] rounded overflow-hidden bg-[#FAF9F6]">
+                                <button
+                                  type="button"
+                                  onClick={() => updateCartItemQuantity(ci.menuItemId, -1)}
+                                  aria-label={`Decrease ${ci.name}`}
+                                  className="px-2 py-1 text-[#1C1917] hover:bg-white"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                                <span className="px-2.5 text-xs font-mono font-semibold tabular-nums">
+                                  {ci.quantity}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => updateCartItemQuantity(ci.menuItemId, 1)}
+                                  aria-label={`Increase ${ci.name}`}
+                                  className="px-2 py-1 text-[#1C1917] hover:bg-white"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              </div>
+                              <span className="font-mono text-xs font-semibold text-[#1C1917] tabular-nums">
+                                {formatINR(ci.price * ci.quantity)}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Order Mode Selection */}
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-semibold text-[#1C1917]">Payment &amp; Order Mode</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setCartOrderMode('Pre-Order Advance')}
+                            className={`p-2.5 rounded-lg border text-left text-xs ${
+                              cartOrderMode === 'Pre-Order Advance'
+                                ? 'border-[#6E1E2E] bg-white'
+                                : 'border-[#E5E0D8] bg-[#FAF9F6]'
+                            }`}
+                          >
+                            <p className="font-semibold text-[#6E1E2E]">
+                              Pre-Order ({restaurantAdvancePercent}% Adv)
+                            </p>
+                            <p className="text-[11px] text-[#57534E] mt-0.5 tabular-nums">
+                              Pay {formatINR(calculateCartOrderTotals(restaurantCart.items, restaurantAdvancePercent, 'Pre-Order Advance').advanceAmount)} now
+                            </p>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCartOrderMode('Order at Restaurant')}
+                            className={`p-2.5 rounded-lg border text-left text-xs ${
+                              cartOrderMode === 'Order at Restaurant'
+                                ? 'border-[#6E1E2E] bg-white'
+                                : 'border-[#E5E0D8] bg-[#FAF9F6]'
+                            }`}
+                          >
+                            <p className="font-semibold text-[#1C1917]">Order at Restaurant</p>
+                            <p className="text-[11px] text-[#57534E] mt-0.5">₹0 online advance</p>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div>
+                          <label className="block text-[11px] font-semibold mb-1">Dining Date</label>
+                          <input
+                            type="date"
+                            value={cartDate}
+                            min={getTodayISO()}
+                            onChange={(e) => setCartDate(e.target.value)}
+                            className="w-full px-2.5 py-1.5 text-xs bg-white border border-[#E5E0D8] rounded-lg"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold mb-1">Arrival Time</label>
+                          <select
+                            value={cartTime}
+                            onChange={(e) => setCartTime(e.target.value)}
+                            className="w-full px-2.5 py-1.5 text-xs bg-white border border-[#E5E0D8] rounded-lg"
+                          >
+                            {TIME_SLOTS.map((s) => (
+                              <option key={s} value={s}>
+                                {s}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div>
+                          <label className="block text-[11px] font-semibold mb-1">Guest Name</label>
+                          <input
+                            type="text"
+                            value={guestName}
+                            onChange={(e) => setGuestName(e.target.value)}
+                            className="w-full px-2.5 py-1.5 text-xs bg-white border border-[#E5E0D8] rounded-lg"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold mb-1">Mobile Number</label>
+                          <input
+                            type="tel"
+                            value={guestPhone}
+                            onChange={(e) => setGuestPhone(e.target.value)}
+                            className="w-full px-2.5 py-1.5 text-xs bg-white border border-[#E5E0D8] rounded-lg"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold mb-1">
+                          Special Instructions (Optional)
+                        </label>
+                        <textarea
+                          rows={2}
+                          maxLength={400}
+                          value={cartSpecialInstructions}
+                          onChange={(e) => setCartSpecialInstructions(e.target.value)}
+                          placeholder="Spice level, allergy notes, serving timing..."
+                          className="w-full px-2.5 py-1.5 text-xs bg-white border border-[#E5E0D8] rounded-lg resize-y"
+                        />
+                      </div>
+
+                      <div className="bg-white border border-[#E5E0D8] rounded-lg p-3 space-y-1 text-xs tabular-nums">
+                        <div className="flex justify-between">
+                          <span className="text-[#57534E]">Food Total</span>
+                          <span className="font-semibold text-[#1C1917]">
+                            {formatINR(cartTotals.totalFoodAmount)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-[#57534E]">Additional Charges</span>
+                          <span className="font-medium text-[#2F7D4F]">₹0</span>
+                        </div>
+                        <div className="flex justify-between pt-1.5 border-t border-[#E5E0D8]">
+                          <span className="font-semibold text-[#1C1917]">
+                            {cartOrderMode === 'Order at Restaurant'
+                              ? 'Advance Now'
+                              : `Advance (${cartTotals.advancePercent}%)`}
+                          </span>
+                          <span className="font-mono font-semibold text-[#6E1E2E]">
+                            {formatINR(cartTotals.advanceAmount)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-[11px] text-[#57534E]">
+                          <span>Remaining at Restaurant</span>
+                          <span>{formatINR(cartTotals.remainingAmount)}</span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleReviewCartCheckout}
+                        className="w-full py-2.5 px-4 text-xs font-semibold text-white bg-[#6E1E2E] rounded-lg hover:bg-[#541522] transition-colors"
+                      >
+                        Review &amp; Confirm Order ({formatINR(cartTotals.totalFoodAmount)})
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 

@@ -129,7 +129,14 @@ export function RestaurantCard({ restaurant }: RestaurantCardProps) {
             onClick={() => openRestaurantModal(restaurant, 'overview')}
             className="flex-1 px-2.5 py-2 text-xs font-semibold text-[#1C1917] bg-white border border-[#D6CFC5] rounded-lg hover:bg-[#F3F1ED] hover:border-[#6E1E2E]/40 transition-colors whitespace-nowrap"
           >
-            View Details
+            Details
+          </button>
+          <button
+            type="button"
+            onClick={() => openRestaurantModal(restaurant, 'menu')}
+            className="flex-1 px-2.5 py-2 text-xs font-semibold text-[#6E1E2E] bg-[#FAF9F6] border border-[#6E1E2E]/40 rounded-lg hover:bg-[#6E1E2E]/10 transition-colors whitespace-nowrap"
+          >
+            Menu
           </button>
           <button
             type="button"

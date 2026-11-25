@@ -99,6 +99,61 @@ export interface MenuPagePhoto {
   pageNumber: number;
 }
 
+export type MenuCategoryName =
+  | 'Starters'
+  | 'Main Course'
+  | 'Biryani and Rice'
+  | 'Breads'
+  | 'Snacks'
+  | 'Desserts'
+  | 'Beverages'
+  | 'Combos';
+
+export interface MenuItem {
+  id: string;
+  restaurantId: string;
+  name: string;
+  description: string;
+  price: number;
+  category: MenuCategoryName;
+  dietaryType: 'Veg' | 'Non-Veg';
+  imageUrl: string;
+  available: boolean;
+  isBestseller?: boolean;
+  isRecommended?: boolean;
+  prepTimeMinutes?: number;
+}
+
+export interface CartItem {
+  menuItemId: string;
+  name: string;
+  description: string;
+  price: number;
+  category: MenuCategoryName;
+  dietaryType: 'Veg' | 'Non-Veg';
+  imageUrl: string;
+  quantity: number;
+}
+
+export interface RestaurantCart {
+  restaurantId: string;
+  restaurantName: string;
+  items: CartItem[];
+}
+
+export interface FoodOrderItemSnapshot {
+  id: string;
+  menuItemId: string;
+  itemName: string;
+  itemDescription: string;
+  category: MenuCategoryName;
+  dietaryType: 'Veg' | 'Non-Veg';
+  imageUrl: string;
+  unitPrice: number;
+  quantity: number;
+  subtotal: number;
+}
+
 export interface PlateCourseItem {
   id: string;
   course:
@@ -233,6 +288,11 @@ export interface FoodPreOrder {
   plateCount: number;
   pricePerPlate: number;
   foodPreference: string;
+  orderSource?: 'menu_cart' | 'plate_package';
+  orderMode?: 'Pre-Order Advance' | 'Order at Restaurant';
+  items?: FoodOrderItemSnapshot[];
+  specialInstructions?: string;
+  paymentStatus?: 'Advance Paid' | 'Pay at Restaurant' | 'Unpaid';
   totalFoodAmount: number;
   advancePercent: number;
   advanceAmount: number;
@@ -280,7 +340,7 @@ export interface CelebrationBooking {
 export interface PendingBookingIntent {
   kind: 'restaurant_modal' | 'events_package';
   restaurantId?: string;
-  tab?: 'overview' | 'book' | 'preorder' | 'celebrate';
+  tab?: 'overview' | 'menu' | 'book' | 'preorder' | 'celebrate';
   celebrationPackageId?: string;
   returnPath: string;
   draft?: {
@@ -295,6 +355,10 @@ export interface PendingBookingIntent {
     plateCount?: number;
     selectedPrePkgId?: string;
     foodPreference?: string;
+    preOrderMode?: 'Pre-order Food' | 'Order at Restaurant';
+    preOrderSpecialInstructions?: string;
+    preOrderGuestName?: string;
+    preOrderGuestPhone?: string;
     celDate?: string;
     celTime?: string;
     celPlates?: number;
